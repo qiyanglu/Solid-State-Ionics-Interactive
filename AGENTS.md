@@ -39,6 +39,14 @@ self-contained notebooks over framework-building.
   charge, phi_0 = (phi_0 - phi_1) + phi_1, series differential capacitance, and
   reaction-plane concentrations evaluated at x = x_1. Use a signed reactant
   charge number in the Boltzmann factor.
+- In Module 05, keep a one-dimensional ideal H <-> H+ + e- pair with local bulk
+  electroneutrality c_i = c_e = c, two ion-blocking/electron-reversible
+  electrodes, and the lecture voltage convention
+  U = (mu_tilde_e(L) - mu_tilde_e(0))/F.
+- Preserve mu = mu_i + mu_e = 2 RT ln(c/c_bar),
+  D_delta = 2 D_i D_e/(D_i + D_e), total ion conservation, and zero ionic flux
+  at both boundaries. Support constant current and constant potential without
+  assuming the transient concentration or potential profiles.
 - If a species set or thermodynamic constant changes, explain the scientific
   reason and update the displayed assumptions and validation checks together.
 
@@ -72,7 +80,12 @@ Before handing off a change:
    exact Gouy-Chapman profile and Gauss law, Mott-Schottky boundaries and
    Poisson curvature, GCS charge and voltage matching, series capacitance,
    Frumkin reaction-plane consistency, positivity, and finiteness.
-7. Run git diff --check and review all rendered figures at projector scale.
+7. For Module 05, check the uniform initial state, total-ion conservation,
+   positivity, the selected electrical drive, the initial total-conductivity
+   response, zero ionic boundary flux, chemical-diffusivity identity,
+   electrochemical-potential decomposition, measured voltage, and late-time
+   steady state.
+8. Run git diff --check and review all rendered figures at projector scale.
 
 Do not weaken numerical tolerances simply to silence a failed physics check;
 identify whether the model, regime test, or implementation is responsible.

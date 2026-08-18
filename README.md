@@ -23,6 +23,7 @@ curves.
 | 02 | Brouwer Diagram for Acceptor-Doped SrTiO3 | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/02-brouwer-sto/) |
 | 03 | Defect Transport: From Atomic Hopping to Chemical Diffusion | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/03-defect-transport/) |
 | 04 | Space-Charge Layers and the Frumkin Effect | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/04-space-charge-frumkin/) |
+| 05 | Stoichiometry Polarization in a Mixed Conductor | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/05-stoichiometry-polarization/) |
 
 ### Module 01: Defect Formation Thermodynamics
 
@@ -154,6 +155,45 @@ T = 800 K, c_i,infinity = 10^18 cm^-3, epsilon_r = 100, z = 1,
 phi_0 = 0.16 V, and C_s = 20 microF/cm^2. Marcus theory and specific adsorption
 are deliberately left outside this module.
 
+### Module 05: Stoichiometry Polarization
+
+[05_stoichiometry_polarization.py](05_stoichiometry_polarization.py) follows
+the lecture's one-dimensional slab from x = 0 to L. It uses an explicit ideal
+pair reaction
+
+~~~text
+H <-> H+ + e-
+c_i = c_e = c(x,t)
+~~~
+
+with two electrodes that pass electrons but block ions. The notebook derives
+the coupled transport model from the two electrochemical-potential gradients,
+giving
+
+~~~text
+J_i = t_i j/F - D_delta dc/dx
+D_delta = 2 D_i D_e / (D_i + D_e)
+J_i(0,t) = J_i(L,t) = 0.
+~~~
+
+This explicit species model gives mu = mu_i + mu_e = 2 RT ln(c/c_bar). The
+notebook therefore retains the factor 1/2 in the small-polarization boundary
+coefficient instead of importing a coefficient that belongs to a different
+chemical-potential model.
+
+Students can impose either constant current or constant potential. The
+conductivity ratio sigma_e/sigma_i controls the carrier bottleneck, while the
+total conductivity sets the initial Ohmic scale. Interactive figures show the
+full concentration history, voltage/current relaxation, and separate chemical,
+electrical, and electrochemical potentials of the ion and electron. The
+current-controlled case uses the lecture Fourier solution; the
+voltage-controlled case solves the feedback between polarization and current.
+
+The defaults are T = 800 K, c_bar = 10^20 cm^-3, L = 100 micrometers,
+sigma_i + sigma_e = 10^-3 S/cm, sigma_e/sigma_i = 100, and beta = 0.8.
+Electron-blocking, reversible, and Hebb-Wagner electrode cases are deliberately
+reserved for later extensions with their own boundary conditions.
+
 ## Run locally
 
 With Python 3.11 or newer and [uv](https://docs.astral.sh/uv/) installed:
@@ -164,6 +204,7 @@ uv run marimo edit 01_defect_formation.py
 uv run marimo edit 02_brouwer_sto.py
 uv run marimo edit 03_defect_transport.py
 uv run marimo edit 04_space_charge_frumkin.py
+uv run marimo edit 05_stoichiometry_polarization.py
 ~~~
 
 To present a notebook as an app, replace edit with run.
@@ -171,11 +212,12 @@ To present a notebook as an app, replace edit with run.
 ## Validation
 
 ~~~console
-uv run marimo check --strict 01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py
+uv run marimo check --strict 01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py
 uv run marimo export html 01_defect_formation.py -o defect-formation.html --no-include-code -f
 uv run marimo export html 02_brouwer_sto.py -o brouwer.html --no-include-code -f
 uv run marimo export html 03_defect_transport.py -o defect-transport.html --no-include-code -f
 uv run marimo export html 04_space_charge_frumkin.py -o space-charge-frumkin.html --no-include-code -f
+uv run marimo export html 05_stoichiometry_polarization.py -o stoichiometry-polarization.html --no-include-code -f
 ~~~
 
 Module 01 checks its thermodynamic free-energy minimum, chemical-potential zero,
@@ -197,9 +239,15 @@ and Poisson curvature, GCS charge and voltage matching, series capacitance,
 Frumkin reaction-plane consistency, positivity, and finiteness. Each displayed
 check includes a short explanation of the physical link it protects.
 
+Module 05 checks the uniform initial state, total-ion conservation, positivity,
+constant-current or constant-potential control, the initial total-conductivity
+response, zero ionic boundary flux, the ambipolar diffusivity identity, both
+electrochemical-potential decompositions, the measured voltage, and the
+late-time linear profile and flat ionic electrochemical potential.
+
 ## Browser deployment
 
-All four notebooks use only marimo, NumPy, SciPy, and matplotlib and perform no
+All five notebooks use only marimo, NumPy, SciPy, and matplotlib and perform no
 network or filesystem access at runtime. The workflow in
 [pages.yml](.github/workflows/pages.yml) exports each notebook as a
 browser-hosted WASM app and deploys the generated static site to GitHub Pages on

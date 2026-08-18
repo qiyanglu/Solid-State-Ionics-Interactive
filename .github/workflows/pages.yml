@@ -30,11 +30,11 @@ jobs:
           cp pages/index.html _site/index.html
           cp -r pages/01-brouwer-sto _site/01-brouwer-sto
 
-      - name: Check all four marimo notebooks
+      - name: Check all five marimo notebooks
         run: >-
           uv run --isolated --with "marimo==0.24.0"
           marimo check --strict
-          01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py
+          01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py
 
       - name: Export Module 01 - defect formation thermodynamics
         run: >-
@@ -62,6 +62,13 @@ jobs:
           uv run --isolated --with "marimo==0.24.0"
           marimo export html-wasm 04_space_charge_frumkin.py
           -o _site/04-space-charge-frumkin
+          --mode run --no-show-code --no-execute -f
+
+      - name: Export Module 05 - stoichiometry polarization
+        run: >-
+          uv run --isolated --with "marimo==0.24.0"
+          marimo export html-wasm 05_stoichiometry_polarization.py
+          -o _site/05-stoichiometry-polarization
           --mode run --no-show-code --no-execute -f
 
       - name: Disable Jekyll processing
@@ -100,7 +107,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          for route in 01-defect-formation 02-brouwer-sto 03-defect-transport 04-space-charge-frumkin; do
+          for route in 01-defect-formation 02-brouwer-sto 03-defect-transport 04-space-charge-frumkin 05-stoichiometry-polarization; do
             module_url="${SITE_URL%/}/${route}/"
             html="$(curl --fail --silent --show-error \
               --retry 12 --retry-all-errors --retry-delay 5 \
