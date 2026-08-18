@@ -94,6 +94,8 @@ network or filesystem access at runtime. The workflow in
 [pages.yml](.github/workflows/pages.yml) exports each notebook as a
 browser-hosted WASM app and deploys the generated static site to GitHub Pages on
 every push to main. The project root is a stable module index; each notebook is
-published under its own numbered path.
+published under its own numbered path. After deployment, the workflow retries
+both live module routes and verifies their browser entry bundles plus the
+dynamically imported marimo run-page modules.
 
 The former /01-brouwer-sto/ URL redirects to /02-brouwer-sto/.
