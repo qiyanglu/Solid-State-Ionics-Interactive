@@ -1,0 +1,5 @@
+.venv/
+__marimo__/
+__pycache__/
+dist/
+*.py[cod]
