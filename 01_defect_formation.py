@@ -239,7 +239,7 @@ def _(mo):
         start=0.10,
         stop=2.50,
         step=0.05,
-        value=1.00,
+        value=0.45,
         label=r"Formation enthalpy, Delta h_f (eV/defect)",
         show_value=True,
     )
@@ -466,11 +466,11 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
     _y_positions = _rows - 1 - _indices // _columns
     _defect_mask = np.zeros(site_count, dtype=bool)
     if finite_n_eq > 0:
-        _defect_indices = np.linspace(
-            0,
-            site_count - 1,
-            finite_n_eq,
-            dtype=int,
+        _rng = np.random.default_rng(2024)
+        _defect_indices = _rng.choice(
+            site_count,
+            size=finite_n_eq,
+            replace=False,
         )
         _defect_mask[_defect_indices] = True
 
@@ -521,7 +521,7 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
     _lattice_axis.set_ylim(-1.0, _rows)
     _lattice_axis.axis("off")
     _lattice_axis.set_title(
-        f"One configuration at the exact finite-N minimum: "
+        f"One randomized configuration at the exact finite-N minimum: "
         f"N = {site_count}, n = {finite_n_eq}, x = {finite_x_eq:.4g}"
     )
     _lattice_axis.legend(
@@ -552,8 +552,9 @@ def _(finite_n_eq, mo, site_count):
         )
     else:
         _lattice_note = (
-            "The open squares are defects. Moving them to different equivalent "
-            "sites changes the configuration but not the formation-energy term."
+            "The open squares are defects placed on a reproducibly randomized "
+            "set of sites. Moving them among equivalent sites changes the "
+            "configuration but not the formation-energy term."
         )
     mo.md(_lattice_note)
     return

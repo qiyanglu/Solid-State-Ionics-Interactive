@@ -40,6 +40,10 @@ size. The notebook compares exact finite-N combinatorics, the Stirling limit,
 and the dilute Boltzmann approximation without introducing charged defects,
 oxygen pressure, or electroneutrality.
 
+The default state is 1000 K, Delta h_f = 0.45 eV/defect, Delta s_f^0 = 3 k_B/defect,
+and N = 200. It gives x_eq approximately 0.098 and a visibly populated randomized
+finite lattice, making the curvature around the free-energy minimum easy to see.
+
 ### Module 02: Brouwer Diagram for Acceptor-Doped SrTiO3
 
 [02_brouwer_sto.py](02_brouwer_sto.py) solves, independently at every oxygen
