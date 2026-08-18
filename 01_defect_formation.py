@@ -59,7 +59,12 @@ def _(mo):
     \Delta g_f^0(T)=\Delta h_f-T\Delta s_f^0,
     \]
 
-    so the finite-system free energy is
+    where \(\Delta s_f^0\) is the **non-configurational formation entropy**.
+    In the lecture notation, this is the role played, for example, by the
+    vibrational formation entropy. It is separate from the configurational
+    entropy that counts how many ways the defects can be arranged.
+
+    The finite-system free energy is then
 
     \[
     G(n)=n\Delta g_f^0-T S_{\rm config}(n).
@@ -89,8 +94,8 @@ def _(np, special):
     ):
         """Return Delta g_f^0 in eV per defect.
 
-        formation_entropy_kb is the non-configurational formation entropy in
-        units of k_B per defect.
+        formation_entropy_kb is the non-configurational formation entropy
+        (for example, vibrational entropy) in units of k_B per defect.
         """
         if not np.isfinite(temperature_k) or temperature_k <= 0.0:
             raise ValueError("temperature_k must be positive and finite")
@@ -248,7 +253,7 @@ def _(mo):
         stop=10.0,
         step=0.25,
         value=3.0,
-        label=r"Non-configurational entropy, Delta s_f^0 (k_B/defect)",
+        label=r"Non-configurational entropy (e.g. vibrational), Delta s_f^0 (k_B/defect)",
         show_value=True,
     )
     lattice_sites = mo.ui.slider(
@@ -300,6 +305,10 @@ def _(controls, mo):
             controls,
             mo.md(r"""
             Start with the default state, then change one control at a time.
+
+            The intentionally large default defect fraction makes the curvature
+            near the free-energy minimum easy to see on a projector. It is a
+            teaching state, not a typical dilute defect concentration in an oxide.
 
             - Increase \(T\): the \(-T S_{\rm config}\) term gains weight.
             - Increase \(\Delta s_f^0\): the effective cost
@@ -445,13 +454,14 @@ def _(
         | \(\Delta g_f^0(T)\) | {delta_g0_ev:.4f} eV/defect |
         | \(\Delta g_f^0/(k_BT)\) | {reduced_formation_energy:.3f} |
         | thermodynamic \(x_{{\rm eq}}\) | {equilibrium_x:.4e} |
-        | exact finite-\(N\) minimum | \(n={finite_n_eq}\), \(x={finite_x_eq:.4e}\) |
+        | most probable finite-\(N\) macrostate | \(n={finite_n_eq}\), \(x={finite_x_eq:.4e}\) |
         | \(\Omega(N,n_{{\rm min}})\) | {_omega_text} |
         | dilute \(\exp[-\Delta g_f^0/(k_BT)]\) | {dilute_x:.4e} |
 
         The dilute relative error is {_dilute_error:.2e}; it is
-        **{_dilute_status}**. The finite-\(N\) result is discrete, so a rare
-        macroscopic equilibrium can round to \(n=0\) in a small classroom lattice.
+        **{_dilute_status}**. The finite-\(N\) mode is discrete, so its most
+        probable macrostate can be \(n=0\) in a small classroom lattice even
+        when the ensemble-mean occupancy is nonzero.
         """
     )
     return
@@ -514,14 +524,14 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
             facecolor="white",
             edgecolor="#D55E00",
             linewidth=2.2,
-            label="defect (none at this finite-N minimum)",
+            label="defect (none in this finite-N mode)",
         )
     _lattice_axis.set_aspect("equal")
     _lattice_axis.set_xlim(-1.0, _columns)
     _lattice_axis.set_ylim(-1.0, _rows)
     _lattice_axis.axis("off")
     _lattice_axis.set_title(
-        f"One randomized configuration at the exact finite-N minimum: "
+        f"One randomized microstate in the most probable finite-N macrostate: "
         f"N = {site_count}, n = {finite_n_eq}, x = {finite_x_eq:.4g}"
     )
     _lattice_axis.legend(
@@ -545,7 +555,7 @@ def _(lattice_figure):
 def _(finite_n_eq, mo, site_count):
     if finite_n_eq == 0:
         _lattice_note = (
-            f"For this {site_count}-site lattice, the most probable state is the "
+            f"For this {site_count}-site lattice, the most probable macrostate is the "
             "perfect lattice. That does not mean the macroscopic equilibrium "
             "fraction is zero: the finite lattice cannot display less than one "
             f"defect, a fraction 1/N = {1.0 / site_count:.3e}."
@@ -743,7 +753,7 @@ def _(
             marker="D",
             color="#222222",
             zorder=7,
-            label="finite-N minimum",
+            label="most probable finite-N macrostate",
         )
 
     _use_log_x = equilibrium_x < 0.05
@@ -871,7 +881,7 @@ def _(
         where="mid",
         color="#222222",
         lw=2.0,
-        label=f"exact finite-N minimum (N = {site_count})",
+        label=f"most probable finite-N macrostate (N = {site_count})",
     )
     _comparison_axis.axvspan(
         np.log(20.0),
@@ -903,8 +913,8 @@ def _(
         xlim=(0.0, 16.0),
         ylim=(1.0e-7, 1.2),
         xlabel=r"formation driving force, $\Delta g_f^0/(k_BT)$",
-        ylabel="equilibrium defect fraction",
-        title="Exact finite lattice, thermodynamic limit, and dilute limit",
+        ylabel="defect fraction",
+        title="Finite-N mode, thermodynamic mean, and dilute limit",
     )
     _comparison_axis.grid(which="both", alpha=0.25)
     _comparison_axis.legend(
@@ -915,8 +925,8 @@ def _(
     _comparison_axis.text(
         0.02,
         0.05,
-        "The finite lattice eventually chooses n = 0;\n"
-        "a macroscopic lattice resolves much smaller fractions.",
+        "The finite-N mode eventually becomes n = 0;\n"
+        "the ensemble mean remains nonzero.",
         transform=_comparison_axis.transAxes,
         fontsize=10,
         color="#444444",
@@ -1065,7 +1075,7 @@ def _(mo, validation):
         | numerical minimum of Stirling \(G(x)\) matches analytical \(x_{{\rm eq}}\) | {_mark(validation['minimum_pass'])} | {validation['minimum_error']:.2e} in \(x\) |
         | zero of \(\mu_D(x)\) matches the same \(x_{{\rm eq}}\) | {_mark(validation['root_pass'])} | {validation['root_error']:.2e} in \(x\) |
         | \(\lvert\mu_D(x_{{\rm eq}})\rvert\) | {_mark(validation['root_pass'])} | {validation['mu_at_equilibrium']:.2e} eV |
-        | exact finite-\(N\) minimum is within one composition step | {_mark(validation['finite_rounding_pass'])} | {validation['finite_rounding']:.2e}, step \(1/N\) |
+        | most probable finite-\(N\) macrostate is within one composition step of \(x_{{\rm eq}}\) | {_mark(validation['finite_rounding_pass'])} | {validation['finite_rounding']:.2e}, step \(1/N\) |
         | exact entropy approaches Stirling at \(N=10^6,\ x=0.2\) | {_mark(validation['large_entropy_pass'])} | relative error {validation['large_entropy_relative_error']:.2e} |
         | dilute approximation at \(\Delta g_f^0/(k_BT)=12\) | {_mark(validation['dilute_pass'])} | relative error {validation['dilute_reference_relative_error']:.2e} |
         | all validation quantities finite | {_mark(validation['all_finite'])} | - |
@@ -1073,6 +1083,12 @@ def _(mo, validation):
         The finite-\(N\) check uses the physically meaningful tolerance \(1/N\):
         a discrete lattice cannot match an arbitrary continuous fraction more
         closely than its composition spacing.
+
+        **Why check these?** The first three rows verify that “minimum of
+        \(G\)” and “zero of \(\mu_D\)” really identify the same equilibrium.
+        The next two verify when the finite lattice may be replaced by the
+        smooth Stirling description. The dilute row verifies when the familiar
+        Boltzmann exponential is actually a good approximation.
         """
     )
     return
@@ -1084,8 +1100,18 @@ def _(mo):
     ## What the approximations mean
 
     The exact finite lattice contains only the compositions
-    \(x=0,1/N,\ldots,1\). Its entropy comes from the binomial multiplicity, and
-    its equilibrium is the discrete minimum of \(G(n)\).
+    \(x=0,1/N,\ldots,1\). Its entropy comes from the binomial multiplicity. The
+    discrete minimum of \(G(n)\) is the **most probable finite-\(N\) macrostate**,
+    because
+
+    \[
+    P(n)\propto \binom{N}{n}
+    \exp\!\left[-\frac{n\Delta g_f^0}{k_BT}\right].
+    \]
+
+    For independent equivalent sites this distribution has ensemble mean
+    \(\langle n\rangle/N=x_{\rm eq}\). Its mode is a discrete composition and
+    can be \(n=0\) when \(x_{\rm eq}\ll1/N\); that does not make the mean zero.
 
     Stirling's approximation turns those points into a smooth function. Its
     derivative is the chemical potential, and its minimum gives the logistic
@@ -1103,7 +1129,8 @@ def _(mo):
     \]
 
     Increasing temperature strengthens the configurational contribution
-    \(-T S_{\rm config}\). A positive non-configurational formation entropy also
+    \(-T S_{\rm config}\). A positive non-configurational formation entropy
+    (for example, vibrational formation entropy) also
     lowers \(\Delta g_f^0=\Delta h_f-T\Delta s_f^0\). Both effects therefore
     shift equilibrium toward more defects.
 

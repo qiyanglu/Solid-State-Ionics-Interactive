@@ -30,11 +30,11 @@ jobs:
           cp pages/index.html _site/index.html
           cp -r pages/01-brouwer-sto _site/01-brouwer-sto
 
-      - name: Check both marimo notebooks
+      - name: Check all three marimo notebooks
         run: >-
           uv run --isolated --with "marimo==0.24.0"
           marimo check --strict
-          01_defect_formation.py 02_brouwer_sto.py
+          01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py
 
       - name: Export Module 01 - defect formation thermodynamics
         run: >-
@@ -48,6 +48,13 @@ jobs:
           uv run --isolated --with "marimo==0.24.0"
           marimo export html-wasm 02_brouwer_sto.py
           -o _site/02-brouwer-sto
+          --mode run --no-show-code --no-execute -f
+
+      - name: Export Module 03 - defect transport
+        run: >-
+          uv run --isolated --with "marimo==0.24.0"
+          marimo export html-wasm 03_defect_transport.py
+          -o _site/03-defect-transport
           --mode run --no-show-code --no-execute -f
 
       - name: Disable Jekyll processing
@@ -75,18 +82,18 @@ jobs:
         uses: actions/deploy-pages@v4
 
   verify:
-    name: Verify deployed WASM entry modules
+    name: Verify all deployed WASM entry modules
     runs-on: ubuntu-latest
     needs: deploy
     steps:
-      - name: Fetch both app entry points and dynamic run-page modules
+      - name: Fetch all app entry points and dynamic run-page modules
         env:
           SITE_URL: ${{ needs.deploy.outputs.page_url }}
         shell: bash
         run: |
           set -euo pipefail
 
-          for route in 01-defect-formation 02-brouwer-sto; do
+          for route in 01-defect-formation 02-brouwer-sto 03-defect-transport; do
             module_url="${SITE_URL%/}/${route}/"
             html="$(curl --fail --silent --show-error \
               --retry 12 --retry-all-errors --retry-delay 5 \

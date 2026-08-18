@@ -648,6 +648,12 @@ def _(
         cancellation and a roundoff-level value such as $10^{{-14}}$ carry the
         same physical meaning here.
 
+        **Why check these?** Positivity and finiteness ensure that every plotted
+        point is a physical concentration. The two mass-action rows verify the
+        defect reactions, and the charge row verifies electroneutrality. The
+        slope rows then ask whether a true limiting balance is actually visible
+        in the selected pressure window; they do not supply slopes to the solver.
+
         The electron–hole crossover is {crossover_text}.
 
         ### Regime coverage and measured slopes
