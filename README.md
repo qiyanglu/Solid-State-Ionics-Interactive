@@ -78,39 +78,39 @@ Controls span 700-1500 K and log10(A/cm^-3) from 13 to 21.
 
 ### Module 03: Defect Transport
 
-[03_defect_transport.py](03_defect_transport.py) follows transport continuously
-from a thermally activated jump to macroscopic composition relaxation. A
-deterministic-seed one-dimensional random walk demonstrates
+[03_defect_transport.py](03_defect_transport.py) follows the one-dimensional
+sequence used in Lectures 3–5, from a thermally activated jump to macroscopic
+composition relaxation:
 
 ~~~text
-w0 = nu0 exp[-H_mig/(k_B T)]       (rate to each neighbor)
-Gamma = 2 w0                       (total 1D hop frequency used in the lectures)
-D  = a^2 w0
+Gamma = nu exp[-Delta H_mig/(k_B T)]
+D = a^2 Gamma / 2
 <x^2> = 2 D t
+J = -D dc/dx
 ~~~
 
-before a discrete master equation recovers Fick's law. Thus the lecture result
-D = a^2 Gamma / 2 and the notebook result D = a^2 w0 are identical. A
-symmetric electric-field bias then produces detailed balance, low-field
-Nernst-Einstein drift, and the
-molar Nernst-Planck equation with explicit sign and unit conventions. An
-interactive equilibrium example shows nonzero chemical and electrical
-potential gradients cancelling to give zero electrochemical-potential gradient
-and zero flux.
+Here Gamma is the total hop frequency and 1/Gamma is the mean time between
+hops. A discrete master equation recovers Fick's law using the same Gamma
+throughout. A symmetric electric-field bias then produces
+detailed balance, low-field Nernst-Einstein drift, and
+mu_tilde = mu + z F phi. An interactive equilibrium example shows nonzero
+chemical and electrical contributions cancelling to give
+d(mu_tilde)/dx = 0 and zero flux.
 
-The final sections distinguish defect, tracer, charge, and chemical
-diffusivities and derive ambipolar chemical diffusion for
-\(Li \rightleftharpoons Li^+ + e^-\):
+The final sections use the lecture notation for tracer diffusivity \(D^*\),
+conductivity-derived self-diffusivity \(D^q\), and Li chemical diffusivity
+\(D_{\rm Li}^{\delta}\). For the dilute reaction
+\(Li \rightleftharpoons Li^+ + e^-\), local equilibrium and local charge
+neutrality require \(J_{\rm Li}=J_{\rm Li^+}=J_{e^-}\), giving
 
 ~~~text
-D_chem,ideal = 2 Di De / (Di + De)
-D_chem       = D_chem,ideal Theta
-tau          ~ L^2 / D_chem
+D_Li^delta = 2 D_Li+ D_e- / (D_Li+ + D_e-)
+tau^delta  ~ L^2 / D_Li^delta
 ~~~
 
-The internal field is solved from zero current, not imposed as an analogy.
-Controls expose ionic/electronic mobility contrast, thermodynamic factor, and
-sample length from nanometers to millimeters.
+The internal field is solved from the equal-flux condition. Controls expose the
+Li-ion/electron mobility contrast and sample length. The introductory module
+stays with the dilute Li derivation developed in the slides.
 
 ## Run locally
 
@@ -141,12 +141,11 @@ coverage, and limiting slopes. Its mass-action rows report logarithmic residuals
 with an exact target of zero (equivalently, an unlogged equilibrium ratio of
 one); values below 1e-12 are displayed consistently as numerical zero.
 
-Module 03 checks the hopping-diffusivity identity (including the lecture's
-total-rate convention), the stochastic MSD fit, detailed balance, low-field
-Nernst-Einstein drift, master-equation conservation, Fick
-flux, electrochemical cancellation, zero-current ambipolar coupling, the
-analytic chemical diffusivity, thermodynamic-factor multiplication, positivity,
-and finiteness.
+Module 03 checks the lecture identity \(D=a^2\Gamma/2\), the stochastic MSD
+fit, detailed balance, low-field Nernst-Einstein drift, one-dimensional
+master-equation conservation, Fick flux, electrochemical cancellation,
+equal Li-ion/electron flux, zero current, and the agreement between the
+conductivity and diffusivity forms of \(D_{\rm Li}^{\delta}\).
 
 ## Browser deployment
 

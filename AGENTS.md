@@ -20,13 +20,15 @@ self-contained notebooks over framework-building.
   solver inputs.
 - Keep all solved concentrations strictly positive. Prefer logarithmic variables
   for equations spanning many decades.
-- In Module 03, use the documented per-neighbor convention
-  w0 = nu0 exp(-H_mig/kBT) and D = a^2 w0. Reconcile it explicitly with the
-  lecture convention Gamma = 2 w0 and D = a^2 Gamma / 2.
-- Keep particle-scale (k_B, e) and molar (R, F) transport equations visibly
-  separated. For the ideal monovalent ambipolar model, preserve local
-  electroneutrality, zero current, and D_chem = 2 Di De/(Di + De) Theta, while
-  stating that the factor of two is model-specific.
+- In Module 03, follow the lecture convention
+  Gamma = nu exp(-Delta H_mig/kBT), where Gamma is the total one-dimensional
+  hop frequency, and preserve D = a^2 Gamma / 2.
+- Keep every spatial model in Module 03 one-dimensional. Keep particle-scale
+  (k_B, e) and molar (R, F) transport equations visibly separated.
+- For the dilute Li <-> Li+ + e- example, preserve local electroneutrality,
+  local equilibrium, equal steady fluxes, zero current, and
+  D_Li^delta = 2 D_Li+ D_e-/(D_Li+ + D_e-). Do not make a non-ideal
+  thermodynamic factor a central control unless the teaching scope changes.
 - If a species set or thermodynamic constant changes, explain the scientific
   reason and update the displayed assumptions and validation checks together.
 
@@ -52,10 +54,10 @@ Before handing off a change:
 4. For Module 02, check mass-action residuals, scaled electroneutrality
    residuals, positivity, and limiting slopes where the selected window samples
    them.
-5. For Module 03, check hopping-rate conventions, MSD, detailed balance,
-   low-field drift, number conservation, Fick flux, electrochemical-potential
-   cancellation, ambipolar zero current, thermodynamic-factor multiplication,
-   positivity, and finiteness.
+5. For Module 03, check the Gamma convention, MSD, detailed balance,
+   low-field drift, one-dimensional number conservation, Fick flux,
+   electrochemical-potential cancellation, equal Li-ion/electron flux,
+   zero current, conductivity-form equivalence, positivity, and finiteness.
 6. Run git diff --check and review all rendered figures at projector scale.
 
 Do not weaken numerical tolerances simply to silence a failed physics check;

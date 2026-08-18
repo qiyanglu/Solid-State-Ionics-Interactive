@@ -30,18 +30,18 @@ def _(mo):
     \rightarrow D
     \rightarrow J
     \rightarrow \widetilde{\mu}
-    \rightarrow D_{\rm chem}
-    \rightarrow \tau .
+    \rightarrow D_{\rm Li}^{\delta}
+    \rightarrow \tau^\delta .
     \]
 
     We begin with an ideal one-dimensional lattice, then add concentration and
     electrical driving forces, and finally couple \(\mathrm{Li^+}\) and
-    \(e^-\) under local electroneutrality. The simple models expose the physics;
-    correlation factors, space charge, electrode polarization, and specific
-    PITT/GITT protocols are deliberately left for later modules.
+    \(e^-\) under local electroneutrality. Every spatial equation and simulation
+    stays in one dimension, following the lecture derivations.
 
-    Canonical units are **K, eV per particle, m, s, V/m, mol/m³, mol/(m² s),
-    J/mol, S/m, and m²/s**. Particle and molar equations are kept separate.
+    Lecture-facing controls and results use **K, eV, nm, s, V/cm, and cm²/s**.
+    Molar fluxes are reported in mol/(m² s), with \(R\) and \(F\) used for
+    molar equations.
     """)
     return
 
@@ -62,20 +62,20 @@ def _(np):
             raise ValueError(f"{name} must be positive and finite")
         return number
 
-    def hopping_rate_per_neighbor(temperature_k, migration_enthalpy_ev, attempt_frequency_hz):
-        """Return the zero-field rate to each neighbor, w0, in s^-1."""
+    def hop_frequency(temperature_k, migration_enthalpy_ev, attempt_frequency_hz):
+        """Return Gamma = nu exp[-Delta H_mig/(k_B T)] in s^-1."""
         temperature = require_positive("temperature_k", temperature_k)
         barrier = require_positive("migration_enthalpy_ev", migration_enthalpy_ev)
         attempt = require_positive("attempt_frequency_hz", attempt_frequency_hz)
         return attempt * np.exp(-barrier / (KB_EV_PER_K * temperature))
 
-    def hopping_diffusivity_1d(jump_distance_m, rate_per_neighbor_hz):
-        """Return D=a^2 w0 in m^2/s for two 1D neighbors, each at rate w0."""
+    def hopping_diffusivity_1d(jump_distance_m, hop_frequency_hz):
+        """Return D = a^2 Gamma / 2 in m^2/s for a 1D random walk."""
         distance = require_positive("jump_distance_m", jump_distance_m)
-        rate = require_positive("rate_per_neighbor_hz", rate_per_neighbor_hz)
-        return distance**2 * rate
+        frequency = require_positive("hop_frequency_hz", hop_frequency_hz)
+        return 0.5 * distance**2 * frequency
 
-    def biased_neighbor_rates(
+    def biased_directional_rates(
         temperature_k,
         migration_enthalpy_ev,
         attempt_frequency_hz,
@@ -83,11 +83,10 @@ def _(np):
         charge_number,
         electric_field_v_per_m,
     ):
-        """Return w+, w-, and w0 in s^-1 for E pointing along positive x.
+        """Return Gamma_+, Gamma_-, and zero-field Gamma in s^-1.
 
-        The electrostatic energy change over a +x hop is -z e E a. Because
-        energies are supplied in eV, z E a is already the corresponding eV
-        value. A symmetric transition state splits the bias equally.
+        Gamma is the total zero-field hop frequency used in the lecture slides.
+        At zero field, half of the hops go toward +x and half toward -x.
         """
         temperature = require_positive("temperature_k", temperature_k)
         distance = require_positive("jump_distance_m", jump_distance_m)
@@ -97,7 +96,7 @@ def _(np):
             raise ValueError("charge_number must be finite and nonzero")
         if not np.isfinite(field):
             raise ValueError("electric_field_v_per_m must be finite")
-        base_rate = hopping_rate_per_neighbor(
+        frequency = hop_frequency(
             temperature,
             migration_enthalpy_ev,
             attempt_frequency_hz,
@@ -106,13 +105,17 @@ def _(np):
             2.0 * KB_EV_PER_K * temperature
         )
         return (
-            base_rate * np.exp(half_bias),
-            base_rate * np.exp(-half_bias),
-            base_rate,
+            0.5 * frequency * np.exp(half_bias),
+            0.5 * frequency * np.exp(-half_bias),
+            frequency,
         )
 
-    def exact_hopping_drift_velocity(jump_distance_m, forward_rate_hz, backward_rate_hz):
-        """Return a(w+ - w-) in m/s."""
+    def exact_hopping_drift_velocity(
+        jump_distance_m,
+        forward_rate_hz,
+        backward_rate_hz,
+    ):
+        """Return a(Gamma_+ - Gamma_-) in m/s."""
         distance = require_positive("jump_distance_m", jump_distance_m)
         return distance * (float(forward_rate_hz) - float(backward_rate_hz))
 
@@ -135,18 +138,18 @@ def _(np):
 
     def simulate_zero_field_walks(
         jump_distance_m,
-        rate_per_neighbor_hz,
+        hop_frequency_hz,
         walker_count=2000,
         step_count=320,
         seed=2026,
     ):
-        """Simulate unbiased 1D walks at observation times spaced by 1/(2w0).
+        """Simulate unbiased 1D walks with mean interval 1/Gamma.
 
-        Each observation interval contains one jump. The total leaving rate is
-        2w0 because w0 is the rate to each of the two neighbors.
+        Each observation interval contains one jump, chosen toward +x or -x
+        with equal probability.
         """
         distance = require_positive("jump_distance_m", jump_distance_m)
-        rate = require_positive("rate_per_neighbor_hz", rate_per_neighbor_hz)
+        frequency = require_positive("hop_frequency_hz", hop_frequency_hz)
         walkers = int(walker_count)
         steps = int(step_count)
         if walkers < 2 or steps < 2:
@@ -158,31 +161,32 @@ def _(np):
             axis=1,
         )
         positions_m = distance * lattice_positions
-        times_s = np.arange(steps + 1, dtype=float) / (2.0 * rate)
+        times_s = np.arange(steps + 1, dtype=float) / frequency
         msd_m2 = np.mean(positions_m**2, axis=0)
         return times_s, positions_m, msd_m2
 
-    def evolve_periodic_master_equation(initial_occupancy, rate_per_neighbor_hz, time_s):
-        """Evolve dc_j/dt=w0(c_{j-1}-2c_j+c_{j+1}) on a periodic lattice."""
+    def evolve_periodic_master_equation(initial_occupancy, hop_frequency_hz, time_s):
+        """Evolve dc_j/dt=(Gamma/2)(c_{j-1}-2c_j+c_{j+1}) in 1D."""
         profile = np.asarray(initial_occupancy, dtype=float)
         if profile.ndim != 1 or profile.size < 4:
             raise ValueError("initial_occupancy must be a 1D array with at least 4 sites")
         if np.any(~np.isfinite(profile)) or np.any(profile < 0.0):
             raise ValueError("initial_occupancy must be finite and nonnegative")
-        rate = require_positive("rate_per_neighbor_hz", rate_per_neighbor_hz)
+        frequency = require_positive("hop_frequency_hz", hop_frequency_hz)
         elapsed = float(time_s)
         if not np.isfinite(elapsed) or elapsed < 0.0:
             raise ValueError("time_s must be finite and nonnegative")
         modes = np.arange(profile.size)
         decay = np.exp(
-            -4.0 * rate * elapsed * np.sin(np.pi * modes / profile.size) ** 2
+            -2.0 * frequency * elapsed * np.sin(np.pi * modes / profile.size) ** 2
         )
         return np.real(np.fft.ifft(np.fft.fft(profile) * decay))
 
-    def discrete_bond_fluxes(occupancy, rate_per_neighbor_hz):
-        """Return net particle crossings per second on bonds j -> j+1."""
+    def discrete_bond_fluxes(occupancy, hop_frequency_hz):
+        """Return net 1D particle crossings per second on bonds j -> j+1."""
         profile = np.asarray(occupancy, dtype=float)
-        return float(rate_per_neighbor_hz) * (profile - np.roll(profile, -1))
+        frequency = require_positive("hop_frequency_hz", hop_frequency_hz)
+        return 0.5 * frequency * (profile - np.roll(profile, -1))
 
     def fick_bond_fluxes(occupancy, jump_distance_m, diffusivity_m2_per_s):
         """Return -D dc/dx for c=occupancy/a on each 1D bond, in s^-1."""
@@ -203,14 +207,14 @@ def _(np):
         charge_number,
         temperature_k,
     ):
-        """Return diffusion, electrical, and total molar flux in mol/(m^2 s)."""
+        """Return diffusion, electrical, and total 1D molar flux."""
         diffusivity = require_positive("diffusivity_m2_per_s", diffusivity_m2_per_s)
         concentration = require_positive(
             "concentration_mol_per_m3",
             concentration_mol_per_m3,
         )
         temperature = require_positive("temperature_k", temperature_k)
-        chemical_flux = -diffusivity * float(concentration_gradient_mol_per_m4)
+        diffusion_flux = -diffusivity * float(concentration_gradient_mol_per_m4)
         electrical_flux = (
             -float(charge_number)
             * FARADAY_C_PER_MOL
@@ -219,7 +223,7 @@ def _(np):
             * float(potential_gradient_v_per_m)
             / (GAS_CONSTANT_J_PER_MOL_K * temperature)
         )
-        return chemical_flux, electrical_flux, chemical_flux + electrical_flux
+        return diffusion_flux, electrical_flux, diffusion_flux + electrical_flux
 
     def ambipolar_internal_potential_gradient(
         ionic_diffusivity_m2_per_s,
@@ -228,7 +232,7 @@ def _(np):
         concentration_gradient_mol_per_m4,
         temperature_k,
     ):
-        """Return dphi/dx in V/m enforcing J_i=J_e for Li <-> Li+ + e-."""
+        """Return dphi/dx enforcing J_Li+ = J_e- in one dimension."""
         ionic = require_positive("ionic_diffusivity_m2_per_s", ionic_diffusivity_m2_per_s)
         electronic = require_positive(
             "electronic_diffusivity_m2_per_s",
@@ -256,7 +260,7 @@ def _(np):
         potential_gradient_v_per_m,
         temperature_k,
     ):
-        """Return Li+ and electron molar fluxes in mol/(m^2 s)."""
+        """Return J_Li+ and J_e- in mol/(m^2 s)."""
         ionic = require_positive("ionic_diffusivity_m2_per_s", ionic_diffusivity_m2_per_s)
         electronic = require_positive(
             "electronic_diffusivity_m2_per_s",
@@ -278,29 +282,17 @@ def _(np):
         electronic_flux = -electronic * (gradient - electrical_scale)
         return ionic_flux, electronic_flux
 
-    def ideal_ambipolar_diffusivity(
+    def lithium_chemical_diffusivity(
         ionic_diffusivity_m2_per_s,
         electronic_diffusivity_m2_per_s,
     ):
-        """Return 2 Di De/(Di+De) in m^2/s for Li <-> Li+ + e-."""
+        """Return D_Li^delta = 2 D_Li+ D_e-/(D_Li+ + D_e-) in m^2/s."""
         ionic = require_positive("ionic_diffusivity_m2_per_s", ionic_diffusivity_m2_per_s)
         electronic = require_positive(
             "electronic_diffusivity_m2_per_s",
             electronic_diffusivity_m2_per_s,
         )
         return 2.0 * ionic * electronic / (ionic + electronic)
-
-    def chemical_diffusivity(
-        ionic_diffusivity_m2_per_s,
-        electronic_diffusivity_m2_per_s,
-        thermodynamic_factor,
-    ):
-        """Return D_chem=2 Di De/(Di+De) Theta in m^2/s."""
-        factor = require_positive("thermodynamic_factor", thermodynamic_factor)
-        return ideal_ambipolar_diffusivity(
-            ionic_diffusivity_m2_per_s,
-            electronic_diffusivity_m2_per_s,
-        ) * factor
 
     def conductivity_from_diffusivity(
         diffusivity_m2_per_s,
@@ -321,14 +313,50 @@ def _(np):
             / (GAS_CONSTANT_J_PER_MOL_K * temperature)
         )
 
+    def lithium_chemical_diffusivity_from_conductivities(
+        ionic_conductivity_s_per_m,
+        electronic_conductivity_s_per_m,
+        ionic_concentration_mol_per_m3,
+        electronic_concentration_mol_per_m3,
+        temperature_k,
+    ):
+        """Return the dilute-limit D_Li^delta expression used in Lecture 5."""
+        ionic_sigma = require_positive(
+            "ionic_conductivity_s_per_m",
+            ionic_conductivity_s_per_m,
+        )
+        electronic_sigma = require_positive(
+            "electronic_conductivity_s_per_m",
+            electronic_conductivity_s_per_m,
+        )
+        ionic_c = require_positive(
+            "ionic_concentration_mol_per_m3",
+            ionic_concentration_mol_per_m3,
+        )
+        electronic_c = require_positive(
+            "electronic_concentration_mol_per_m3",
+            electronic_concentration_mol_per_m3,
+        )
+        temperature = require_positive("temperature_k", temperature_k)
+        harmonic_conductivity = (
+            ionic_sigma * electronic_sigma / (ionic_sigma + electronic_sigma)
+        )
+        return (
+            GAS_CONSTANT_J_PER_MOL_K
+            * temperature
+            / FARADAY_C_PER_MOL**2
+            * harmonic_conductivity
+            * (1.0 / ionic_c + 1.0 / electronic_c)
+        )
+
     def characteristic_relaxation_time(length_m, diffusivity_m2_per_s):
-        """Return the scaling time L^2/D in seconds."""
+        """Return the one-dimensional scaling time L^2/D in seconds."""
         length = require_positive("length_m", length_m)
         diffusivity = require_positive("diffusivity_m2_per_s", diffusivity_m2_per_s)
         return length**2 / diffusivity
 
     def slab_remaining_profile(normalized_position, time_over_l2_by_d, term_count=80):
-        """Return normalized excess in a slab held at zero excess at both faces."""
+        """Return normalized excess in a 1D slab held at zero at both faces."""
         coordinate = np.asarray(normalized_position, dtype=float)
         reduced_time = require_positive("time_over_l2_by_d", time_over_l2_by_d)
         odd = 2 * np.arange(int(term_count)) + 1
@@ -361,17 +389,17 @@ def _(np):
         KB_J_PER_K,
         ambipolar_fluxes,
         ambipolar_internal_potential_gradient,
-        biased_neighbor_rates,
+        biased_directional_rates,
         characteristic_relaxation_time,
-        chemical_diffusivity,
         conductivity_from_diffusivity,
         discrete_bond_fluxes,
         evolve_periodic_master_equation,
         exact_hopping_drift_velocity,
         fick_bond_fluxes,
+        hop_frequency,
         hopping_diffusivity_1d,
-        hopping_rate_per_neighbor,
-        ideal_ambipolar_diffusivity,
+        lithium_chemical_diffusivity,
+        lithium_chemical_diffusivity_from_conductivities,
         molar_nernst_planck_flux,
         nernst_einstein_drift_velocity,
         require_positive,
@@ -396,7 +424,7 @@ def _(mo):
         stop=1.50,
         step=0.05,
         value=0.70,
-        label="Migration enthalpy, H_mig (eV)",
+        label="Migration enthalpy, ΔH_mig (eV)",
         show_value=True,
     )
     log_attempt_frequency = mo.ui.slider(
@@ -404,7 +432,7 @@ def _(mo):
         stop=14.0,
         step=0.25,
         value=13.0,
-        label="log10 attempt frequency, nu0 (s^-1)",
+        label="log10 attempt frequency, ν (s^-1)",
         show_value=True,
     )
     jump_distance = mo.ui.slider(
@@ -438,25 +466,24 @@ def _(hopping_controls, mo):
             mo.md(r"""
             ## 1. One activated hop
 
-            Let \(w_0=\nu_0\exp[-H_{\rm mig}/(k_BT)]\) be the rate **to each
-            neighbor**. In one dimension there are two neighbors, so the total
-            leaving rate is \(2w_0\). This convention gives
+            Use the same notation as the lecture slides:
 
             \[
-            \langle x^2\rangle=2Dt,\qquad D=a^2w_0.
-            \]
-
-            The lecture slides use \(\Gamma\) for the **total** 1D hop
-            frequency. The two notations are therefore related by
-
-            \[
-            \Gamma=2w_0,
+            \Gamma=\nu\exp\!\left(-\frac{\Delta H_{\rm mig}}{k_BT}\right),
             \qquad
-            D=\frac{1}{2}a^2\Gamma=a^2w_0.
+            D=\frac{1}{2}a^2\Gamma \quad \text{(one dimension)}.
             \]
 
-            This is one physical result written with two rate conventions, not
-            two different diffusivities.
+            Here \(\Gamma\) is the total hop frequency and \(1/\Gamma\) is the
+            mean time between hops. Each hop goes either left or right with
+            equal probability when no electric field is present. Therefore
+
+            \[
+            \langle x^2\rangle=2Dt.
+            \]
+
+            This module stays in one dimension throughout, matching the
+            derivation used in class.
             """),
             hopping_controls,
         ]
@@ -467,7 +494,7 @@ def _(hopping_controls, mo):
 @app.cell
 def _(
     hopping_diffusivity_1d,
-    hopping_rate_per_neighbor,
+    hop_frequency,
     jump_distance,
     log_attempt_frequency,
     migration_barrier,
@@ -479,18 +506,18 @@ def _(
     migration_enthalpy_ev = float(migration_barrier.value)
     attempt_frequency_hz = 10.0 ** float(log_attempt_frequency.value)
     jump_distance_m = float(jump_distance.value) * 1.0e-9
-    zero_field_rate_hz = hopping_rate_per_neighbor(
+    hop_frequency_hz = hop_frequency(
         temperature_k,
         migration_enthalpy_ev,
         attempt_frequency_hz,
     )
     defect_diffusivity_m2_per_s = hopping_diffusivity_1d(
         jump_distance_m,
-        zero_field_rate_hz,
+        hop_frequency_hz,
     )
     walk_times_s, walk_positions_m, walk_msd_m2 = simulate_zero_field_walks(
         jump_distance_m,
-        zero_field_rate_hz,
+        hop_frequency_hz,
     )
     fit_start = walk_times_s.size // 5
     msd_slope, msd_intercept = np.polyfit(
@@ -525,7 +552,7 @@ def _(
         walk_msd_m2,
         walk_positions_m,
         walk_times_s,
-        zero_field_rate_hz,
+        hop_frequency_hz,
     )
 
 
@@ -542,7 +569,7 @@ def _(
     walk_msd_m2,
     walk_positions_m,
     walk_times_s,
-    zero_field_rate_hz,
+    hop_frequency_hz,
 ):
     plt.rcParams.update(
         {
@@ -642,9 +669,9 @@ def _(
     plt.close(microscopic_figure)
 
     microscopic_summary = (
-        f"w0 = {zero_field_rate_hz:.3e} s^-1 per neighbor; "
-        f"D = a^2 w0 = {defect_diffusivity_m2_per_s:.3e} m^2/s; "
-        f"MSD fit gives {extracted_diffusivity_m2_per_s:.3e} m^2/s "
+        f"Gamma = {hop_frequency_hz:.3e} s^-1; "
+        f"D = a^2 Gamma / 2 = {defect_diffusivity_m2_per_s * 1.0e4:.3e} cm^2/s; "
+        f"MSD fit gives {extracted_diffusivity_m2_per_s * 1.0e4:.3e} cm^2/s "
         f"(R^2 = {msd_fit_r_squared:.5f})."
     )
     return microscopic_figure, microscopic_summary
@@ -660,7 +687,7 @@ def _(microscopic_figure, microscopic_summary, mo):
             A single path is noisy and has no preferred direction. Diffusivity is
             an ensemble property: many random paths produce a linear mean-square
             displacement. Raising \(T\) or lowering \(H_{\rm mig}\) increases
-            \(w_0\), so the same number of lattice steps occurs in less time.
+            \(\Gamma\), so the same number of lattice steps occurs in less time.
             """),
         ]
     )
@@ -673,7 +700,7 @@ def _(mo):
         stop=20.0,
         step=0.5,
         value=4.0,
-        label="Reduced time, w0 t",
+        label="Reduced time, Γt",
         show_value=True,
     )
     step_contrast = mo.ui.slider(
@@ -711,10 +738,10 @@ def _(master_controls, mo):
 
             \[
             \frac{dc_j}{dt}
-            =w_0(c_{j-1}-2c_j+c_{j+1}).
+            =\frac{\Gamma}{2}(c_{j-1}-2c_j+c_{j+1}).
             \]
 
-            With \(D=a^2w_0\), its long-wavelength limit is
+            With \(D=a^2\Gamma/2\), its long-wavelength limit is
             \(\partial c/\partial t=D\,\partial^2c/\partial x^2\), and the
             bond flux is exactly the discrete form of \(J=-D\,dc/dx\).
             """),
@@ -734,7 +761,7 @@ def _(
     master_time,
     np,
     step_contrast,
-    zero_field_rate_hz,
+    hop_frequency_hz,
 ):
     master_site_count = 256
     contrast_value = float(step_contrast.value)
@@ -745,15 +772,15 @@ def _(
         left_occupancy,
         right_occupancy,
     )
-    master_elapsed_s = float(master_time.value) / zero_field_rate_hz
+    master_elapsed_s = float(master_time.value) / hop_frequency_hz
     evolved_master_occupancy = evolve_periodic_master_equation(
         initial_master_occupancy,
-        zero_field_rate_hz,
+        hop_frequency_hz,
         master_elapsed_s,
     )
     microscopic_bond_flux_per_s = discrete_bond_fluxes(
         evolved_master_occupancy,
-        zero_field_rate_hz,
+        hop_frequency_hz,
     )
     fick_bond_flux_per_s = fick_bond_fluxes(
         evolved_master_occupancy,
@@ -882,11 +909,11 @@ def _(mo):
         label="Field direction",
     )
     log_electric_field = mo.ui.slider(
-        start=3.0,
-        stop=9.0,
+        start=-2.0,
+        stop=6.0,
         step=0.25,
-        value=8.0,
-        label="log10 |E| when balance is off (V/m)",
+        value=1.0,
+        label="log10 |E| when balance is off (V/cm)",
         show_value=True,
     )
     relative_concentration_gradient = mo.ui.slider(
@@ -935,11 +962,15 @@ def _(field_controls, mo):
             with charge \(q=ze\) has symmetric-barrier rates
 
             \[
-            w_+=w_0\exp\!\left(\frac{zeEa}{2k_BT}\right),\qquad
-            w_-=w_0\exp\!\left(-\frac{zeEa}{2k_BT}\right).
+            \Gamma_+=\frac{\Gamma}{2}
+            \exp\!\left(\frac{zeEa}{2k_BT}\right),\qquad
+            \Gamma_-=\frac{\Gamma}{2}
+            \exp\!\left(-\frac{zeEa}{2k_BT}\right).
             \]
 
-            The exact hopping drift is \(v=a(w_+-w_-)\). At low field,
+            The factors \(1/2\) mean that, without a field, half of all hops go
+            in each direction. The exact drift is
+            \(v=a(\Gamma_+-\Gamma_-)\). At low field,
             \(|zeEa|\ll k_BT\), it becomes the Nernst–Einstein result
 
             \[
@@ -949,7 +980,7 @@ def _(field_controls, mo):
             The same field is used in the hopping landscape and in the
             macroscopic flux example below. With the cancellation toggle on,
             that field is calculated from the chosen concentration gradient so
-            that \(\nabla\widetilde{\mu}=0\). With it off, the field controls are
+            that \(d\widetilde{\mu}/dx=0\). With it off, the field controls are
             used directly.
             """),
             field_controls,
@@ -962,7 +993,7 @@ def _(field_controls, mo):
 def _(
     FARADAY_C_PER_MOL,
     GAS_CONSTANT_J_PER_MOL_K,
-    biased_neighbor_rates,
+    biased_directional_rates,
     charge_selector,
     defect_diffusivity_m2_per_s,
     enforce_electrochemical_balance,
@@ -971,7 +1002,6 @@ def _(
     jump_distance_m,
     log_electric_field,
     migration_enthalpy_ev,
-    master_mass_relative_error,
     molar_nernst_planck_flux,
     nernst_einstein_drift_velocity,
     relative_concentration_gradient,
@@ -995,12 +1025,12 @@ def _(
         )
     else:
         selected_electric_field_v_per_m = float(field_sign.value) * (
-            10.0 ** float(log_electric_field.value)
+            100.0 * 10.0 ** float(log_electric_field.value)
         )
         demonstration_potential_gradient_v_per_m = -selected_electric_field_v_per_m
 
     electric_field_v_per_m = -demonstration_potential_gradient_v_per_m
-    forward_rate_hz, backward_rate_hz, biased_base_rate_hz = biased_neighbor_rates(
+    forward_rate_hz, backward_rate_hz, _unbiased_hop_frequency_hz = biased_directional_rates(
         temperature_k,
         migration_enthalpy_ev,
         attempt_frequency_hz,
@@ -1055,7 +1085,6 @@ def _(
     )
     return (
         backward_rate_hz,
-        biased_base_rate_hz,
         charge_number_value,
         chemical_potential_gradient_j_per_mol_m,
         demonstration_concentration_mol_per_m3,
@@ -1150,7 +1179,7 @@ def _(
     gradient_axis.axhline(0.0, color="#333333", lw=1.0)
     gradient_axis.set(
         ylabel="potential change (J/mol per µm)",
-        title=r"$\nabla\widetilde{\mu}=\nabla\mu+zF\nabla\phi$",
+        title=r"$d\widetilde{\mu}/dx=d\mu/dx+zF\,d\phi/dx$",
     )
     gradient_axis.tick_params(axis="x", rotation=18)
     gradient_axis.grid(axis="y", alpha=0.22)
@@ -1186,7 +1215,7 @@ def _(
         rf"""
         **Microscopic field response.** \(zeEa={field_work_per_hop_ev:.3e}\) eV,
         \(|zeEa|/(k_BT)={low_field_parameter:.3e}\), and
-        \(w_+/w_-={hopping_bias_ratio:.5g}\). The exact drift is
+        \(\Gamma_+/\Gamma_-={hopping_bias_ratio:.5g}\). The exact drift is
         **{exact_drift_m_per_s:.3e} m/s**; the low-field prediction is
         **{low_field_drift_m_per_s:.3e} m/s**.
         At the default equilibrium field, the tilt is intentionally tiny beside
@@ -1194,8 +1223,8 @@ def _(
         is the physical point.
 
         **One field, two views.** The field is
-        **{electric_field_v_per_m:.3e} V/m**, so
-        \(d\phi/dx={demonstration_potential_gradient_v_per_m:.3e}\) V/m.
+        **{electric_field_v_per_m / 100.0:.3e} V/cm**, so
+        \(d\phi/dx={demonstration_potential_gradient_v_per_m / 100.0:.3e}\) V/cm.
         The residual
         total flux is **{total_np_flux_mol_per_m2_s:.3e} mol/(m² s)**, or
         **{abs(total_np_flux_mol_per_m2_s) / balance_scale:.2e}** of the two
@@ -1209,22 +1238,22 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""
-    For number concentration \(c_N\) (particles/m³), the low-field equation is
+    For number concentration \(c_N\), the one-dimensional low-field equation is
 
     \[
-    J_N=-D\nabla c_N+\frac{zeD}{k_BT}c_NE .
+    J_N=-D\frac{dc_N}{dx}+\frac{zeD}{k_BT}c_NE .
     \]
 
-    For molar concentration \(c\) (mol/m³), use \(F=N_Ae\) and \(R=N_Ak_B\):
+    For molar concentration \(c\), use \(F=N_Ae\) and \(R=N_Ak_B\):
 
     \[
-    J=-D\nabla c-\frac{zFD}{RT}c\nabla\phi
-      =-\frac{Dc}{RT}\nabla(\mu+zF\phi).
+    J=-D\frac{dc}{dx}-\frac{zFD}{RT}c\frac{d\phi}{dx}
+      =-\frac{Dc}{RT}\frac{d(\mu+zF\phi)}{dx}.
     \]
 
     Thus \(\widetilde{\mu}=\mu+zF\phi\) is the electrochemical potential.
-    Equilibrium requires \(\nabla\widetilde{\mu}=0\), not separately
-    \(\nabla\mu=0\) and \(\nabla\phi=0\). Keep the cancellation toggle on to see
+    Equilibrium requires \(d\widetilde{\mu}/dx=0\), not separately
+    \(d\mu/dx=0\) and \(d\phi/dx=0\). Keep the cancellation toggle on to see
     a nonzero chemical gradient and nonzero electrical gradient produce zero
     total flux.
     """)
@@ -1233,35 +1262,33 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 4. “Which diffusivity?” is part of the physics
+    ## 4. Three diffusivities used in the lectures
 
-    The symbol \(D\) is not universal.
+    The symbol \(D\) does not always describe the same experiment.
 
-    | Quantity | What it follows | Why it can differ |
-    |---|---|---|
-    | defect diffusivity \(D\) | motion of an ideal defect population | set here by the jump rate |
-    | tracer diffusivity \(D^*\) | labeled atoms | remembers atom–defect exchange geometry |
-    | conductivity or self-diffusivity \(D^q\) | ion motion inferred from \(\sigma\), as named in the lectures | the concentration and correlations used in Nernst–Einstein matter |
-    | chemical diffusivity \(D_{\rm chem}\) | relaxation of composition | couples carriers and thermodynamic response |
+    | notation | experiment | what moves? | composition changes? |
+    |---|---|---|---|
+    | \(D^*\) | isotope tracer profile | labeled atoms | no |
+    | \(D^q\) | steady conductivity | charge-carrying ions | no |
+    | \(D_{\rm Li}^{\delta}\) | chemical relaxation | \(\mathrm{Li^+}\) and \(e^-\) together | yes |
 
-    In an ideal uncorrelated lattice some of these coincide. In real solids,
-    tracer correlation factors and collective (Haven-type) correlations often
-    separate them. In particular, a conductivity-derived diffusivity for the
-    lattice ions is not automatically the same as the diffusivity of the mobile
-    defects that enable those ions to move. The next derivation concerns
-    **chemical** diffusion and keeps that distinction visible.
+    The first sections of this notebook calculate the microscopic diffusivity
+    of an ideal mobile defect from its hops. A tracer or conductivity
+    measurement can contain additional information about which atoms carry
+    those hops and how their motions are correlated. Chemical diffusion is
+    different because the material's composition changes.
     """)
     return
 
 
 @app.cell
 def _(mo):
-    log_ionic_diffusivity = mo.ui.slider(
-        start=-16.0,
-        stop=-8.0,
+    log_ionic_diffusivity_cm2 = mo.ui.slider(
+        start=-14.0,
+        stop=-6.0,
         step=0.25,
-        value=-12.0,
-        label="log10 ionic diffusivity, Di (m²/s)",
+        value=-10.0,
+        label="log10 D_Li⁺ (cm²/s)",
         show_value=True,
     )
     log_electronic_to_ionic_ratio = mo.ui.slider(
@@ -1269,23 +1296,11 @@ def _(mo):
         stop=4.0,
         step=0.25,
         value=3.0,
-        label="log10(De/Di)",
-        show_value=True,
-    )
-    thermodynamic_factor_control = mo.ui.slider(
-        start=0.20,
-        stop=4.00,
-        step=0.10,
-        value=1.00,
-        label="Thermodynamic factor, Theta",
+        label="log10(D_e⁻ / D_Li⁺)",
         show_value=True,
     )
     ambipolar_controls = mo.hstack(
-        [
-            log_ionic_diffusivity,
-            log_electronic_to_ionic_ratio,
-            thermodynamic_factor_control,
-        ],
+        [log_ionic_diffusivity_cm2, log_electronic_to_ionic_ratio],
         justify="start",
         align="center",
         wrap=True,
@@ -1294,8 +1309,7 @@ def _(mo):
     return (
         ambipolar_controls,
         log_electronic_to_ionic_ratio,
-        log_ionic_diffusivity,
-        thermodynamic_factor_control,
+        log_ionic_diffusivity_cm2,
     )
 
 
@@ -1304,26 +1318,36 @@ def _(ambipolar_controls, mo):
     mo.vstack(
         [
             mo.md(r"""
-            ## 5. Ambipolar diffusion: ions and electrons must cooperate
+            ## 5. Chemical diffusion: Li⁺ and electrons move together
 
-            Consider the neutral insertion reaction
-
-            \[
-            \mathrm{Li}\rightleftharpoons \mathrm{Li^+}+e^-,
-            \qquad c_i=c_e=c
-            \]
-
-            under local electroneutrality. For \(+x\) gradients,
+            Follow the Li example used in Lecture 5:
 
             \[
-            J_i=-D_i\left[\frac{dc}{dx}+\frac{F}{RT}c\frac{d\phi}{dx}\right],
-            \qquad
-            J_e=-D_e\left[\frac{dc}{dx}-\frac{F}{RT}c\frac{d\phi}{dx}\right].
+            \mathrm{Li}\rightleftharpoons \mathrm{Li^+}+e^- .
             \]
 
-            Open circuit means \(j=F(J_i-J_e)=0\), hence \(J_i=J_e\). The
-            internal field prevents charge separation: it slows the faster
-            species and accelerates the slower one.
+            In the bulk, local charge neutrality gives
+            \(c_{\mathrm{Li^+}}=c_{e^-}=c_{\mathrm{Li}}\). Local equilibrium gives
+
+            \[
+            \mu_{\mathrm{Li}}
+            =\widetilde{\mu}_{\mathrm{Li^+}}
+            +\widetilde{\mu}_{e^-}.
+            \]
+
+            During one-dimensional chemical diffusion, the steady fluxes are
+            equal:
+
+            \[
+            J_{\mathrm{Li}}
+            =J_{\mathrm{Li^+}}
+            =J_{e^-}.
+            \]
+
+            If electrons would diffuse faster on their own, a small internal
+            electric field slows them and speeds up \(\mathrm{Li^+}\). The bulk
+            remains charge neutral; the separated-charge sketch in the lecture
+            is only an exaggerated intermediate picture.
             """),
             ambipolar_controls,
         ]
@@ -1334,25 +1358,29 @@ def _(ambipolar_controls, mo):
 @app.cell
 def _(
     FARADAY_C_PER_MOL,
-    GAS_CONSTANT_J_PER_MOL_K,
     ambipolar_fluxes,
     ambipolar_internal_potential_gradient,
-    chemical_diffusivity,
     conductivity_from_diffusivity,
-    ideal_ambipolar_diffusivity,
+    lithium_chemical_diffusivity,
+    lithium_chemical_diffusivity_from_conductivities,
     log_electronic_to_ionic_ratio,
-    log_ionic_diffusivity,
+    log_ionic_diffusivity_cm2,
     temperature_k,
-    thermodynamic_factor_control,
 ):
-    ionic_diffusivity_m2_per_s = 10.0 ** float(log_ionic_diffusivity.value)
+    ionic_diffusivity_cm2_per_s = 10.0 ** float(
+        log_ionic_diffusivity_cm2.value
+    )
+    ionic_diffusivity_m2_per_s = ionic_diffusivity_cm2_per_s * 1.0e-4
     electronic_to_ionic_ratio = 10.0 ** float(
         log_electronic_to_ionic_ratio.value
     )
     electronic_diffusivity_m2_per_s = (
         ionic_diffusivity_m2_per_s * electronic_to_ionic_ratio
     )
-    thermodynamic_factor_value = float(thermodynamic_factor_control.value)
+    electronic_diffusivity_cm2_per_s = (
+        electronic_diffusivity_m2_per_s * 1.0e4
+    )
+
     ambipolar_concentration_mol_per_m3 = 1000.0
     ambipolar_relative_gradient_per_m = 2.0e5
     ambipolar_gradient_mol_per_m4 = (
@@ -1368,30 +1396,32 @@ def _(
             temperature_k,
         )
     )
-    ionic_flux_mol_per_m2_s, electronic_flux_mol_per_m2_s = ambipolar_fluxes(
-        ionic_diffusivity_m2_per_s,
-        electronic_diffusivity_m2_per_s,
-        ambipolar_concentration_mol_per_m3,
-        ambipolar_gradient_mol_per_m4,
-        internal_potential_gradient_v_per_m,
-        temperature_k,
+    ionic_flux_mol_per_m2_s, electronic_flux_mol_per_m2_s = (
+        ambipolar_fluxes(
+            ionic_diffusivity_m2_per_s,
+            electronic_diffusivity_m2_per_s,
+            ambipolar_concentration_mol_per_m3,
+            ambipolar_gradient_mol_per_m4,
+            internal_potential_gradient_v_per_m,
+            temperature_k,
+        )
     )
     open_circuit_current_a_per_m2 = FARADAY_C_PER_MOL * (
         ionic_flux_mol_per_m2_s - electronic_flux_mol_per_m2_s
     )
-    ideal_chemical_diffusivity_m2_per_s = ideal_ambipolar_diffusivity(
+
+    lithium_chemical_diffusivity_m2_per_s = lithium_chemical_diffusivity(
         ionic_diffusivity_m2_per_s,
         electronic_diffusivity_m2_per_s,
     )
-    selected_chemical_diffusivity_m2_per_s = chemical_diffusivity(
-        ionic_diffusivity_m2_per_s,
-        electronic_diffusivity_m2_per_s,
-        thermodynamic_factor_value,
+    lithium_chemical_diffusivity_cm2_per_s = (
+        lithium_chemical_diffusivity_m2_per_s * 1.0e4
     )
     analytic_common_flux_mol_per_m2_s = (
-        -ideal_chemical_diffusivity_m2_per_s
+        -lithium_chemical_diffusivity_m2_per_s
         * ambipolar_gradient_mol_per_m4
     )
+
     ionic_conductivity_s_per_m = conductivity_from_diffusivity(
         ionic_diffusivity_m2_per_s,
         ambipolar_concentration_mol_per_m3,
@@ -1402,39 +1432,34 @@ def _(
         ambipolar_concentration_mol_per_m3,
         temperature_k,
     )
-    neutral_chemical_potential_derivative_j_m3_per_mol2 = (
-        2.0
-        * GAS_CONSTANT_J_PER_MOL_K
-        * temperature_k
-        * thermodynamic_factor_value
-        / ambipolar_concentration_mol_per_m3
-    )
-    conductivity_form_chemical_diffusivity_m2_per_s = (
-        ionic_conductivity_s_per_m
-        * electronic_conductivity_s_per_m
-        / (ionic_conductivity_s_per_m + electronic_conductivity_s_per_m)
-        / FARADAY_C_PER_MOL**2
-        * neutral_chemical_potential_derivative_j_m3_per_mol2
+    conductivity_form_diffusivity_m2_per_s = (
+        lithium_chemical_diffusivity_from_conductivities(
+            ionic_conductivity_s_per_m,
+            electronic_conductivity_s_per_m,
+            ambipolar_concentration_mol_per_m3,
+            ambipolar_concentration_mol_per_m3,
+            temperature_k,
+        )
     )
     return (
         ambipolar_concentration_mol_per_m3,
         ambipolar_gradient_mol_per_m4,
         ambipolar_relative_gradient_per_m,
         analytic_common_flux_mol_per_m2_s,
-        conductivity_form_chemical_diffusivity_m2_per_s,
+        conductivity_form_diffusivity_m2_per_s,
         electronic_conductivity_s_per_m,
+        electronic_diffusivity_cm2_per_s,
         electronic_diffusivity_m2_per_s,
         electronic_flux_mol_per_m2_s,
         electronic_to_ionic_ratio,
-        ideal_chemical_diffusivity_m2_per_s,
         internal_potential_gradient_v_per_m,
         ionic_conductivity_s_per_m,
+        ionic_diffusivity_cm2_per_s,
         ionic_diffusivity_m2_per_s,
         ionic_flux_mol_per_m2_s,
-        neutral_chemical_potential_derivative_j_m3_per_mol2,
+        lithium_chemical_diffusivity_cm2_per_s,
+        lithium_chemical_diffusivity_m2_per_s,
         open_circuit_current_a_per_m2,
-        selected_chemical_diffusivity_m2_per_s,
-        thermodynamic_factor_value,
     )
 
 
@@ -1445,63 +1470,53 @@ def _(
     electronic_diffusivity_m2_per_s,
     electronic_flux_mol_per_m2_s,
     electronic_to_ionic_ratio,
-    ideal_chemical_diffusivity_m2_per_s,
     internal_potential_gradient_v_per_m,
     ionic_diffusivity_m2_per_s,
     ionic_flux_mol_per_m2_s,
+    lithium_chemical_diffusivity_cm2_per_s,
     mo,
     np,
     open_circuit_current_a_per_m2,
     plt,
-    selected_chemical_diffusivity_m2_per_s,
-    thermodynamic_factor_value,
 ):
     ratio_curve = np.logspace(-4.0, 4.0, 500)
-    ideal_ratio_curve = 2.0 * ratio_curve / (1.0 + ratio_curve)
-    selected_ratio_curve = thermodynamic_factor_value * ideal_ratio_curve
+    chemical_to_ionic_ratio_curve = 2.0 * ratio_curve / (1.0 + ratio_curve)
 
-    uncoupled_ionic_flux = -ionic_diffusivity_m2_per_s * ambipolar_gradient_mol_per_m4
+    uncoupled_ionic_flux = (
+        -ionic_diffusivity_m2_per_s * ambipolar_gradient_mol_per_m4
+    )
     uncoupled_electronic_flux = (
         -electronic_diffusivity_m2_per_s * ambipolar_gradient_mol_per_m4
     )
-    flux_magnitudes = np.maximum(
-        np.abs(
-            [
-                uncoupled_ionic_flux,
-                uncoupled_electronic_flux,
-                ionic_flux_mol_per_m2_s,
-            ]
-        ),
-        1.0e-300,
+    flux_magnitudes = np.abs(
+        [
+            uncoupled_ionic_flux,
+            uncoupled_electronic_flux,
+            analytic_common_flux_mol_per_m2_s,
+        ]
     )
+    flux_floor = max(np.max(flux_magnitudes) * 1.0e-6, 1.0e-300)
+    flux_magnitudes = np.maximum(flux_magnitudes, flux_floor)
 
     ambipolar_figure, (ratio_axis, coupling_axis) = plt.subplots(
         1,
         2,
-        figsize=(13.2, 4.9),
+        figsize=(13.8, 4.9),
         dpi=120,
     )
     ratio_axis.loglog(
         ratio_curve,
-        ideal_ratio_curve,
+        chemical_to_ionic_ratio_curve,
         color="#007C91",
         lw=3.0,
-        label=r"ideal: $2r/(1+r)$",
+        label=r"$2r/(1+r)$",
     )
-    if abs(thermodynamic_factor_value - 1.0) > 1.0e-12:
-        ratio_axis.loglog(
-            ratio_curve,
-            selected_ratio_curve,
-            color="#D55E00",
-            lw=2.2,
-            ls="--",
-            label=rf"with $\Theta={thermodynamic_factor_value:.2f}$",
-        )
     ratio_axis.scatter(
         [electronic_to_ionic_ratio],
         [
-            selected_chemical_diffusivity_m2_per_s
-            / ionic_diffusivity_m2_per_s
+            2.0
+            * electronic_to_ionic_ratio
+            / (1.0 + electronic_to_ionic_ratio)
         ],
         s=95,
         color="#EE9B00",
@@ -1511,9 +1526,9 @@ def _(
     )
     ratio_axis.axhline(1.0, color="#777777", lw=1.0, ls=":")
     ratio_axis.set(
-        xlabel=r"mobility contrast, $D_e/D_i$",
-        ylabel=r"$D_{\rm chem}/D_i$",
-        title="The slower carrier limits ideal ambipolar motion",
+        xlabel=r"mobility contrast, $r=D_{e^-}/D_{\rm Li^+}$",
+        ylabel=r"$D_{\rm Li}^{\delta}/D_{\rm Li^+}$",
+        title="The slower carrier limits chemical diffusion",
         xlim=(1.0e-4, 1.0e4),
         ylim=(1.0e-4, 10.0),
     )
@@ -1521,16 +1536,20 @@ def _(
     ratio_axis.legend(frameon=False)
 
     coupling_axis.bar(
-        ["ion alone", "electron alone", "common coupled flux\nJi = Je (Θ = 1)"],
+        [
+            r"$\mathrm{Li^+}$ alone",
+            r"$e^-$ alone",
+            "common flux\n" + r"$J_{\rm Li^+}=J_{e^-}$",
+        ],
         flux_magnitudes,
         color=["#007C91", "#CC3311", "#EE9B00"],
     )
     coupling_axis.set_yscale("log")
     coupling_axis.set(
         ylabel=r"|flux| (mol m$^{-2}$ s$^{-1}$)",
-        title=r"The internal field makes $J_i=J_e$",
+        title=r"The internal field makes $J_{\rm Li^+}=J_{e^-}$",
     )
-    coupling_axis.tick_params(axis="x", rotation=15)
+    coupling_axis.tick_params(axis="x", rotation=12)
     coupling_axis.grid(axis="y", which="both", alpha=0.22)
     ambipolar_figure.tight_layout()
     plt.close(ambipolar_figure)
@@ -1538,19 +1557,15 @@ def _(
     ambipolar_summary = mo.md(
         rf"""
         The internal potential gradient is
-        **{internal_potential_gradient_v_per_m:.3e} V/m**. It gives
-        \(J_i={ionic_flux_mol_per_m2_s:.3e}\) and
-        \(J_e={electronic_flux_mol_per_m2_s:.3e}\) mol/(m² s), while
-        \(j=F(J_i-J_e)={open_circuit_current_a_per_m2:.3e}\) A/m².
-        The analytic ideal common flux,
-        \(-D_{{\rm chem,ideal}}dc/dx\), is
-        **{analytic_common_flux_mol_per_m2_s:.3e} mol/(m² s)**.
+        **{internal_potential_gradient_v_per_m / 100.0:.3e} V/cm**. It gives
+        \(J_{{\rm Li^+}}={ionic_flux_mol_per_m2_s:.3e}\) and
+        \(J_{{e^-}}={electronic_flux_mol_per_m2_s:.3e}\) mol/(m² s), while
+        \(F(J_{{\rm Li^+}}-J_{{e^-}})
+        ={open_circuit_current_a_per_m2:.3e}\) A/m².
 
-        Here \(D_{{\rm chem,ideal}}={ideal_chemical_diffusivity_m2_per_s:.3e}\)
-        m²/s and the selected thermodynamic factor gives
-        \(D_{{\rm chem}}={selected_chemical_diffusivity_m2_per_s:.3e}\) m²/s.
-        The flux bars show the ideal \(\Theta=1\) coupling step; the next
-        section then adds the thermodynamic factor explicitly.
+        The common flux corresponds to
+        \(D_{{\rm Li}}^{{\delta}}
+        ={lithium_chemical_diffusivity_cm2_per_s:.3e}\) cm²/s.
         """
     )
     mo.vstack([ambipolar_figure, ambipolar_summary])
@@ -1558,93 +1573,57 @@ def _(
 
 
 @app.cell
-def _(mo):
-    mo.md(r"""
-    Solving \(J_i=J_e\) gives
-
-    \[
-    \frac{d\phi}{dx}
-    =\frac{RT}{Fc}\frac{D_e-D_i}{D_i+D_e}\frac{dc}{dx},
-    \qquad
-    J_i=J_e=-\frac{2D_iD_e}{D_i+D_e}\frac{dc}{dx}.
-    \]
-
-    Therefore
-
-    \[
-    \boxed{D_{\rm chem,ideal}=\frac{2D_iD_e}{D_i+D_e}}.
-    \]
-
-    The factor of two is **not universal**. It is specific to this 1:1
-    \(\mathrm{Li}\rightleftharpoons\mathrm{Li^+}+e^-\) model and to defining
-    the neutral chemical potential as the sum of the ionic and electronic
-    electrochemical potentials.
-    """)
-    return
-
-
-@app.cell
 def _(
-    conductivity_form_chemical_diffusivity_m2_per_s,
+    conductivity_form_diffusivity_m2_per_s,
     electronic_conductivity_s_per_m,
+    electronic_diffusivity_cm2_per_s,
     ionic_conductivity_s_per_m,
+    ionic_diffusivity_cm2_per_s,
+    lithium_chemical_diffusivity_cm2_per_s,
     mo,
-    neutral_chemical_potential_derivative_j_m3_per_mol2,
-    selected_chemical_diffusivity_m2_per_s,
-    thermodynamic_factor_value,
 ):
     mo.md(
         rf"""
-        ## 6. Thermodynamic factor: transport also feels free-energy curvature
+        ### The Lecture 5 result
 
-        The general conductivity form for this monovalent pair is
-
-        \[
-        D_{{\rm chem}}
-        =\frac{{\sigma_i\sigma_e}}{{\sigma_i+\sigma_e}}
-         \frac{{1}}{{F^2}}
-         \frac{{\partial\mu_{{\rm neutral}}}}{{\partial c}}.
-        \]
-
-        Unit check:
-        \(\sigma\) is S/m, \(F\) is C/mol, and
-        \(\partial\mu/\partial c\) is J m³/mol²; the product is m²/s.
-        With ideal Nernst–Einstein conductivities
+        The flux law used in the slides is
 
         \[
-        \sigma_i=\frac{{F^2cD_i}}{{RT}},\qquad
-        \sigma_e=\frac{{F^2cD_e}}{{RT}},
+        J_i=-\frac{{\sigma_i}}{{z_i^2F^2}}
+        \frac{{d\widetilde{{\mu}}_i}}{{dx}}.
         \]
 
-        define
+        Combining local equilibrium with
+        \(J_{{\rm Li^+}}=J_{{e^-}}\) gives, in the dilute limit,
 
         \[
-        \Theta=\frac{{c}}{{2RT}}
-        \frac{{\partial\mu_{{\rm neutral}}}}{{\partial c}}.
+        D_{{\rm Li}}^\delta
+        =\frac{{RT}}{{F^2}}
+        \frac{{\sigma_{{e^-}}\sigma_{{\rm Li^+}}}}
+             {{\sigma_{{e^-}}+\sigma_{{\rm Li^+}}}}
+        \left(\frac{{1}}{{c_{{e^-}}}}
+        +\frac{{1}}{{c_{{\rm Li^+}}}}\right).
         \]
 
-        Then \(\Theta=1\) for this ideal neutral solution and
+        For \(c_{{e^-}}=c_{{\rm Li^+}}\), the Nernst-Einstein relation reduces
+        this to
 
         \[
-        D_{{\rm chem}}=
-        \frac{{2D_iD_e}}{{D_i+D_e}}\,\Theta.
+        D_{{\rm Li}}^\delta
+        =\frac{{2D_{{\rm Li^+}}D_{{e^-}}}}
+        {{D_{{\rm Li^+}}+D_{{e^-}}}}.
         \]
 
-        At the selected state,
-        \(\sigma_i={ionic_conductivity_s_per_m:.3e}\) S/m,
-        \(\sigma_e={electronic_conductivity_s_per_m:.3e}\) S/m, and
-        \(\partial\mu_{{\rm neutral}}/\partial c=
-        {neutral_chemical_potential_derivative_j_m3_per_mol2:.3e}\)
-        J m³/mol². The conductivity expression gives
-        **{conductivity_form_chemical_diffusivity_m2_per_s:.3e} m²/s**, matching
-        the displayed \(D_{{\rm chem}}=
-        {selected_chemical_diffusivity_m2_per_s:.3e}\) m²/s at
-        \(\Theta={thermodynamic_factor_value:.2f}\).
+        Here \(D_{{\rm Li^+}}={ionic_diffusivity_cm2_per_s:.3e}\) cm²/s,
+        \(D_{{e^-}}={electronic_diffusivity_cm2_per_s:.3e}\) cm²/s,
+        \(\sigma_{{\rm Li^+}}={ionic_conductivity_s_per_m:.3e}\) S/m, and
+        \(\sigma_{{e^-}}={electronic_conductivity_s_per_m:.3e}\) S/m.
+        The conductivity expression gives
+        **{conductivity_form_diffusivity_m2_per_s * 1.0e4:.3e} cm²/s**, matching
+        \(D_{{\rm Li}}^\delta
+        ={lithium_chemical_diffusivity_cm2_per_s:.3e}\) cm²/s.
 
-        This is the bridge back to Module 01: the slope or curvature of free
-        energy determines how strongly a composition gradient changes chemical
-        potential. Kinetics supplies mobility; thermodynamics supplies the
-        restoring force.
+        We stop at the dilute-limit Li expression developed in the slides.
         """
     )
     return
@@ -1653,51 +1632,51 @@ def _(
 @app.cell
 def _(mo):
     log_sample_length = mo.ui.slider(
-        start=-9.0,
-        stop=-3.0,
+        start=-8.0,
+        stop=-2.0,
         step=0.25,
         value=-5.0,
-        label="log10 sample thickness, L (m)",
+        label="log10 sample length, L (m)",
         show_value=True,
     )
-    log_time_over_tau = mo.ui.slider(
-        start=-3.0,
-        stop=1.0,
-        step=0.25,
-        value=-1.5,
-        label="log10(t / [L²/Dchem])",
+    reduced_profile_time = mo.ui.slider(
+        start=0.01,
+        stop=0.50,
+        step=0.01,
+        value=0.08,
+        label=r"reduced time, t D_Li^delta / L²",
         show_value=True,
     )
-    length_controls = mo.hstack(
-        [log_sample_length, log_time_over_tau],
+    relaxation_controls = mo.hstack(
+        [log_sample_length, reduced_profile_time],
         justify="start",
         align="center",
         wrap=True,
         gap=1.5,
     )
-    return length_controls, log_sample_length, log_time_over_tau
+    return log_sample_length, reduced_profile_time, relaxation_controls
 
 
 @app.cell
-def _(length_controls, mo):
+def _(mo, relaxation_controls):
     mo.vstack(
         [
             mo.md(r"""
-            ## 7. From diffusivity to a relaxation time
+            ## 6. Chemical diffusivity sets the relaxation time
 
-            A diffusion length \(L\) introduces the scaling
+            In a one-dimensional sample of length \(L\), the characteristic
+            time follows the scaling used in Lecture 5:
 
             \[
-            \tau\sim\frac{L^2}{D_{\rm chem}}.
+            \tau^\delta \propto
+            \frac{L^2}{D_{\rm Li}^{\delta}}.
             \]
 
-            Boundary conditions add numerical factors such as \(\pi^2\), but
-            the \(L^2\) dependence is the essential reason a thin film can
-            equilibrate in milliseconds while a millimeter body takes days.
-            This length–time bridge underlies later interpretation of
-            polarization and intermittent-titration experiments.
+            Increasing the length by a factor of ten increases the diffusion
+            time by a factor of one hundred. This is why the same material can
+            respond quickly as a thin film and slowly as a bulk sample.
             """),
-            length_controls,
+            relaxation_controls,
         ]
     )
     return
@@ -1706,73 +1685,53 @@ def _(length_controls, mo):
 @app.cell
 def _(
     characteristic_relaxation_time,
+    lithium_chemical_diffusivity_m2_per_s,
     log_sample_length,
-    log_time_over_tau,
     np,
-    selected_chemical_diffusivity_m2_per_s,
+    reduced_profile_time,
     slab_remaining_profile,
 ):
     selected_length_m = 10.0 ** float(log_sample_length.value)
     selected_relaxation_time_s = characteristic_relaxation_time(
         selected_length_m,
-        selected_chemical_diffusivity_m2_per_s,
+        lithium_chemical_diffusivity_m2_per_s,
     )
-    length_curve_m = np.logspace(-9.0, -3.0, 400)
+    length_curve_m = np.logspace(-8.0, -2.0, 400)
     relaxation_curve_s = (
-        length_curve_m**2 / selected_chemical_diffusivity_m2_per_s
+        length_curve_m**2 / lithium_chemical_diffusivity_m2_per_s
     )
-    selected_time_over_tau = 10.0 ** float(log_time_over_tau.value)
-    slab_coordinate = np.linspace(0.0, 1.0, 401)
-    slab_excess_profile = slab_remaining_profile(
-        slab_coordinate,
-        selected_time_over_tau,
+    slab_position = np.linspace(0.0, 1.0, 400)
+    selected_slab_profile = slab_remaining_profile(
+        slab_position,
+        float(reduced_profile_time.value),
     )
     return (
         length_curve_m,
         relaxation_curve_s,
         selected_length_m,
         selected_relaxation_time_s,
-        selected_time_over_tau,
-        slab_coordinate,
-        slab_excess_profile,
+        selected_slab_profile,
+        slab_position,
     )
 
 
 @app.cell
 def _(
     length_curve_m,
+    lithium_chemical_diffusivity_cm2_per_s,
     mo,
-    np,
     plt,
+    reduced_profile_time,
     relaxation_curve_s,
     selected_length_m,
     selected_relaxation_time_s,
-    selected_time_over_tau,
-    slab_coordinate,
-    slab_excess_profile,
+    selected_slab_profile,
+    slab_position,
 ):
-    def _readable_length(length_m):
-        if length_m < 1.0e-6:
-            return f"{length_m * 1.0e9:.3g} nm"
-        if length_m < 1.0e-3:
-            return f"{length_m * 1.0e6:.3g} µm"
-        return f"{length_m * 1.0e3:.3g} mm"
-
-    def _readable_time(time_s):
-        if time_s < 1.0e-3:
-            return f"{time_s * 1.0e6:.3g} µs"
-        if time_s < 1.0:
-            return f"{time_s * 1.0e3:.3g} ms"
-        if time_s < 3600.0:
-            return f"{time_s:.3g} s"
-        if time_s < 86400.0:
-            return f"{time_s / 3600.0:.3g} h"
-        return f"{time_s / 86400.0:.3g} days"
-
-    length_figure, (time_axis, slab_axis) = plt.subplots(
+    relaxation_figure, (time_axis, relaxation_profile_axis) = plt.subplots(
         1,
         2,
-        figsize=(13.2, 4.9),
+        figsize=(13.6, 4.8),
         dpi=120,
     )
     time_axis.loglog(
@@ -1780,98 +1739,94 @@ def _(
         relaxation_curve_s,
         color="#007C91",
         lw=3.0,
+        label=r"$L^2/D_{\rm Li}^{\delta}$",
     )
     time_axis.scatter(
         [selected_length_m],
         [selected_relaxation_time_s],
-        s=100,
+        s=95,
         color="#EE9B00",
         edgecolor="#222222",
         zorder=5,
+        label="selected length",
     )
     time_axis.set(
-        xlabel="sample thickness, L (m)",
-        ylabel=r"$L^2/D_{\rm chem}$ (s)",
+        xlabel="sample length, L (m)",
+        ylabel="characteristic time (s)",
         title="Diffusion time grows as length squared",
     )
     time_axis.grid(which="both", alpha=0.22)
+    time_axis.legend(frameon=False)
 
-    slab_axis.plot(
-        slab_coordinate,
-        slab_excess_profile,
-        color="#D55E00",
+    relaxation_profile_axis.plot(
+        slab_position,
+        selected_slab_profile,
+        color="#CC3311",
         lw=3.0,
     )
-    slab_axis.fill_between(
-        slab_coordinate,
-        0.0,
-        slab_excess_profile,
-        color="#D55E00",
-        alpha=0.12,
+    relaxation_profile_axis.set(
+        xlabel="position, x / L",
+        ylabel="remaining normalized composition change",
+        title="One-dimensional slab relaxation",
+        ylim=(-0.03, 1.03),
     )
-    slab_axis.set(
-        xlabel="position / L",
-        ylabel="normalized concentration excess",
-        title=rf"Slab relaxation at $t/\tau={selected_time_over_tau:.3g}$",
-        xlim=(0.0, 1.0),
-        ylim=(0.0, 1.08),
-    )
-    slab_axis.grid(alpha=0.22)
-    length_figure.tight_layout()
-    plt.close(length_figure)
+    relaxation_profile_axis.grid(alpha=0.22)
+    relaxation_figure.tight_layout()
+    plt.close(relaxation_figure)
 
-    length_summary = mo.md(
+    if selected_relaxation_time_s < 1.0:
+        time_text = f"{selected_relaxation_time_s:.3e} s"
+    elif selected_relaxation_time_s < 3600.0:
+        time_text = f"{selected_relaxation_time_s / 60.0:.2f} min"
+    elif selected_relaxation_time_s < 86400.0:
+        time_text = f"{selected_relaxation_time_s / 3600.0:.2f} h"
+    else:
+        time_text = f"{selected_relaxation_time_s / 86400.0:.2f} days"
+
+    relaxation_summary = mo.md(
         rf"""
-        For **{_readable_length(selected_length_m)}**,
-        \(L^2/D_{{\rm chem}}\) is
-        **{_readable_time(selected_relaxation_time_s)}**. The profile uses
-        fixed surface composition at both faces; a different geometry or
-        boundary condition changes the prefactor, not the \(L^2/D\) scaling.
+        With \(D_{{\rm Li}}^\delta
+        ={lithium_chemical_diffusivity_cm2_per_s:.3e}\) cm²/s and
+        \(L={selected_length_m:.3e}\) m,
+        \(L^2/D_{{\rm Li}}^\delta\) is **{time_text}**.
+        The right panel shows the remaining composition change at
+        \(tD_{{\rm Li}}^\delta/L^2={float(reduced_profile_time.value):.2f}\).
         """
     )
-    mo.vstack([length_figure, length_summary])
-    return (length_figure,)
+    mo.vstack([relaxation_figure, relaxation_summary])
+    return (relaxation_figure,)
+
 
 @app.cell
 def _(
     FARADAY_C_PER_MOL,
-    GAS_CONSTANT_J_PER_MOL_K,
-    ambipolar_fluxes,
+    KB_EV_PER_K,
     ambipolar_gradient_mol_per_m4,
-    ambipolar_concentration_mol_per_m3,
-    ambipolar_internal_potential_gradient,
     analytic_common_flux_mol_per_m2_s,
-    attempt_frequency_hz,
     backward_rate_hz,
-    biased_neighbor_rates,
-    charge_number_value,
-    chemical_diffusivity,
-    conductivity_form_chemical_diffusivity_m2_per_s,
+    conductivity_form_diffusivity_m2_per_s,
     defect_diffusivity_m2_per_s,
-    discrete_bond_fluxes,
+    diffusion_flux_mol_per_m2_s,
     electronic_diffusivity_m2_per_s,
     electronic_flux_mol_per_m2_s,
-    evolved_master_occupancy,
-    exact_hopping_drift_velocity,
+    electrical_flux_mol_per_m2_s,
+    exact_drift_m_per_s,
     extracted_diffusivity_m2_per_s,
     field_work_per_hop_ev,
-    fick_bond_fluxes,
     forward_rate_hz,
-    hopping_diffusivity_1d,
-    ideal_chemical_diffusivity_m2_per_s,
+    hop_frequency_hz,
     ionic_diffusivity_m2_per_s,
     ionic_flux_mol_per_m2_s,
     jump_distance_m,
-    migration_enthalpy_ev,
+    lithium_chemical_diffusivity_m2_per_s,
+    low_field_drift_m_per_s,
+    master_flux_relative_error,
     master_mass_relative_error,
-    molar_nernst_planck_flux,
     msd_fit_r_squared,
-    nernst_einstein_drift_velocity,
     np,
-    selected_chemical_diffusivity_m2_per_s,
+    open_circuit_current_a_per_m2,
     temperature_k,
-    thermodynamic_factor_value,
-    zero_field_rate_hz,
+    total_np_flux_mol_per_m2_s,
 ):
     def _relative_error(value, reference):
         return abs(float(value) - float(reference)) / max(
@@ -1881,169 +1836,72 @@ def _(
 
     zero_field_identity_error = _relative_error(
         defect_diffusivity_m2_per_s,
-        jump_distance_m**2 * zero_field_rate_hz,
+        0.5 * jump_distance_m**2 * hop_frequency_hz,
     )
     msd_diffusivity_error = _relative_error(
         extracted_diffusivity_m2_per_s,
         defect_diffusivity_m2_per_s,
     )
-    detailed_balance_reference = np.exp(
-        field_work_per_hop_ev / (8.617333262e-5 * temperature_k)
-    )
     detailed_balance_error = _relative_error(
         forward_rate_hz / backward_rate_hz,
-        detailed_balance_reference,
+        np.exp(field_work_per_hop_ev / (KB_EV_PER_K * temperature_k)),
+    )
+    low_field_drift_error = _relative_error(
+        exact_drift_m_per_s,
+        low_field_drift_m_per_s,
     )
 
-    low_field_test_e_v_per_m = (
-        1.0e-4
-        * 8.617333262e-5
-        * temperature_k
-        / jump_distance_m
-    )
-    (
-        low_field_forward_rate_hz,
-        low_field_backward_rate_hz,
-        low_field_base_rate_hz,
-    ) = biased_neighbor_rates(
-        temperature_k,
-        migration_enthalpy_ev,
-        attempt_frequency_hz,
-        jump_distance_m,
-        1,
-        low_field_test_e_v_per_m,
-    )
-    low_field_exact_velocity_m_per_s = exact_hopping_drift_velocity(
-        jump_distance_m,
-        low_field_forward_rate_hz,
-        low_field_backward_rate_hz,
-    )
-    low_field_reference_diffusivity_m2_per_s = hopping_diffusivity_1d(
-        jump_distance_m,
-        low_field_base_rate_hz,
-    )
-    low_field_ne_velocity_m_per_s = nernst_einstein_drift_velocity(
-        low_field_reference_diffusivity_m2_per_s,
-        temperature_k,
-        1,
-        low_field_test_e_v_per_m,
-    )
-    low_field_ne_error = _relative_error(
-        low_field_exact_velocity_m_per_s,
-        low_field_ne_velocity_m_per_s,
-    )
-
-    validation_master_flux = discrete_bond_fluxes(
-        evolved_master_occupancy,
-        zero_field_rate_hz,
-    )
-    validation_fick_flux = fick_bond_fluxes(
-        evolved_master_occupancy,
-        jump_distance_m,
-        defect_diffusivity_m2_per_s,
-    )
-    master_fick_error = float(
-        np.max(np.abs(validation_master_flux - validation_fick_flux))
-        / max(np.max(np.abs(validation_master_flux)), 1.0e-300)
-    )
-
-    validation_concentration = 1000.0
-    validation_relative_gradient = 2.5e5
-    validation_gradient = (
-        validation_concentration * validation_relative_gradient
-    )
-    validation_potential_gradient = (
-        -GAS_CONSTANT_J_PER_MOL_K
-        * temperature_k
-        * validation_relative_gradient
-        / (charge_number_value * FARADAY_C_PER_MOL)
-    )
-    validation_diffusion_flux, validation_electrical_flux, validation_total_flux = (
-        molar_nernst_planck_flux(
-            defect_diffusivity_m2_per_s,
-            validation_concentration,
-            validation_gradient,
-            validation_potential_gradient,
-            charge_number_value,
-            temperature_k,
-        )
-    )
-    electrochemical_cancellation_error = abs(validation_total_flux) / max(
-        abs(validation_diffusion_flux) + abs(validation_electrical_flux),
+    flux_balance_scale = max(
+        abs(diffusion_flux_mol_per_m2_s)
+        + abs(electrical_flux_mol_per_m2_s),
         1.0e-300,
     )
-
-    validation_internal_gradient = ambipolar_internal_potential_gradient(
-        ionic_diffusivity_m2_per_s,
-        electronic_diffusivity_m2_per_s,
-        ambipolar_concentration_mol_per_m3,
-        ambipolar_gradient_mol_per_m4,
-        temperature_k,
-    )
-    validation_ionic_flux, validation_electronic_flux = ambipolar_fluxes(
-        ionic_diffusivity_m2_per_s,
-        electronic_diffusivity_m2_per_s,
-        ambipolar_concentration_mol_per_m3,
-        ambipolar_gradient_mol_per_m4,
-        validation_internal_gradient,
-        temperature_k,
+    electrochemical_flux_relative = (
+        abs(total_np_flux_mol_per_m2_s) / flux_balance_scale
     )
     ambipolar_flux_match_error = _relative_error(
-        validation_ionic_flux,
-        validation_electronic_flux,
+        ionic_flux_mol_per_m2_s,
+        electronic_flux_mol_per_m2_s,
     )
-    ambipolar_current_relative = abs(
+    ambipolar_current_relative = abs(open_circuit_current_a_per_m2) / max(
         FARADAY_C_PER_MOL
-        * (validation_ionic_flux - validation_electronic_flux)
-    ) / max(
-        FARADAY_C_PER_MOL
-        * (abs(validation_ionic_flux) + abs(validation_electronic_flux)),
+        * (abs(ionic_flux_mol_per_m2_s)
+        + abs(electronic_flux_mol_per_m2_s)),
         1.0e-300,
     )
-    analytic_ambipolar_flux_error = _relative_error(
-        validation_ionic_flux,
-        -ideal_chemical_diffusivity_m2_per_s
-        * ambipolar_gradient_mol_per_m4,
-    )
-    displayed_flux_consistency_error = max(
-        _relative_error(ionic_flux_mol_per_m2_s, analytic_common_flux_mol_per_m2_s),
-        _relative_error(electronic_flux_mol_per_m2_s, analytic_common_flux_mol_per_m2_s),
-    )
-    theta_multiplication_error = _relative_error(
-        selected_chemical_diffusivity_m2_per_s,
-        ideal_chemical_diffusivity_m2_per_s * thermodynamic_factor_value,
+    analytic_chemical_flux_error = _relative_error(
+        ionic_flux_mol_per_m2_s,
+        analytic_common_flux_mol_per_m2_s,
     )
     conductivity_form_error = _relative_error(
-        conductivity_form_chemical_diffusivity_m2_per_s,
-        selected_chemical_diffusivity_m2_per_s,
+        conductivity_form_diffusivity_m2_per_s,
+        lithium_chemical_diffusivity_m2_per_s,
     )
 
-    positive_quantities = np.array(
+    positive_values = np.array(
         [
-            zero_field_rate_hz,
-            forward_rate_hz,
-            backward_rate_hz,
+            hop_frequency_hz,
             defect_diffusivity_m2_per_s,
             ionic_diffusivity_m2_per_s,
             electronic_diffusivity_m2_per_s,
-            ideal_chemical_diffusivity_m2_per_s,
-            selected_chemical_diffusivity_m2_per_s,
+            lithium_chemical_diffusivity_m2_per_s,
         ]
     )
-    finite_quantities = np.array(
+    finite_values = np.array(
         [
             zero_field_identity_error,
             msd_diffusivity_error,
             detailed_balance_error,
-            low_field_ne_error,
-            master_fick_error,
-            electrochemical_cancellation_error,
+            low_field_drift_error,
+            master_mass_relative_error,
+            master_flux_relative_error,
+            electrochemical_flux_relative,
             ambipolar_flux_match_error,
             ambipolar_current_relative,
-            analytic_ambipolar_flux_error,
-            displayed_flux_consistency_error,
-            theta_multiplication_error,
+            analytic_chemical_flux_error,
             conductivity_form_error,
+            msd_fit_r_squared,
+            ambipolar_gradient_mol_per_m4,
         ]
     )
     transport_validation = {
@@ -2057,32 +1915,24 @@ def _(
         ),
         "detailed_balance_error": detailed_balance_error,
         "detailed_balance_pass": detailed_balance_error < 1.0e-12,
-        "low_field_ne_error": low_field_ne_error,
-        "low_field_ne_pass": low_field_ne_error < 1.0e-7,
-        "master_mass_error": master_mass_relative_error,
-        "master_mass_pass": master_mass_relative_error < 1.0e-12,
-        "master_fick_error": master_fick_error,
-        "master_fick_pass": master_fick_error < 1.0e-12,
-        "cancellation_error": electrochemical_cancellation_error,
-        "cancellation_pass": electrochemical_cancellation_error < 1.0e-12,
+        "low_field_drift_error": low_field_drift_error,
+        "low_field_drift_pass": low_field_drift_error < 1.0e-7,
+        "mass_error": master_mass_relative_error,
+        "mass_pass": master_mass_relative_error < 1.0e-12,
+        "fick_error": master_flux_relative_error,
+        "fick_pass": master_flux_relative_error < 1.0e-12,
+        "electrochemical_flux_relative": electrochemical_flux_relative,
+        "electrochemical_flux_pass": electrochemical_flux_relative < 1.0e-12,
         "ambipolar_current_relative": ambipolar_current_relative,
         "ambipolar_current_pass": ambipolar_current_relative < 1.0e-12,
         "ambipolar_flux_match_error": ambipolar_flux_match_error,
         "ambipolar_flux_match_pass": ambipolar_flux_match_error < 1.0e-12,
-        "analytic_ambipolar_error": analytic_ambipolar_flux_error,
-        "analytic_ambipolar_pass": analytic_ambipolar_flux_error < 1.0e-12,
-        "displayed_flux_error": displayed_flux_consistency_error,
-        "displayed_flux_pass": displayed_flux_consistency_error < 1.0e-12,
-        "theta_error": theta_multiplication_error,
-        "theta_pass": theta_multiplication_error < 1.0e-14,
+        "analytic_chemical_flux_error": analytic_chemical_flux_error,
+        "analytic_chemical_flux_pass": analytic_chemical_flux_error < 1.0e-12,
         "conductivity_form_error": conductivity_form_error,
         "conductivity_form_pass": conductivity_form_error < 1.0e-12,
-        "positive_pass": bool(np.all(positive_quantities > 0.0)),
-        "finite_pass": bool(
-            np.all(np.isfinite(positive_quantities))
-            and np.all(np.isfinite(finite_quantities))
-            and np.all(np.isfinite(evolved_master_occupancy))
-        ),
+        "positive_pass": bool(np.all(positive_values > 0.0)),
+        "finite_pass": bool(np.all(np.isfinite(finite_values))),
     }
     return (transport_validation,)
 
@@ -2094,37 +1944,28 @@ def _(mo, transport_validation):
 
     mo.md(
         rf"""
-        ## 8. Numerical sanity checks
+        ## Numerical sanity checks
 
-        | Check | Result | Error or diagnostic |
+        | question | status | numerical result |
         |---|---:|---:|
-        | zero-field random-walk identity \(D=a^2w_0\) | {_check_mark(transport_validation['zero_field_identity_pass'])} | relative error {transport_validation['zero_field_identity_error']:.2e} |
-        | simulated MSD is linear and recovers \(D\) | {_check_mark(transport_validation['msd_pass'])} | \(D\) error {transport_validation['msd_diffusivity_error']:.2e}, \(R^2={transport_validation['msd_r_squared']:.6f}\) |
-        | biased rates obey detailed balance \(w_+/w_-=\exp(zeEa/k_BT)\) | {_check_mark(transport_validation['detailed_balance_pass'])} | relative error {transport_validation['detailed_balance_error']:.2e} |
-        | exact hopping drift approaches Nernst–Einstein at low field | {_check_mark(transport_validation['low_field_ne_pass'])} | relative error {transport_validation['low_field_ne_error']:.2e} |
-        | master equation conserves defect number | {_check_mark(transport_validation['master_mass_pass'])} | relative error {transport_validation['master_mass_error']:.2e} |
-        | microscopic bond flux equals discrete Fick flux | {_check_mark(transport_validation['master_fick_pass'])} | relative error {transport_validation['master_fick_error']:.2e} |
-        | opposing chemical and electrical gradients give zero total flux | {_check_mark(transport_validation['cancellation_pass'])} | scaled residual {transport_validation['cancellation_error']:.2e} |
-        | ambipolar solution has zero open-circuit current | {_check_mark(transport_validation['ambipolar_current_pass'])} | scaled residual {transport_validation['ambipolar_current_relative']:.2e} |
-        | ambipolar solution gives \(J_i=J_e\) | {_check_mark(transport_validation['ambipolar_flux_match_pass'])} | relative mismatch {transport_validation['ambipolar_flux_match_error']:.2e} |
-        | common flux gives \(2D_iD_e/(D_i+D_e)\) | {_check_mark(transport_validation['analytic_ambipolar_pass'])} | relative error {transport_validation['analytic_ambipolar_error']:.2e} |
-        | displayed ionic and electronic fluxes match the analytic flux | {_check_mark(transport_validation['displayed_flux_pass'])} | maximum relative error {transport_validation['displayed_flux_error']:.2e} |
-        | \(\Theta\) multiplies the ideal chemical diffusivity | {_check_mark(transport_validation['theta_pass'])} | relative error {transport_validation['theta_error']:.2e} |
-        | conductivity form matches \(D_{{\rm chem,ideal}}\Theta\) | {_check_mark(transport_validation['conductivity_form_pass'])} | relative error {transport_validation['conductivity_form_error']:.2e} |
-        | rates and diffusivities remain positive | {_check_mark(transport_validation['positive_pass'])} | strict positivity |
-        | all validation quantities remain finite | {_check_mark(transport_validation['finite_pass'])} | finite arrays and scalars |
+        | does the lecture identity \(D=a^2\Gamma/2\) hold? | {_check_mark(transport_validation['zero_field_identity_pass'])} | relative error {transport_validation['zero_field_identity_error']:.2e} |
+        | does the random walk recover the same \(D\)? | {_check_mark(transport_validation['msd_pass'])} | \(D\) error {transport_validation['msd_diffusivity_error']:.2e}, \(R^2={transport_validation['msd_r_squared']:.6f}\) |
+        | do the forward/backward rates obey detailed balance? | {_check_mark(transport_validation['detailed_balance_pass'])} | relative error {transport_validation['detailed_balance_error']:.2e} |
+        | does the low-field drift approach Nernst-Einstein? | {_check_mark(transport_validation['low_field_drift_pass'])} | relative error {transport_validation['low_field_drift_error']:.2e} |
+        | does the 1D master equation conserve defects? | {_check_mark(transport_validation['mass_pass'])} | relative change {transport_validation['mass_error']:.2e} |
+        | does its bond flux equal discrete Fick flux? | {_check_mark(transport_validation['fick_pass'])} | relative error {transport_validation['fick_error']:.2e} |
+        | can chemical and electrical driving forces cancel? | {_check_mark(transport_validation['electrochemical_flux_pass'])} | scaled residual {transport_validation['electrochemical_flux_relative']:.2e} |
+        | does chemical diffusion keep \(J_{{\rm Li^+}}=J_{{e^-}}\)? | {_check_mark(transport_validation['ambipolar_flux_match_pass'])} | relative mismatch {transport_validation['ambipolar_flux_match_error']:.2e} |
+        | is the corresponding open-circuit current zero? | {_check_mark(transport_validation['ambipolar_current_pass'])} | scaled residual {transport_validation['ambipolar_current_relative']:.2e} |
+        | does the common flux give \(D_{{\rm Li}}^\delta\)? | {_check_mark(transport_validation['analytic_chemical_flux_pass'])} | relative error {transport_validation['analytic_chemical_flux_error']:.2e} |
+        | do the conductivity and diffusivity forms agree? | {_check_mark(transport_validation['conductivity_form_pass'])} | relative error {transport_validation['conductivity_form_error']:.2e} |
+        | are all rates and diffusivities positive and finite? | {_check_mark(transport_validation['positive_pass'] and transport_validation['finite_pass'])} | physical numerical values |
 
-        The stochastic MSD check uses a fixed random seed and a tolerance that
-        reflects finite ensemble sampling. The conservation, detailed-balance,
-        flux-cancellation, and ambipolar checks test identities independently of
-        what is visually resolvable in a plot.
-
-        **Why check these?** The first six rows connect the atomic jump model to
-        diffusion and drift. The next row verifies the central equilibrium idea
-        that chemical and electrical driving forces can cancel. The ambipolar
-        rows verify that ions and electrons move together without net current.
-        The final rows check the thermodynamic factor and guard against
-        nonphysical numerical values.
+        **Why check these?** The first six rows connect the atomic-hop picture to
+        the one-dimensional Fick and Nernst-Einstein equations used in class.
+        The next row checks electrochemical equilibrium. The final four rows
+        verify the Lecture 5 idea that Li⁺ and electrons carry one common
+        chemical-diffusion flux without net current.
         """
     )
     return
@@ -2135,25 +1976,28 @@ def _(mo):
     mo.md(r"""
     ## Take-home map
 
-    1. A migration barrier sets a per-neighbor hopping rate.
-    2. Random hops generate \(\langle x^2\rangle=2Dt\); a concentration
-       imbalance turns symmetric exchange into Fick flux.
-    3. An electric field biases forward and backward barriers, producing the
-       Nernst–Einstein drift in the low-field limit.
-    4. Charged species respond to gradients of
-       \(\widetilde{\mu}=\mu+zF\phi\). Chemical and electrical pieces can be
-       nonzero while their sum—and therefore the flux—is zero.
-    5. During neutral composition relaxation, local electroneutrality couples
-       ionic and electronic motion. The internal field slows the faster carrier
-       and accelerates the slower one.
-    6. \(D_{\rm chem}\) combines kinetic coefficients with a thermodynamic
-       factor, and the experimental time scale grows as \(L^2/D_{\rm chem}\).
+    1. The total hop frequency is
+       \(\Gamma=\nu\exp[-\Delta H_{\rm mig}/(k_BT)]\).
+    2. In one dimension, random hops give
+       \(D=a^2\Gamma/2\) and \(\langle x^2\rangle=2Dt\).
+    3. A concentration imbalance turns symmetric exchanges into
+       \(J=-D\,dc/dx\).
+    4. An electric field biases the two directions. In the low-field limit this
+       gives the Nernst-Einstein relation and
+       \(\widetilde{\mu}=\mu+zF\phi\).
+    5. For \(\mathrm{Li}\rightleftharpoons\mathrm{Li^+}+e^-\), local charge
+       neutrality and local equilibrium require
+       \(J_{\rm Li}=J_{\rm Li^+}=J_{e^-}\).
+    6. In the dilute Li example,
+       \(D_{\rm Li}^{\delta}=2D_{\rm Li^+}D_{e^-}/
+       (D_{\rm Li^+}+D_{e^-})\), and the relaxation time scales as
+       \(L^2/D_{\rm Li}^{\delta}\).
 
-    **Model boundaries.** The lattice is one-dimensional and ideal; transition
-    states are symmetric; hops are uncorrelated; the field is spatially uniform
-    in the hopping example; the Nernst–Planck equations use ideal dilute
-    activities until \(\Theta\) is introduced; and the ambipolar example assumes
-    monovalent carriers, local equilibrium, and local electroneutrality.
+    **Model boundary.** Every spatial equation and simulation in this notebook
+    is one-dimensional. We use ideal, dilute concentrations for the Li chemical
+    diffusion derivation, exactly where the lecture obtains the compact
+    expression above. Correlation factors and interfaces are left for later
+    treatment.
     """)
     return
 
