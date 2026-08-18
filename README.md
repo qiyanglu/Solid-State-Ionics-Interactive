@@ -2,7 +2,7 @@
 
 [![Deploy marimo app to GitHub Pages](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/actions/workflows/pages.yml/badge.svg)](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/actions/workflows/pages.yml)
 
-**[Open the interactive notebook →](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/)**
+**[Browse the interactive course modules &rarr;](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/)**
 
 This repository is a growing series of interactive [marimo](https://marimo.io/)
 notebooks for teaching the **Solid State Ionics** course at Westlake University.
@@ -18,7 +18,7 @@ interactive controls, and numerical checks over preassembled textbook curves.
 
 | Module | Topic | Interactive app |
 |---|---|---|
-| 01 | Brouwer diagram for weakly acceptor-doped SrTiO3 | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/) |
+| 01 | Brouwer diagram for weakly acceptor-doped SrTiO3 | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/01-brouwer-sto/) |
 
 ### Module 01: Brouwer diagram for SrTiO3
 
@@ -72,7 +72,9 @@ The notebook uses only marimo, NumPy, SciPy, and matplotlib and performs no
 network or filesystem access at runtime. The workflow in
 [`pages.yml`](.github/workflows/pages.yml) exports it as a browser-hosted WASM
 app and deploys the generated static site to GitHub Pages on every push to
-`main`.
+`main`. The project root is a stable module index; each notebook is published
+under its own path, such as `/01-brouwer-sto/`, so adding later modules does not
+change the main course URL.
 
 ## Scientific scope
 
