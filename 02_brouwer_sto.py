@@ -605,6 +605,13 @@ def _(
     def residual_mark(value, tolerance):
         return "✓" if value < tolerance else "⚠"
 
+    def mass_action_result(value, tolerance=1e-10, display_floor=1e-12):
+        """Report roundoff-level log residuals consistently for students."""
+        mark = residual_mark(value, tolerance)
+        if value < display_floor:
+            return rf"{mark} numerical zero ($< {display_floor:.0e}$)"
+        return f"{mark} {value:.2e}"
+
     def slope_cell(value, expected, tolerance=0.035):
         if value is None:
             return "not sampled"
@@ -631,9 +638,15 @@ def _(
         |---|---:|
         | All concentrations positive | {positivity_mark} |
         | All concentrations finite | {finite_mark} |
-        | max $\lvert\log_{{10}}(Vn^2p_{{O_2}}^{{1/2}}/K_{{red}})\rvert$ | {residual_mark(sanity['red_residual'], 1e-10)} {sanity['red_residual']:.2e} |
-        | max $\lvert\log_{{10}}(np/K_{{eh}})\rvert$ | {residual_mark(sanity['eh_residual'], 1e-10)} {sanity['eh_residual']:.2e} |
+        | max $\lvert\log_{{10}}(Vn^2p_{{O_2}}^{{1/2}}/K_{{red}})\rvert$ (target: 0) | {mass_action_result(sanity['red_residual'])} |
+        | max $\lvert\log_{{10}}(np/K_{{eh}})\rvert$ (target: 0) | {mass_action_result(sanity['eh_residual'])} |
         | max scaled charge residual | {residual_mark(sanity['charge_residual'], 1e-12)} {sanity['charge_residual']:.2e} |
+
+        The two mass-action targets are zero because each logarithm contains an
+        equilibrium ratio whose unlogged target is one. Values below $10^{{-12}}$
+        are reported uniformly as **numerical zero**: an exact floating-point
+        cancellation and a roundoff-level value such as $10^{{-14}}$ carry the
+        same physical meaning here.
 
         The electron–hole crossover is {crossover_text}.
 

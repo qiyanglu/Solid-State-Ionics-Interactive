@@ -82,7 +82,10 @@ uv run marimo export html 02_brouwer_sto.py -o brouwer.html --no-include-code -f
 Module 01 displays checks for its free-energy minimum, chemical-potential zero,
 finite-N rounding, large-N Stirling convergence, and dilute limit. Module 02
 displays mass-action, electroneutrality, positivity, regime-coverage, and
-limiting-slope checks.
+limiting-slope checks. Its mass-action rows report logarithmic residuals with an
+exact target of zero (equivalently, an unlogged equilibrium ratio of one); values
+below `1e-12` are displayed consistently as numerical zero rather than giving
+exact cancellation and floating-point roundoff different visual weight.
 
 ## Browser deployment
 
