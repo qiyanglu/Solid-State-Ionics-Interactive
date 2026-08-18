@@ -22,6 +22,7 @@ curves.
 | 01 | Defect Formation Thermodynamics | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/01-defect-formation/) |
 | 02 | Brouwer Diagram for Acceptor-Doped SrTiO3 | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/02-brouwer-sto/) |
 | 03 | Defect Transport: From Atomic Hopping to Chemical Diffusion | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/03-defect-transport/) |
+| 04 | Space-Charge Layers and the Frumkin Effect | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/04-space-charge-frumkin/) |
 
 ### Module 01: Defect Formation Thermodynamics
 
@@ -112,6 +113,47 @@ The internal field is solved from the equal-flux condition. Controls expose the
 Li-ion/electron mobility contrast and sample length. The introductory module
 stays with the dilute Li derivation developed in the slides.
 
+### Module 04: Space-Charge Layers and the Frumkin Effect
+
+[04_space_charge_frumkin.py](04_space_charge_frumkin.py) uses the planar,
+one-dimensional interface convention from the space-charge lectures. The bulk
+reference is phi_infinity = 0 and the core is positively charged. Students first
+see a flat electrochemical potential generate the Boltzmann concentration
+profile, then use Poisson's equation to compare the two lecture limits:
+
+~~~text
+Gouy-Chapman:  both +ze and -ze defects are mobile
+Mott-Schottky: negative majority dopants are frozen
+~~~
+
+The Gouy-Chapman profiles use the exact nonlinear planar solution; the familiar
+exponential is shown only as its small-potential approximation. The
+Mott-Schottky section keeps the frozen-dopant depletion approximation and its
+parabolic potential over the finite width lambda. Both cases display the
+chemical and electrical contributions cancelling to keep the mobile-defect
+electrochemical potential flat.
+
+The final sections turn the Gouy-Chapman charge-potential relation into the
+differential capacitance C_d, introduce a constant-capacitance Stern layer, and
+solve the Gouy-Chapman-Stern voltage split
+
+~~~text
+Q_core = C_s (phi_0 - phi_1) = Q_GC(phi_1)
+1/C_tot = 1/C_s + 1/C_d.
+~~~
+
+The Frumkin section then evaluates both concentration and potential at the
+reaction plane x = x_1. A signed reactant charge number z_R makes the Boltzmann
+factor unambiguous and shows why the two Frumkin contributions can either
+reinforce or oppose one another. The default z_R = +1 represents the
+proton-like reactant depleted by a positive core in the lecture example. For a
+single transparent voltage coordinate, the teaching plot takes the formal
+potential to coincide with the point of zero charge; the notebook states that
+this is a reference choice, not a general identity. The other defaults are
+T = 800 K, c_i,infinity = 10^18 cm^-3, epsilon_r = 100, z = 1,
+phi_0 = 0.16 V, and C_s = 20 microF/cm^2. Marcus theory and specific adsorption
+are deliberately left outside this module.
+
 ## Run locally
 
 With Python 3.11 or newer and [uv](https://docs.astral.sh/uv/) installed:
@@ -121,6 +163,7 @@ uv sync
 uv run marimo edit 01_defect_formation.py
 uv run marimo edit 02_brouwer_sto.py
 uv run marimo edit 03_defect_transport.py
+uv run marimo edit 04_space_charge_frumkin.py
 ~~~
 
 To present a notebook as an app, replace edit with run.
@@ -128,10 +171,11 @@ To present a notebook as an app, replace edit with run.
 ## Validation
 
 ~~~console
-uv run marimo check --strict 01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py
+uv run marimo check --strict 01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py
 uv run marimo export html 01_defect_formation.py -o defect-formation.html --no-include-code -f
 uv run marimo export html 02_brouwer_sto.py -o brouwer.html --no-include-code -f
 uv run marimo export html 03_defect_transport.py -o defect-transport.html --no-include-code -f
+uv run marimo export html 04_space_charge_frumkin.py -o space-charge-frumkin.html --no-include-code -f
 ~~~
 
 Module 01 checks its thermodynamic free-energy minimum, chemical-potential zero,
@@ -147,9 +191,15 @@ master-equation conservation, Fick flux, electrochemical cancellation,
 equal Li-ion/electron flux, zero current, and the agreement between the
 conductivity and diffusivity forms of \(D_{\rm Li}^{\delta}\).
 
+Module 04 checks the Boltzmann and electrochemical-potential identities, the
+exact Gouy-Chapman profile and Gauss law, the Mott-Schottky boundary conditions
+and Poisson curvature, GCS charge and voltage matching, series capacitance,
+Frumkin reaction-plane consistency, positivity, and finiteness. Each displayed
+check includes a short explanation of the physical link it protects.
+
 ## Browser deployment
 
-All three notebooks use only marimo, NumPy, SciPy, and matplotlib and perform no
+All four notebooks use only marimo, NumPy, SciPy, and matplotlib and perform no
 network or filesystem access at runtime. The workflow in
 [pages.yml](.github/workflows/pages.yml) exports each notebook as a
 browser-hosted WASM app and deploys the generated static site to GitHub Pages on

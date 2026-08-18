@@ -29,6 +29,16 @@ self-contained notebooks over framework-building.
   local equilibrium, equal steady fluxes, zero current, and
   D_Li^delta = 2 D_Li+ D_e-/(D_Li+ + D_e-). Do not make a non-ideal
   thermodynamic factor a central control unless the teaching scope changes.
+- In Module 04, keep the geometry planar and one-dimensional. Use K, V, cm^-3,
+  nm, and microF/cm^2 at the teaching boundary, with SI conversions explicit in
+  the physics functions.
+- Preserve the exact planar Gouy-Chapman solution, the lecture's frozen-dopant
+  Mott-Schottky depletion approximation, phi_infinity = 0, and the distinction
+  between chemical, electrical, and electrochemical potentials.
+- In the Gouy-Chapman-Stern and Frumkin sections, enforce one common interfacial
+  charge, phi_0 = (phi_0 - phi_1) + phi_1, series differential capacitance, and
+  reaction-plane concentrations evaluated at x = x_1. Use a signed reactant
+  charge number in the Boltzmann factor.
 - If a species set or thermodynamic constant changes, explain the scientific
   reason and update the displayed assumptions and validation checks together.
 
@@ -58,7 +68,11 @@ Before handing off a change:
    low-field drift, one-dimensional number conservation, Fick flux,
    electrochemical-potential cancellation, equal Li-ion/electron flux,
    zero current, conductivity-form equivalence, positivity, and finiteness.
-6. Run git diff --check and review all rendered figures at projector scale.
+6. For Module 04, check the Boltzmann and electrochemical-potential identities,
+   exact Gouy-Chapman profile and Gauss law, Mott-Schottky boundaries and
+   Poisson curvature, GCS charge and voltage matching, series capacitance,
+   Frumkin reaction-plane consistency, positivity, and finiteness.
+7. Run git diff --check and review all rendered figures at projector scale.
 
 Do not weaken numerical tolerances simply to silence a failed physics check;
 identify whether the model, regime test, or implementation is responsible.
