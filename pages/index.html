@@ -78,7 +78,7 @@
       }
       .card {
         display: flex;
-        min-height: 285px;
+        min-height: 300px;
         flex-direction: column;
         padding: clamp(1.4rem, 4vw, 2rem);
         border: 1px solid var(--line);
@@ -123,8 +123,9 @@
         <p class="eyebrow">Interactive course materials</p>
         <h1>Solid State Ionics Interactive</h1>
         <p class="intro">
-          Self-contained marimo notebooks that turn defect chemistry and
-          electrochemical transport models into explorable classroom materials.
+          Self-contained marimo notebooks that turn defect thermodynamics,
+          defect chemistry, and electrochemical transport into explorable
+          classroom materials.
         </p>
         <nav class="links" aria-label="Project links">
           <a href="https://ssi-westlake.com/teaching/">Course teaching page</a>
@@ -136,13 +137,23 @@
         <div class="grid">
           <article class="card">
             <span class="module-number">Module 01</span>
-            <h3>Brouwer diagram for SrTiO<sub>3</sub></h3>
+            <h3>Defect Formation Thermodynamics</h3>
+            <p>
+              See equilibrium defect fraction emerge from the competition
+              between formation energy and configurational entropy, from exact
+              finite combinatorics through the Stirling and dilute limits.
+            </p>
+            <a class="launch" href="./01-defect-formation/">Launch module 01 &rarr;</a>
+          </article>
+          <article class="card">
+            <span class="module-number">Module 02</span>
+            <h3>Brouwer Diagram for Acceptor-Doped SrTiO<sub>3</sub></h3>
             <p>
               Explore how defect-chemistry regimes and limiting slopes emerge
               from mass-action equilibria and exact charge neutrality in weakly
               acceptor-doped strontium titanate.
             </p>
-            <a class="launch" href="./01-brouwer-sto/">Launch module 01 &rarr;</a>
+            <a class="launch" href="./02-brouwer-sto/">Launch module 02 &rarr;</a>
           </article>
         </div>
       </section>

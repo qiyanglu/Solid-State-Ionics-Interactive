@@ -1,4 +1,4 @@
-name: Deploy marimo app to GitHub Pages
+name: Deploy marimo apps to GitHub Pages
 
 on:
   push:
@@ -24,16 +24,30 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
-      - name: Build the course landing page
+      - name: Build the course landing page and redirects
         run: |
           mkdir -p _site
           cp pages/index.html _site/index.html
+          cp -r pages/01-brouwer-sto _site/01-brouwer-sto
 
-      - name: Export the marimo WASM app
+      - name: Check both marimo notebooks
         run: >-
           uv run --isolated --with "marimo==0.24.0"
-          marimo export html-wasm 01_brouwer_sto.py
-          -o _site/01-brouwer-sto
+          marimo check --strict
+          01_defect_formation.py 02_brouwer_sto.py
+
+      - name: Export Module 01 - defect formation thermodynamics
+        run: >-
+          uv run --isolated --with "marimo==0.24.0"
+          marimo export html-wasm 01_defect_formation.py
+          -o _site/01-defect-formation
+          --mode run --no-show-code --no-execute -f
+
+      - name: Export Module 02 - Brouwer diagram
+        run: >-
+          uv run --isolated --with "marimo==0.24.0"
+          marimo export html-wasm 02_brouwer_sto.py
+          -o _site/02-brouwer-sto
           --mode run --no-show-code --no-execute -f
 
       - name: Disable Jekyll processing
