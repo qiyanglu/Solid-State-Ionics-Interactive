@@ -11,7 +11,51 @@ def _():
     import numpy as np
     from scipy.integrate import solve_ivp
 
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 14,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 11,
+            "axes.facecolor": "#FCFCFA",
+            "figure.facecolor": "white",
+            "grid.color": "#C7CCD1",
+            "grid.alpha": 0.28,
+            "axes.titlepad": 10,
+            "axes.labelpad": 6,
+            "legend.frameon": False,
+            "axes.prop_cycle": plt.cycler(
+                color=[
+                    "#4C7C86",
+                    "#B8734A",
+                    "#7C6A91",
+                    "#6B86A5",
+                    "#B77A82",
+                    "#5F8A6B",
+                    "#C49345",
+                ]
+            ),
+        }
+    )
+
     return mo, np, plt, solve_ivp
+
+
+@app.cell
+def _(mo):
+    mo.Html(r"""
+    <style>
+      .markdown.prose { font-size: 1.12rem !important; line-height: 1.70 !important; }
+      .markdown.prose table { font-size: 1.02rem !important; }
+      .marimo-cell-output label,
+      .marimo-cell-output button,
+      .marimo-cell-output input,
+      .marimo-cell-output select { font-size: 1rem !important; }
+    </style>
+    """)
+    return
 
 
 @app.cell
@@ -42,12 +86,15 @@ def _(mo):
     $$
 
     Local electroneutrality in the bulk therefore gives
-    $c_i=c_e=c(x,t)$. Thin interfacial space-charge layers are not resolved;
-    they supply the boundary conditions for this bulk model.
+    $c_i=c_e=c(x,t)$. The symbol $c_0=c(x,0)$ denotes the initially uniform
+    reference concentration. Because both electrodes block ions, the spatial
+    average of $c(x,t)$ remains exactly $c_0$. Thin interfacial space-charge
+    layers are not resolved; they supply the boundary conditions for this bulk
+    model.
 
     | symbol | meaning |
     |---|---|
-    | $c(x,t)$, $\bar c$ | local and conserved mean pair concentration |
+    | $c(x,t)$, $c_0$ | local pair concentration and its uniform initial value |
     | $J_i,J_e$ | molar fluxes of $H^+$ and $e^-$ |
     | $j=F(J_i-J_e)$ | conventional current density, positive toward $+x$ |
     | $\sigma_i,\sigma_e$ | ionic and electronic conductivities |
@@ -375,9 +422,9 @@ def _(mo):
     reference state,
 
     $$
-    \mu_i=RT\ln\frac{c}{\bar c},\qquad
-    \mu_e=RT\ln\frac{c}{\bar c},\qquad
-    \mu=\mu_i+\mu_e=2RT\ln\frac{c}{\bar c}.
+    \mu_i=RT\ln\frac{c}{c_0},\qquad
+    \mu_e=RT\ln\frac{c}{c_0},\qquad
+    \mu=\mu_i+\mu_e=2RT\ln\frac{c}{c_0}.
     $$
 
     The electrochemical potentials and molar fluxes are
@@ -401,7 +448,7 @@ def _(mo):
     J_i=t_i\frac{j}{F}-D^\delta\frac{\partial c}{\partial x},
     \qquad
     D^\delta=\frac{2D_iD_e}{D_i+D_e}
-    =\frac{2RT}{F^2\bar c}
+    =\frac{2RT}{F^2c_0}
     \frac{\sigma_i\sigma_e}{\sigma_i+\sigma_e}.
     $$
 
@@ -430,7 +477,7 @@ def _(mo):
 
     $$
     \left.\frac{\partial c}{\partial x}\right|_{0,L}
-    \approx \frac{Fj\bar c}{2RT\sigma_e}.
+    \approx \frac{Fjc_0}{2RT\sigma_e}.
     $$
 
     A coefficient without the $1/2$ corresponds to a different chemical-
@@ -455,7 +502,7 @@ def _(mo):
         stop=21.0,
         step=0.25,
         value=20.0,
-        label="log10 mean concentration, c-bar (cm^-3)",
+        label="log10 initial concentration, c0 (cm^-3)",
         show_value=True,
     )
     log_total_conductivity_control = mo.ui.slider(
@@ -594,7 +641,7 @@ def _(
             $$
 
             It is also the steady concentration slope in normalized coordinates:
-            $c/\bar c=1+\beta(x/L-1/2)$. Keeping
+            $c/c_0=1+\beta(x/L-1/2)$. Keeping
             $|\beta|<2$ preserves a positive steady concentration.
             """),
             polarization_controls,
@@ -772,20 +819,20 @@ def _(
     ratio_axes[0].semilogx(
         ratio_sweep,
         ionic_fraction_sweep,
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.0,
         label=r"ionic $t_i$",
     )
     ratio_axes[0].semilogx(
         ratio_sweep,
         electronic_fraction_sweep,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label=r"electronic $t_e$",
     )
     ratio_axes[0].axvline(
         selected_conductivity_ratio,
-        color="#EE9B00",
+        color="#C49345",
         lw=1.5,
         ls="--",
         label="selected ratio",
@@ -802,7 +849,7 @@ def _(
     ratio_axes[1].loglog(
         ratio_sweep,
         chemical_diffusivity_sweep_cm2,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label=r"$D^\delta$",
     )
@@ -810,14 +857,14 @@ def _(
     ratio_time_axis.loglog(
         ratio_sweep,
         tau_sweep_s,
-        color="#CC3311",
+        color="#B65C4A",
         lw=2.6,
         ls="--",
         label=r"$\tau^\delta$",
     )
     ratio_axes[1].axvline(
         selected_conductivity_ratio,
-        color="#EE9B00",
+        color="#C49345",
         lw=1.5,
         ls="--",
     )
@@ -826,7 +873,7 @@ def _(
         ylabel=r"$D^\delta$ (cm$^2$ s$^{-1}$)",
         title="The slower carrier sets the polarization time",
     )
-    ratio_time_axis.set_ylabel(r"$\tau^\delta$ (s)", color="#CC3311")
+    ratio_time_axis.set_ylabel(r"$\tau^\delta$ (s)", color="#B65C4A")
     ratio_axes[1].grid(which="both", alpha=0.22)
     ratio_lines = ratio_axes[1].get_lines()[:1] + ratio_time_axis.get_lines()[:1]
     ratio_axes[1].legend(
@@ -857,11 +904,14 @@ def _(
     transient_figure, transient_axes = plt.subplots(
         1,
         3,
-        figsize=(15.0, 4.8),
+        figsize=(15.0, 5.4),
         dpi=120,
     )
     profile_time_targets = [0.0, 0.03, 0.1, 0.3, 1.0, 3.0]
-    profile_colors = plt.cm.viridis(np.linspace(0.12, 0.9, len(profile_time_targets)))
+    profile_colors = [
+        "#B8C6C8", "#9FB5B8", "#83A4A8",
+        "#6E9297", "#587F86", "#3F6971",
+    ]
     for target_time, profile_color in zip(profile_time_targets, profile_colors):
         profile_index = int(
             np.argmin(np.abs(polarization_time_ratios - target_time))
@@ -876,19 +926,25 @@ def _(
     transient_axes[0].plot(
         polarization_positions,
         polarization_solution["concentration_ratio"][selected_time_index],
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.5,
         ls="--",
         label=rf"selected {selected_time_ratio:.2g}",
     )
-    transient_axes[0].axhline(1.0, color="#777777", lw=1.0, ls=":")
+    transient_axes[0].axhline(1.0, color="#858B90", lw=1.0, ls=":")
     transient_axes[0].set(
         xlabel=r"position, $x/L$",
-        ylabel=r"stoichiometry ratio, $c/\bar c$",
+        ylabel=r"stoichiometry ratio, $c/c_0$",
         title="Ions redistribute but cannot leave",
     )
     transient_axes[0].grid(alpha=0.22)
-    transient_axes[0].legend(frameon=False, fontsize=7.8, ncol=2)
+    transient_axes[0].legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.20),
+        fontsize=9.5,
+        ncol=2,
+        borderaxespad=0.0,
+    )
 
     positive_time_mask = polarization_time_ratios > 0.0
     transient_heatmap = transient_axes[1].pcolormesh(
@@ -896,11 +952,12 @@ def _(
         np.log10(polarization_time_ratios[positive_time_mask]),
         polarization_solution["concentration_ratio"][positive_time_mask],
         shading="auto",
-        cmap="coolwarm",
+        cmap="RdBu_r",
+        alpha=0.78,
     )
     transient_axes[1].axhline(
         np.log10(selected_time_ratio),
-        color="#222222",
+        color="#40464D",
         lw=1.5,
         ls="--",
     )
@@ -912,7 +969,7 @@ def _(
     transient_figure.colorbar(
         transient_heatmap,
         ax=transient_axes[1],
-        label=r"$c/\bar c$",
+        label=r"$c/c_0$",
     )
 
     physical_time_s = (
@@ -925,7 +982,7 @@ def _(
     response_voltage_line = transient_axes[2].semilogx(
         np.maximum(physical_time_s, physical_time_s[1] * 0.2),
         response_voltage_mv,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label="voltage U",
     )[0]
@@ -933,7 +990,7 @@ def _(
     response_current_line = response_current_axis.semilogx(
         np.maximum(physical_time_s, physical_time_s[1] * 0.2),
         response_current_ma_per_cm2,
-        color="#CC3311",
+        color="#B65C4A",
         lw=2.7,
         ls="--",
         label="current density j",
@@ -944,7 +1001,7 @@ def _(
     )
     transient_axes[2].axvline(
         selected_physical_time,
-        color="#EE9B00",
+        color="#C49345",
         lw=1.5,
         ls=":",
     )
@@ -959,7 +1016,7 @@ def _(
     )
     response_current_axis.set_ylabel(
         r"current density $j$ (mA cm$^{-2}$)",
-        color="#CC3311",
+        color="#B65C4A",
     )
     transient_axes[2].grid(alpha=0.22)
     transient_axes[2].legend(
@@ -968,7 +1025,7 @@ def _(
         frameon=False,
         loc="best",
     )
-    transient_figure.tight_layout()
+    transient_figure.tight_layout(rect=(0.0, 0.08, 1.0, 1.0))
     plt.close(transient_figure)
 
     mo.vstack(
@@ -976,7 +1033,7 @@ def _(
             mo.md(r"""
             ## 3. Watch stoichiometry and the electrical response evolve
 
-            At $t=0$, $c=\bar c$: both carriers contribute to the ohmic
+            At $t=0$, $c=c_0$: both carriers contribute to the ohmic
             response. The ion-blocking boundaries then force a concentration
             gradient to grow. The sample keeps the same total number of ions;
             one side depletes by exactly the amount accumulated at the other.
@@ -1011,13 +1068,13 @@ def _(
     potential_axes[0].plot(
         polarization_positions,
         selected_potential_profiles["concentration_ratio"],
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.2,
     )
-    potential_axes[0].axhline(1.0, color="#777777", lw=1.0, ls=":")
+    potential_axes[0].axhline(1.0, color="#858B90", lw=1.0, ls=":")
     potential_axes[0].set(
         xlabel=r"position, $x/L$",
-        ylabel=r"$c/\bar c$",
+        ylabel=r"$c/c_0$",
         title=rf"Stoichiometry at $t/\tau^\delta={selected_time_ratio:.2g}$",
     )
     potential_axes[0].grid(alpha=0.22)
@@ -1025,21 +1082,21 @@ def _(
     potential_axes[1].plot(
         polarization_positions,
         selected_potential_profiles["mu_i_j_per_mol"] / 1.0e3,
-        color="#CC3311",
+        color="#B65C4A",
         lw=2.8,
         label=r"chemical $\mu_i$",
     )
     potential_axes[1].plot(
         polarization_positions,
         selected_potential_profiles["electrical_i_j_per_mol"] / 1.0e3,
-        color="#007C91",
+        color="#4C7C86",
         lw=2.8,
         label=r"electrical $+F\phi$",
     )
     potential_axes[1].plot(
         polarization_positions,
         selected_potential_profiles["tilde_mu_i_j_per_mol"] / 1.0e3,
-        color="#222222",
+        color="#40464D",
         lw=3.0,
         ls="--",
         label=r"sum $\widetilde\mu_i$",
@@ -1050,26 +1107,26 @@ def _(
         title="Ion: chemical and electrical forces compete",
     )
     potential_axes[1].grid(alpha=0.22)
-    potential_axes[1].legend(frameon=False, fontsize=8.5)
+    potential_axes[1].legend(frameon=False, fontsize=10)
 
     potential_axes[2].plot(
         polarization_positions,
         selected_potential_profiles["mu_e_j_per_mol"] / 1.0e3,
-        color="#CC3311",
+        color="#B65C4A",
         lw=2.8,
         label=r"chemical $\mu_e$",
     )
     potential_axes[2].plot(
         polarization_positions,
         selected_potential_profiles["electrical_e_j_per_mol"] / 1.0e3,
-        color="#007C91",
+        color="#4C7C86",
         lw=2.8,
         label=r"electrical $-F\phi$",
     )
     potential_axes[2].plot(
         polarization_positions,
         selected_potential_profiles["tilde_mu_e_j_per_mol"] / 1.0e3,
-        color="#222222",
+        color="#40464D",
         lw=3.0,
         ls="--",
         label=r"sum $\widetilde\mu_e$",
@@ -1080,7 +1137,7 @@ def _(
         title="Electron electrochemical drop gives U",
     )
     potential_axes[2].grid(alpha=0.22)
-    potential_axes[2].legend(frameon=False, fontsize=8.5)
+    potential_axes[2].legend(frameon=False, fontsize=10)
     potential_figure.tight_layout()
     plt.close(potential_figure)
 
@@ -1310,28 +1367,19 @@ def _(mo, module05_validation):
 
     mo.md(
         rf"""
-        ## Numerical sanity checks
+        ## Physical consistency checks
 
-        | physical question | status | numerical result |
-        |---|---:|---:|
-        | did the transient solver finish normally? | {_check_status(module05_validation['solver_pass'])} | solver completion |
-        | is the initial sample uniform? | {_check_status(module05_validation['initial_uniform_pass'])} | max residual {module05_validation['initial_uniform_residual']:.2e} |
-        | is the total amount of $H^+$ conserved? | {_check_status(module05_validation['mass_pass'])} | max integral residual {module05_validation['mass_residual']:.2e} |
-        | does $c(x,t)$ remain positive? | {_check_status(module05_validation['positivity_pass'])} | minimum $c/\bar c={module05_validation['minimum_concentration_ratio']:.3f}$ |
-        | is the selected current or potential actually held constant? | {_check_status(module05_validation['drive_pass'])} | relative residual {module05_validation['drive_residual']:.2e} |
-        | does the initial response use $\sigma_i+\sigma_e$? | {_check_status(module05_validation['initial_ohmic_pass'])} | relative Ohmic residual {module05_validation['initial_ohmic_residual']:.2e} |
-        | is the ionic flux zero at both blocking electrodes? | {_check_status(module05_validation['blocking_flux_pass'])} | relative boundary residual {module05_validation['blocking_flux_residual']:.2e} |
-        | does $D^\delta=2D_iD_e/(D_i+D_e)$? | {_check_status(module05_validation['diffusivity_pass'])} | relative residual {module05_validation['diffusivity_residual']:.2e} |
-        | do chemical and electrical parts reconstruct both electrochemical potentials? | {_check_status(module05_validation['potential_decomposition_pass'])} | max residual {module05_validation['potential_decomposition_residual']:.2e} J/mol |
-        | does $\Delta\widetilde\mu_e/F$ reproduce the modeled voltage? | {_check_status(module05_validation['reconstructed_voltage_pass'])} | absolute residual {module05_validation['reconstructed_voltage_residual'] * 1.0e3:.3e} mV |
-        | does the late profile approach the correct linear steady state? | {_check_status(module05_validation['steady_limit_pass'])} | profile {module05_validation['steady_profile_residual']:.2e}, drive {module05_validation['steady_beta_residual']:.2e} |
-        | does $\widetilde\mu_i$ become flat at late time? | {_check_status(module05_validation['final_ion_flatness_pass'])} | normalized range {module05_validation['final_ion_flatness']:.2e} |
+        | status | physical statement | why it matters |
+        |---:|---|---|
+        | {_check_status(module05_validation['solver_pass'] and module05_validation['initial_uniform_pass'] and module05_validation['mass_pass'] and module05_validation['positivity_pass'])} | the sample begins uniform, remains positive, and conserves its total ion content | blocking electrodes redistribute stoichiometry without adding or removing ions |
+        | {_check_status(module05_validation['drive_pass'])} | the selected current or voltage is held constant | the two experimental controls remain distinct |
+        | {_check_status(module05_validation['initial_ohmic_pass'] and module05_validation['blocking_flux_pass'])} | the initial response uses \(\sigma_i+\sigma_e\) and ionic flux vanishes at both electrodes | the bulk and contact conditions match the stated experiment |
+        | {_check_status(module05_validation['diffusivity_pass'])} | \(D^\delta=2D_iD_e/(D_i+D_e)\) | ion and electron motion combine into one chemical diffusivity |
+        | {_check_status(module05_validation['potential_decomposition_pass'] and module05_validation['reconstructed_voltage_pass'])} | chemical and electrical contributions reproduce both electrochemical potentials and the terminal voltage | all plotted potentials belong to the same physical state |
+        | {_check_status(module05_validation['steady_limit_pass'] and module05_validation['final_ion_flatness_pass'])} | the late profile reaches the expected steady state and \(\widetilde\mu_i\) becomes flat | the long-time limit agrees with ion blocking |
 
-        **Why these checks?** They protect the complete causal chain. The first
-        four verify the diffusion problem and conservation. The next four test
-        the electrical drive, blocking boundary, and ambipolar diffusivity. The
-        final four verify that the plotted potentials and long-time state are
-        consequences of the same model rather than independent sketches.
+        These checks protect the physical interpretation without adding new
+        equations to the model.
         """
     )
     return

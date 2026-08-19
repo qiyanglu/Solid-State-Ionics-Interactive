@@ -11,7 +11,51 @@ def _():
     import numpy as np
     from scipy import optimize
 
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 14,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 11,
+            "axes.facecolor": "#FCFCFA",
+            "figure.facecolor": "white",
+            "grid.color": "#C7CCD1",
+            "grid.alpha": 0.28,
+            "axes.titlepad": 10,
+            "axes.labelpad": 6,
+            "legend.frameon": False,
+            "axes.prop_cycle": plt.cycler(
+                color=[
+                    "#4C7C86",
+                    "#B8734A",
+                    "#7C6A91",
+                    "#6B86A5",
+                    "#B77A82",
+                    "#5F8A6B",
+                    "#C49345",
+                ]
+            ),
+        }
+    )
+
     return mo, np, optimize, plt
+
+
+@app.cell
+def _(mo):
+    mo.Html(r"""
+    <style>
+      .markdown.prose { font-size: 1.12rem !important; line-height: 1.70 !important; }
+      .markdown.prose table { font-size: 1.02rem !important; }
+      .marimo-cell-output label,
+      .marimo-cell-output button,
+      .marimo-cell-output input,
+      .marimo-cell-output select { font-size: 1rem !important; }
+    </style>
+    """)
+    return
 
 
 @app.cell
@@ -245,7 +289,7 @@ def _(acceptor, mo, temperature, thermodynamic_state):
         | $\log_{{10}}(\sqrt{{K_{{eh}}}}/[\mathrm{{cm^{{-3}}}}])$ | {thermodynamic_state['log10_intrinsic_carrier']:.3f} |
 
         $\sqrt{{K_{{eh}}}}$ is the concentration at the electron–hole crossover
-        $n=p$; it is a derived scale, not a constraint supplied to the solver.
+        $n=p$; it is a derived scale, not a condition imposed in advance.
         """
     )
     return
@@ -388,7 +432,7 @@ def _(log_pressure, np):
             xy=(x_guide[-1], y_guide[-1]),
             xytext=(5, 3),
             textcoords="offset points",
-            fontsize=10,
+            fontsize=12,
             color="black",
         )
 
@@ -410,10 +454,10 @@ def _(
 ):
     plt.rcParams.update(
         {
-            "font.size": 12,
+            "font.size": 14,
             "axes.titlesize": 16,
             "axes.labelsize": 14,
-            "legend.fontsize": 11,
+            "legend.fontsize": 12,
             "lines.linewidth": 2.8,
         }
     )
@@ -423,26 +467,26 @@ def _(
         axis.axvspan(
             log_pressure[0],
             crossover_log_pressure,
-            color="#4477AA",
+            color="#6B86A5",
             alpha=0.035,
         )
         axis.axvspan(
             crossover_log_pressure,
             log_pressure[-1],
-            color="#CC6677",
+            color="#B77A82",
             alpha=0.035,
         )
     elif concentrations["n"][0] > concentrations["p"][0]:
-        axis.axvspan(log_pressure[0], log_pressure[-1], color="#4477AA", alpha=0.035)
+        axis.axvspan(log_pressure[0], log_pressure[-1], color="#6B86A5", alpha=0.035)
     else:
-        axis.axvspan(log_pressure[0], log_pressure[-1], color="#CC6677", alpha=0.035)
+        axis.axvspan(log_pressure[0], log_pressure[-1], color="#B77A82", alpha=0.035)
 
     acceptor_indices = np.flatnonzero(regime_masks["acceptor"])
     if acceptor_indices.size:
         axis.axvspan(
             log_pressure[acceptor_indices[0]],
             log_pressure[acceptor_indices[-1]],
-            color="#228833",
+            color="#5F8A6B",
             alpha=0.075,
             label=r"strict $2V\approx A$ window",
         )
@@ -450,25 +494,25 @@ def _(
     axis.plot(
         log_pressure,
         np.log10(concentrations["V"]),
-        color="#EE7733",
+        color="#C27A50",
         label=r"$V_O^{\bullet\bullet}$ ($V$)",
     )
     axis.plot(
         log_pressure,
         np.log10(concentrations["n"]),
-        color="#0077BB",
+        color="#557FA3",
         label=r"$e'$ ($n$)",
     )
     axis.plot(
         log_pressure,
         np.log10(concentrations["p"]),
-        color="#CC3311",
+        color="#B65C4A",
         label=r"$h^\bullet$ ($p$)",
     )
     axis.plot(
         log_pressure,
         np.log10(concentrations["A"]),
-        color="#555555",
+        color="#666D73",
         ls="--",
         lw=2.2,
         label=r"fixed $A_{Ti}'$ ($A$)",
@@ -484,27 +528,27 @@ def _(
             rotation=90,
             va="bottom",
             ha="left",
-            fontsize=10,
-            color="#555555",
+            fontsize=12,
+            color="#666D73",
         )
         axis.text(
             0.02,
             0.96,
             "electron-rich (reducing) side",
             transform=axis.transAxes,
-            color="#225588",
+            color="#5D7594",
             va="top",
-            fontsize=11,
+            fontsize=12,
         )
         axis.text(
             0.98,
             0.96,
             "hole-rich (oxidizing) side",
             transform=axis.transAxes,
-            color="#992233",
+            color="#9A5B6A",
             ha="right",
             va="top",
-            fontsize=11,
+            fontsize=12,
         )
 
     if show_guides.value:
@@ -597,20 +641,12 @@ def _(mo):
 @app.cell
 def _(
     crossover_log_pressure,
-    dominance_tolerance,
     mo,
     sanity,
     slope_summary,
 ):
-    def residual_mark(value, tolerance):
-        return "✓" if value < tolerance else "⚠"
-
-    def mass_action_result(value, tolerance=1e-10, display_floor=1e-12):
-        """Report roundoff-level log residuals consistently for students."""
-        mark = residual_mark(value, tolerance)
-        if value < display_floor:
-            return rf"{mark} numerical zero ($< {display_floor:.0e}$)"
-        return f"{mark} {value:.2e}"
+    def check_mark(passed):
+        return "PASS" if passed else "CHECK"
 
     def slope_cell(value, expected, tolerance=0.035):
         if value is None:
@@ -623,8 +659,9 @@ def _(
             return "not sampled"
         return f"{span[0]:.2f} to {span[1]:.2f}"
 
-    positivity_mark = "✓" if sanity["positive"] else "⚠"
-    finite_mark = "✓" if sanity["finite"] else "⚠"
+    concentration_mark = check_mark(sanity["positive"] and sanity["finite"])
+    equilibrium_mark = check_mark(sanity["red_residual"] < 1e-10 and sanity["eh_residual"] < 1e-10)
+    charge_mark = check_mark(sanity["charge_residual"] < 1e-12)
     if crossover_log_pressure is None:
         crossover_text = "outside the plotted pressure window"
     else:
@@ -632,37 +669,22 @@ def _(
 
     mo.md(
         rf"""
-        ## Numerical sanity checks
+        ## Physical consistency checks
 
-        | Check | Result |
-        |---|---:|
-        | All concentrations positive | {positivity_mark} |
-        | All concentrations finite | {finite_mark} |
-        | max $\lvert\log_{{10}}(Vn^2p_{{O_2}}^{{1/2}}/K_{{red}})\rvert$ (target: 0) | {mass_action_result(sanity['red_residual'])} |
-        | max $\lvert\log_{{10}}(np/K_{{eh}})\rvert$ (target: 0) | {mass_action_result(sanity['eh_residual'])} |
-        | max scaled charge residual | {residual_mark(sanity['charge_residual'], 1e-12)} {sanity['charge_residual']:.2e} |
-
-        The two mass-action targets are zero because each logarithm contains an
-        equilibrium ratio whose unlogged target is one. Values below $10^{{-12}}$
-        are reported uniformly as **numerical zero**: an exact floating-point
-        cancellation and a roundoff-level value such as $10^{{-14}}$ carry the
-        same physical meaning here.
-
-        **Why check these?** Positivity and finiteness ensure that every plotted
-        point is a physical concentration. The two mass-action rows verify the
-        defect reactions, and the charge row verifies electroneutrality. The
-        slope rows then ask whether a true limiting balance is actually visible
-        in the selected pressure window; they do not supply slopes to the solver.
+        | status | physical statement | why it matters |
+        |---:|---|---|
+        | {concentration_mark} | all concentrations are positive and finite | every plotted point represents a physical concentration |
+        | {equilibrium_mark} | both mass-action laws hold across the pressure range | the defect reactions remain at equilibrium |
+        | {charge_mark} | exact electroneutrality is satisfied | positive and negative charge balance at every pressure |
 
         The electron–hole crossover is {crossover_text}.
 
-        ### Regime coverage and measured slopes
+        ### Where limiting regimes are visible
 
-        A limiting balance is sampled only where every neglected charge term is
-        below {100.0 * dominance_tolerance:.0f}% of the retained scale and the
-        proposed balance closes within the same tolerance. At least eight grid
-        points are required. Pressure spans are reported as
-        $\log_{{10}}(p_{{O_2}}/\mathrm{{bar}})$.
+        A regime is labeled only where the displayed concentrations clearly
+        support its limiting charge balance. Pressure spans are reported as
+        $\log_{{10}}(p_{{O_2}}/\mathrm{{bar}})$; “not sampled” simply means the
+        selected window does not reach that limit.
 
         | Limiting balance | Sampled span |
         |---|---:|
@@ -682,11 +704,9 @@ def _(
         | $p\simeq A$ plus $np=K_{{eh}}$ | $n$ | $0$ | {slope_cell(slope_summary['oxidizing']['n'], 0)} |
         | $p\simeq A$ | $V$ | $-1/2$ | {slope_cell(slope_summary['oxidizing']['V'], -1/2)} |
 
-        ✓ means the measured slope is within 0.035 of its asymptotic value; △
-        means the dominance test is met but convergence to the ideal slope is
-        not yet tight. “Not sampled” is a physical result, not a failed test:
-        the selected $T$, $A$, and pressure window decide which limits exist on
-        screen.
+        ✓ means the curve has reached the expected limiting slope; △ means it
+        is still approaching that limit. These slopes are measured from the
+        full-equilibrium curves, not imposed beforehand.
         """
     )
     return
@@ -697,9 +717,8 @@ def _(mo):
     mo.md(r"""
     ## Where the power laws come from
 
-    The numerical solver above does not know any of these approximations. They
-    are derived afterward by deciding which terms dominate exact charge
-    neutrality:
+    None of these slopes is assumed in the plotted curves. They emerge when
+    particular terms dominate the exact charge-neutrality equation:
 
     - **Strong reduction:** if $2V\simeq n$, substitution into
       $K_{red}=Vn^2p_{O_2}^{1/2}$ gives
@@ -724,10 +743,8 @@ def _(mo):
     activities, and changes in site density are deliberately outside this first
     teaching model.
 
-    **Numerical method.** At each pressure, the mass-action equations are used
-    exactly to write $V=K_{red}/(n^2p_{O_2}^{1/2})$ and $p=K_{eh}/n$. A bracketed
-    root solve in $\ln n$ then enforces electroneutrality. Working in log space
-    preserves positivity and avoids overflow across many decades.
+    At every pressure, both mass-action laws and exact electroneutrality are
+    satisfied together. No limiting Brouwer balance is used to draw the curves.
     """)
     return
 

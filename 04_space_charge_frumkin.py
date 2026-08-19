@@ -10,7 +10,51 @@ def _():
     import matplotlib.pyplot as plt
     import numpy as np
 
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 14,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 11,
+            "axes.facecolor": "#FCFCFA",
+            "figure.facecolor": "white",
+            "grid.color": "#C7CCD1",
+            "grid.alpha": 0.28,
+            "axes.titlepad": 10,
+            "axes.labelpad": 6,
+            "legend.frameon": False,
+            "axes.prop_cycle": plt.cycler(
+                color=[
+                    "#4C7C86",
+                    "#B8734A",
+                    "#7C6A91",
+                    "#6B86A5",
+                    "#B77A82",
+                    "#5F8A6B",
+                    "#C49345",
+                ]
+            ),
+        }
+    )
+
     return mo, np, plt
+
+
+@app.cell
+def _(mo):
+    mo.Html(r"""
+    <style>
+      .markdown.prose { font-size: 1.12rem !important; line-height: 1.70 !important; }
+      .markdown.prose table { font-size: 1.02rem !important; }
+      .marimo-cell-output label,
+      .marimo-cell-output button,
+      .marimo-cell-output input,
+      .marimo-cell-output select { font-size: 1rem !important; }
+    </style>
+    """)
+    return
 
 
 @app.cell
@@ -370,18 +414,28 @@ def _(np):
         molar_scale = FARADAY_C_PER_MOL / (
             GAS_CONSTANT_J_PER_MOL_K * float(temperature_k)
         )
-        log10_local_ratio = -z_reactant * molar_scale * phi1_values / np.log(10.0)
+        log10_potential_factor = (
+            -(1.0 - alpha) * molar_scale * phi1_values / np.log(10.0)
+        )
+        log10_concentration_factor = (
+            -z_reactant * molar_scale * phi1_values / np.log(10.0)
+        )
         log10_naive_current = (
             (1.0 - alpha) * molar_scale * potentials / np.log(10.0)
         )
+        log10_total_frumkin_factor = (
+            log10_potential_factor + log10_concentration_factor
+        )
         log10_corrected_current = (
-            (1.0 - alpha) * molar_scale * (potentials - phi1_values)
-            - z_reactant * molar_scale * phi1_values
-        ) / np.log(10.0)
+            log10_naive_current + log10_total_frumkin_factor
+        )
         return {
             "phi1_v": phi1_values,
             "stern_drop_v": potentials - phi1_values,
-            "log10_local_ratio": log10_local_ratio,
+            "log10_local_ratio": log10_concentration_factor,
+            "log10_potential_factor": log10_potential_factor,
+            "log10_concentration_factor": log10_concentration_factor,
+            "log10_total_frumkin_factor": log10_total_frumkin_factor,
             "log10_naive_current": log10_naive_current,
             "log10_corrected_current": log10_corrected_current,
         }
@@ -621,7 +675,7 @@ def _(
     gc_axes[0].plot(
         gc_distance_nm,
         gc_profile["potential_v"],
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label="exact Gouy-Chapman",
     )
@@ -629,7 +683,7 @@ def _(
         gc_axes[0].plot(
             gc_distance_nm,
             gc_profile["linear_potential_v"],
-            color="#EE9B00",
+            color="#C49345",
             lw=2.2,
             ls="--",
             label="small-potential limit",
@@ -647,23 +701,23 @@ def _(
         title="Potential is screened into the bulk",
     )
     gc_axes[0].grid(alpha=0.22)
-    gc_axes[0].legend(frameon=False, fontsize=8.5)
+    gc_axes[0].legend(frameon=False, fontsize=10)
 
     gc_axes[1].semilogy(
         gc_distance_nm,
         gc_profile["positive_ratio"],
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.0,
         label=r"$c_+/c_{i,\infty}$",
     )
     gc_axes[1].semilogy(
         gc_distance_nm,
         gc_profile["negative_ratio"],
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label=r"$c_-/c_{i,\infty}$",
     )
-    gc_axes[1].axhline(1.0, color="#777777", lw=1.0, ls=":")
+    gc_axes[1].axhline(1.0, color="#858B90", lw=1.0, ls=":")
     gc_axes[1].set(
         xlabel="distance from core, x (nm)",
         ylabel="concentration / bulk concentration",
@@ -675,21 +729,21 @@ def _(
     gc_axes[2].plot(
         gc_distance_nm,
         1.0e3 * gc_profile["chemical_positive_ev"],
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.0,
         label=r"chemical: $\Delta\mu_+$",
     )
     gc_axes[2].plot(
         gc_distance_nm,
         1.0e3 * gc_profile["electrical_positive_ev"],
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label=r"electrical: $+ze\phi$",
     )
     gc_axes[2].plot(
         gc_distance_nm,
         1.0e3 * gc_profile["electrochemical_positive_ev"],
-        color="#222222",
+        color="#40464D",
         lw=1.8,
         ls="--",
         label=r"sum: $\Delta\widetilde\mu_+$",
@@ -700,7 +754,7 @@ def _(
         title="Electrochemical potential stays flat",
     )
     gc_axes[2].grid(alpha=0.22)
-    gc_axes[2].legend(frameon=False, fontsize=8.5)
+    gc_axes[2].legend(frameon=False, fontsize=10)
     gc_figure.tight_layout()
     plt.close(gc_figure)
 
@@ -756,7 +810,7 @@ def _(
     ms_axes[0].plot(
         ms_distance_nm,
         ms_profile["potential_v"],
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
     )
     ms_axes[0].axvline(
@@ -777,14 +831,14 @@ def _(
     ms_axes[1].semilogy(
         ms_distance_nm,
         ms_profile["positive_ratio"],
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.0,
         label=r"mobile $c_+/c_{i,\infty}$",
     )
     ms_axes[1].semilogy(
         ms_distance_nm,
         ms_profile["negative_ratio"],
-        color="#007C91",
+        color="#4C7C86",
         lw=2.5,
         ls="--",
         label=r"frozen $c_-/c_{i,\infty}$",
@@ -800,21 +854,21 @@ def _(
     ms_axes[2].plot(
         ms_distance_nm,
         1.0e3 * ms_profile["chemical_positive_ev"],
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.0,
         label=r"chemical: $\Delta\mu_+$",
     )
     ms_axes[2].plot(
         ms_distance_nm,
         1.0e3 * ms_profile["electrical_positive_ev"],
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label=r"electrical: $+ze\phi$",
     )
     ms_axes[2].plot(
         ms_distance_nm,
         1.0e3 * ms_profile["electrochemical_positive_ev"],
-        color="#222222",
+        color="#40464D",
         lw=1.8,
         ls="--",
         label=r"sum: $\Delta\widetilde\mu_+$",
@@ -825,7 +879,7 @@ def _(
         title="The same equilibrium cancellation remains",
     )
     ms_axes[2].grid(alpha=0.22)
-    ms_axes[2].legend(frameon=False, fontsize=8.5)
+    ms_axes[2].legend(frameon=False, fontsize=10)
     ms_figure.tight_layout()
     plt.close(ms_figure)
 
@@ -929,20 +983,20 @@ def _(
     width_axes[0].loglog(
         concentration_sweep_cm3,
         debye_sweep_nm,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label=r"Gouy-Chapman $\lambda_D$",
     )
     width_axes[0].loglog(
         concentration_sweep_cm3,
         ms_sweep_nm,
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.0,
         label=r"Mott-Schottky $\lambda$",
     )
     width_axes[0].axvline(
         bulk_concentration_cm3,
-        color="#EE9B00",
+        color="#C49345",
         lw=1.5,
         ls="--",
         label="selected bulk concentration",
@@ -958,20 +1012,20 @@ def _(
     width_axes[1].loglog(
         epsilon_sweep,
         debye_epsilon_nm,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label=r"Gouy-Chapman $\lambda_D$",
     )
     width_axes[1].loglog(
         epsilon_sweep,
         ms_epsilon_nm,
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.0,
         label=r"Mott-Schottky $\lambda$",
     )
     width_axes[1].axvline(
         epsilon_r,
-        color="#EE9B00",
+        color="#C49345",
         lw=1.5,
         ls="--",
         label="selected permittivity",
@@ -1018,13 +1072,18 @@ def _(mo):
         label="Stern capacitance, C_s (microF/cm^2)",
         show_value=True,
     )
+    interface_controls = mo.hstack(
+        [stern_capacitance_control],
+        justify="start",
+        align="center",
+    )
 
     transfer_coefficient_control = mo.ui.slider(
         start=0.1,
         stop=0.9,
         step=0.05,
         value=0.5,
-        label="transfer coefficient, alpha",
+        label="Butler-Volmer transfer coefficient, alpha",
         show_value=True,
     )
     reactant_charge_control = mo.ui.dropdown(
@@ -1038,12 +1097,8 @@ def _(mo):
         value="+1 (singly positive R)",
         label="signed reactant charge number, z_R",
     )
-    interface_controls = mo.hstack(
-        [
-            stern_capacitance_control,
-            transfer_coefficient_control,
-            reactant_charge_control,
-        ],
+    kinetic_controls = mo.hstack(
+        [transfer_coefficient_control, reactant_charge_control],
         justify="start",
         align="center",
         wrap=True,
@@ -1051,6 +1106,7 @@ def _(mo):
     )
     return (
         interface_controls,
+        kinetic_controls,
         reactant_charge_control,
         stern_capacitance_control,
         transfer_coefficient_control,
@@ -1087,12 +1143,25 @@ def _(interface_controls, mo):
             \[
             Q_{\rm core}=C_s(\phi_0-\phi_1)=Q_{\rm GC}(\phi_1),
             \qquad
-            \frac{1}{C_{\rm tot}}=\frac{1}{C_s}+\frac{1}{C_d}.
+            \frac{1}{C_{\rm tot}}=\frac{1}{C_s}+\frac{1}{C_d(\phi_1)}.
             \]
 
-            The profile drawing places \(x_1\) at 0.5 nm only to make the two
-            regions visible. The physical compact-layer input is \(C_s\); an
-            independent thickness would require a separate Stern permittivity.
+            At the pZC, \(\phi_0=\phi_1=0\), so
+
+            \[
+            C_{d,\rm pZC}=\frac{\epsilon_0\epsilon_r}{\lambda_D},
+            \qquad
+            C_{\rm tot,pZC}
+            =\left(\frac{1}{C_s}+\frac{1}{C_{d,\rm pZC}}\right)^{-1}.
+            \]
+
+            Thus the pZC capacitance is close to \(C_s\) only when
+            \(C_{d,\rm pZC}\gg C_s\). In the ideal Gouy-Chapman model,
+            \(C_d\) grows with \(|\phi_1|\), so the total capacitance approaches
+            \(C_s\) at large field. The profile drawing places \(x_1\) at 0.5 nm
+            only to make the two regions visible. The physical compact-layer
+            input is \(C_s\); an independent thickness would require a separate
+            Stern permittivity.
             """),
             interface_controls,
         ]
@@ -1178,6 +1247,17 @@ def _(
         epsilon_r,
         charge_magnitude,
     )
+    pzc_diffuse_capacitance_f_per_m2 = gc_differential_capacitance_f_per_m2(
+        0.0,
+        temperature_k,
+        bulk_concentration_cm3,
+        epsilon_r,
+        charge_magnitude,
+    )
+    pzc_total_capacitance_f_per_m2 = 1.0 / (
+        1.0 / stern_capacitance_f_per_m2
+        + 1.0 / pzc_diffuse_capacitance_f_per_m2
+    )
 
     return (
         bare_gc_capacitance_selected,
@@ -1189,6 +1269,8 @@ def _(
         gcs_potential_sweep_v,
         gcs_states,
         gcs_total_capacitance_sweep,
+        pzc_diffuse_capacitance_f_per_m2,
+        pzc_total_capacitance_f_per_m2,
         selected_gcs_state,
         stern_capacitance_f_per_m2,
         stern_distance_m,
@@ -1206,6 +1288,8 @@ def _(
     gcs_total_capacitance_sweep,
     mo,
     plt,
+    pzc_diffuse_capacitance_f_per_m2,
+    pzc_total_capacitance_f_per_m2,
     selected_gcs_state,
     stern_capacitance_f_per_m2,
     stern_distance_m,
@@ -1217,14 +1301,14 @@ def _(
     gcs_axes[0].plot(
         stern_distance_m * 1.0e9,
         stern_potential_v,
-        color="#EE9B00",
+        color="#C49345",
         lw=3.2,
         label="Stern layer",
     )
     gcs_axes[0].plot(
         (stern_thickness_m + gcs_diffuse_distance_m) * 1.0e9,
         gcs_diffuse_profile["potential_v"],
-        color="#007C91",
+        color="#4C7C86",
         lw=3.2,
         label="diffuse layer",
     )
@@ -1239,8 +1323,8 @@ def _(
         [0.0, stern_thickness_m * 1.0e9],
         [surface_potential_v, selected_gcs_state["phi1_v"]],
         s=70,
-        color=["#CC3311", "#007C91"],
-        edgecolor="#222222",
+        color=["#B65C4A", "#4C7C86"],
+        edgecolor="#40464D",
         zorder=5,
     )
     gcs_axes[0].set(
@@ -1254,13 +1338,21 @@ def _(
     gcs_axes[1].plot(
         gcs_potential_sweep_v,
         gcs_diffuse_capacitance_sweep / 0.01,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
-        label=r"diffuse $C_d$",
+        label=r"diffuse $C_d(\phi_1)$",
+    )
+    gcs_axes[1].scatter(
+        [0.0],
+        [pzc_diffuse_capacitance_f_per_m2 / 0.01],
+        s=70,
+        color="#4C7C86",
+        edgecolor="white",
+        zorder=5,
     )
     gcs_axes[1].axhline(
         stern_capacitance_f_per_m2 / 0.01,
-        color="#EE9B00",
+        color="#C49345",
         lw=2.5,
         ls="--",
         label=r"Stern $C_s$",
@@ -1268,11 +1360,20 @@ def _(
     gcs_axes[1].plot(
         gcs_potential_sweep_v,
         gcs_total_capacitance_sweep / 0.01,
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.2,
         label=r"series total $C_{\rm tot}$",
     )
-    gcs_axes[1].axvline(surface_potential_v, color="#555555", lw=1.2, ls=":")
+    gcs_axes[1].scatter(
+        [0.0],
+        [pzc_total_capacitance_f_per_m2 / 0.01],
+        s=80,
+        color="#B65C4A",
+        edgecolor="white",
+        zorder=5,
+        label="value at pZC",
+    )
+    gcs_axes[1].axvline(surface_potential_v, color="#666D73", lw=1.2, ls=":")
     gcs_axes[1].set(
         xlabel=r"core potential relative to pZC, $\phi_0$ (V)",
         ylabel=r"differential capacitance ($\mu$F cm$^{-2}$)",
@@ -1295,6 +1396,15 @@ def _(
         and \(C_{{\rm tot}}={selected_gcs_state['total_capacitance_f_per_m2'] / 0.01:.2f}\)
         μF/cm². Because the two layers are in series, the total is always below
         either individual capacitance.
+
+        **At the pZC:** \(C_{{d,\rm pZC}}=
+        {pzc_diffuse_capacitance_f_per_m2 / 0.01:.2f}\) μF/cm²,
+        \(C_{{\rm tot,pZC}}={pzc_total_capacitance_f_per_m2 / 0.01:.2f}\)
+        μF/cm², and \(C_s={stern_capacitance_f_per_m2 / 0.01:.2f}\)
+        μF/cm². Here \(C_{{d,\rm pZC}}/C_s=
+        {pzc_diffuse_capacitance_f_per_m2 / stern_capacitance_f_per_m2:.2f}\).
+        Only a ratio much larger than one makes the pZC total nearly equal to
+        the Stern capacitance.
         """
     )
     mo.vstack([gcs_figure, gcs_summary])
@@ -1350,6 +1460,7 @@ def _(
 def _(
     frumkin_potential_sweep_v,
     frumkin_sweep,
+    kinetic_controls,
     mo,
     plt,
     reactant_charge_number,
@@ -1357,86 +1468,124 @@ def _(
     surface_potential_v,
     transfer_coefficient,
 ):
-    frumkin_figure, frumkin_axes = plt.subplots(1, 3, figsize=(14.4, 4.7), dpi=120)
-    frumkin_axes[0].plot(
+    frumkin_figure, frumkin_axes = plt.subplots(
+        2,
+        2,
+        figsize=(13.8, 9.0),
+        dpi=120,
+    )
+    frumkin_axes[0, 0].plot(
         frumkin_potential_sweep_v,
         frumkin_sweep["phi1_v"],
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label=r"diffuse drop $\phi_1$",
     )
-    frumkin_axes[0].plot(
+    frumkin_axes[0, 0].plot(
         frumkin_potential_sweep_v,
         frumkin_sweep["stern_drop_v"],
-        color="#EE9B00",
+        color="#C49345",
         lw=3.0,
         label=r"Stern drop $\phi_0-\phi_1$",
     )
-    frumkin_axes[0].plot(
+    frumkin_axes[0, 0].plot(
         frumkin_potential_sweep_v,
         frumkin_potential_sweep_v,
-        color="#777777",
+        color="#858B90",
         lw=1.2,
         ls=":",
         label=r"total $\phi_0$",
     )
-    frumkin_axes[0].set(
+    frumkin_axes[0, 0].set(
         xlabel=r"driving potential, $\phi_0=E-E^{0\prime}$ (V)",
         ylabel="potential contribution (V)",
         title="GCS divides the applied potential",
     )
-    frumkin_axes[0].grid(alpha=0.22)
-    frumkin_axes[0].legend(frameon=False, fontsize=8.5)
+    frumkin_axes[0, 0].grid(alpha=0.22)
+    frumkin_axes[0, 0].legend(frameon=False, fontsize=10)
 
-    frumkin_axes[1].plot(
+    frumkin_axes[0, 1].plot(
         frumkin_potential_sweep_v,
         frumkin_sweep["log10_local_ratio"],
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
     )
-    frumkin_axes[1].axhline(0.0, color="#777777", lw=1.0, ls=":")
-    frumkin_axes[1].set(
+    frumkin_axes[0, 1].axhline(0.0, color="#858B90", lw=1.0, ls=":")
+    frumkin_axes[0, 1].set(
         xlabel=r"driving potential, $\phi_0=E-E^{0\prime}$ (V)",
         ylabel=r"$\log_{10}([R]_{x_1}/[R]_{\infty})$",
         title="The reaction-plane concentration changes",
     )
-    frumkin_axes[1].grid(alpha=0.22)
+    frumkin_axes[0, 1].grid(alpha=0.22)
 
-    frumkin_axes[2].plot(
+    frumkin_axes[1, 0].plot(
         frumkin_potential_sweep_v,
         frumkin_sweep["log10_naive_current"],
-        color="#777777",
+        color="#858B90",
         lw=2.2,
         ls="--",
-        label="use bulk concentration and total potential",
+        label="bulk concentration + total potential",
     )
-    frumkin_axes[2].plot(
+    frumkin_axes[1, 0].plot(
         frumkin_potential_sweep_v,
         frumkin_sweep["log10_corrected_current"],
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.2,
         label="Frumkin-corrected",
     )
-    frumkin_axes[2].set(
+    frumkin_axes[1, 0].set(
         xlabel=r"driving potential, $\phi_0=E-E^{0\prime}$ (V)",
         ylabel=r"$\log_{10}$ normalized anodic current",
-        title="The Frumkin effect can suppress or enhance",
+        title="Current at the reaction plane",
     )
-    frumkin_axes[2].grid(alpha=0.22)
-    frumkin_axes[2].legend(frameon=False, fontsize=8.2)
+    frumkin_axes[1, 0].grid(alpha=0.22)
+    frumkin_axes[1, 0].legend(frameon=False, fontsize=10)
+
+    frumkin_axes[1, 1].plot(
+        frumkin_potential_sweep_v,
+        frumkin_sweep["log10_potential_factor"],
+        color="#C49345",
+        lw=2.8,
+        label=rf"potential part, $1-\alpha={1.0 - transfer_coefficient:.2f}$",
+    )
+    frumkin_axes[1, 1].plot(
+        frumkin_potential_sweep_v,
+        frumkin_sweep["log10_concentration_factor"],
+        color="#4C7C86",
+        lw=2.8,
+        label=rf"concentration part, $z_R={reactant_charge_number:+.0f}$",
+    )
+    frumkin_axes[1, 1].plot(
+        frumkin_potential_sweep_v,
+        frumkin_sweep["log10_total_frumkin_factor"],
+        color="#B65C4A",
+        lw=3.2,
+        label="sum: Frumkin factor",
+    )
+    frumkin_axes[1, 1].axhline(0.0, color="#858B90", lw=1.0, ls=":")
+    frumkin_axes[1, 1].set(
+        xlabel=r"driving potential, $\phi_0=E-E^{0\prime}$ (V)",
+        ylabel=r"contribution to $\log_{10}(I/I_{\rm naive})$",
+        title=r"What $\alpha$ changes—and what it does not",
+    )
+    frumkin_axes[1, 1].grid(alpha=0.22)
+    frumkin_axes[1, 1].legend(frameon=False, fontsize=10)
     frumkin_figure.tight_layout()
     plt.close(frumkin_figure)
 
     selected_local_ratio = 10.0 ** float(selected_frumkin["log10_local_ratio"][0])
     selected_current_ratio = 10.0 ** float(
-        selected_frumkin["log10_corrected_current"][0]
-        - selected_frumkin["log10_naive_current"][0]
+        selected_frumkin["log10_total_frumkin_factor"][0]
     )
     frumkin_text = mo.md(
         rf"""
         ## 4. The Frumkin effect: the reaction sees \(x=x_1\), not the bulk
 
-        Following the lecture's anodic branch,
+        The **Butler-Volmer transfer coefficient** \(\alpha\) is a dimensionless
+        kinetic parameter between 0 and 1. It describes how an interfacial
+        overpotential changes the activation barriers of the two reaction
+        directions. In the lecture's anodic branch, the potential sensitivity
+        is proportional to \(1-\alpha\):
 
         \[
         I_a=FAk^0\exp\!\left[\frac{{(1-\alpha)F
@@ -1446,31 +1595,35 @@ def _(
         =\exp\!\left(-\frac{{z_R F\phi_1}}{{RT}}\right).
         \]
 
+        The key separation is:
+
+        - \(C_s\), the bulk concentration, and \(\epsilon_r\) determine the
+          **equilibrium electrostatics** and GCS capacitance;
+        - \(\alpha\) enters only the **charge-transfer kinetics**. It should not
+          change the potential profile or capacitance.
+
+        The lower-right panel now isolates the \(\alpha\)-dependent potential
+        contribution from the concentration contribution. Changing \(\alpha\)
+        therefore moves the orange and red curves, while the GCS panels remain
+        unchanged.
+
         The exchange current introduced in the lecture also uses reaction-plane
         concentrations,
 
         \[
-        I_0=FAk^0[O]_{{x_1}}^{{1-\alpha}}[R]_{{x_1}}^\alpha,
+        I_0=FAk^0[O]_{{x_1}}^{{1-\alpha}}[R]_{{x_1}}^\alpha.
         \]
 
-        so a space-charge layer changes equilibrium kinetics even before a large
-        overpotential is applied. The plotted anodic branch isolates the two
-        Frumkin contributions:
+        To keep this teaching plot one-dimensional, the formal potential is set
+        equal to the pZC reference, so \(E-E^{{0\prime}}=\phi_0\). This is a
+        transparent reference choice, not a universal identity.
 
-        1. a **concentration effect** through \([R]_{{x=x_1}}\), and
-        2. a **potential effect** because the reaction driving force contains
-           \(E-E^{{0\prime}}-\phi_1\), not the full interfacial drop.
-
-        To keep this teaching plot one-dimensional, we choose the formal
-        potential to coincide with the pZC, so
-        \(E-E^{{0\prime}}=\phi_0\). This is a reference choice for the plot, not
-        a universal identity for every interface.
-
-        Here \(z_R\) is a **signed** charge number. The lecture's notation
-        \(R^{{-z}}\), with \(z>0\), corresponds to \(z_R=-z\). A positively
-        charged proton-like reactant instead has \(z_R=+1\), the default used to
-        reproduce the depletion picture in the Pt/BZY example. Relative to a
-        curve that uses bulk concentration and the full potential,
+        Here \(z_R\) is a **signed** charge number. If a reaction is written
+        \(R^{{-z}}\), with \(z>0\), then \(z_R=-z\). A positive \(\phi_1\)
+        enriches a negative reactant and depletes a positive one. The default
+        \(z_R=+1\) represents the proton-like depletion picture in the Pt/BZY
+        example. Relative to a curve using bulk concentration and the full
+        potential,
 
         \[
         \log\!\left(\frac{{I_{{a,\rm Frumkin}}}}{{I_{{a,\rm naive}}}}\right)
@@ -1485,7 +1638,7 @@ def _(
         concentration and potential contributions can compete.
         """
     )
-    mo.vstack([frumkin_text, frumkin_figure])
+    mo.vstack([frumkin_text, kinetic_controls, frumkin_figure])
     return (frumkin_figure,)
 
 
@@ -1633,6 +1786,45 @@ def _(
         )
         * (1.0 + 1.0e-14)
     )
+    gcs_charge_plus = gcs_state(
+        surface_potential_v + capacitance_step_v,
+        temperature_k,
+        bulk_concentration_cm3,
+        epsilon_r,
+        charge_magnitude,
+        stern_capacitance_f_per_m2,
+    )["charge_c_per_m2"]
+    gcs_charge_minus = gcs_state(
+        surface_potential_v - capacitance_step_v,
+        temperature_k,
+        bulk_concentration_cm3,
+        epsilon_r,
+        charge_magnitude,
+        stern_capacitance_f_per_m2,
+    )["charge_c_per_m2"]
+    numerical_gcs_capacitance = (
+        gcs_charge_plus - gcs_charge_minus
+    ) / (2.0 * capacitance_step_v)
+    gcs_capacitance_residual = abs(
+        numerical_gcs_capacitance
+        - selected_gcs_state["total_capacitance_f_per_m2"]
+    ) / selected_gcs_state["total_capacitance_f_per_m2"]
+    pzc_diffuse_capacitance = permittivity / selected_debye_length_m
+    expected_pzc_total_capacitance = 1.0 / (
+        1.0 / stern_capacitance_f_per_m2
+        + 1.0 / pzc_diffuse_capacitance
+    )
+    calculated_pzc_total_capacitance = gcs_state(
+        0.0,
+        temperature_k,
+        bulk_concentration_cm3,
+        epsilon_r,
+        charge_magnitude,
+        stern_capacitance_f_per_m2,
+    )["total_capacitance_f_per_m2"]
+    gcs_pzc_capacitance_residual = abs(
+        calculated_pzc_total_capacitance - expected_pzc_total_capacitance
+    ) / expected_pzc_total_capacitance
     frumkin_phi1_residual = abs(
         float(selected_frumkin["phi1_v"][0]) - selected_gcs_state["phi1_v"]
     )
@@ -1683,6 +1875,10 @@ def _(
         "gcs_voltage_residual": gcs_voltage_residual,
         "gcs_voltage_pass": gcs_voltage_residual < 1.0e-14,
         "gcs_series_capacitance_pass": gcs_series_capacitance_pass,
+        "gcs_capacitance_residual": gcs_capacitance_residual,
+        "gcs_capacitance_pass": gcs_capacitance_residual < 2.0e-9,
+        "gcs_pzc_capacitance_residual": gcs_pzc_capacitance_residual,
+        "gcs_pzc_capacitance_pass": gcs_pzc_capacitance_residual < 2.0e-13,
         "frumkin_phi1_residual": frumkin_phi1_residual,
         "frumkin_phi1_pass": frumkin_phi1_residual < 1.0e-14,
         "frumkin_factor_residual": frumkin_factor_residual,
@@ -1702,33 +1898,19 @@ def _(mo, module04_validation):
 
     mo.md(
         rf"""
-        ## Numerical sanity checks
+        ## Physical consistency checks
 
-        | physical question | status | numerical result |
-        |---|---:|---:|
-        | do the Gouy–Chapman concentrations obey the Boltzmann law? | {_status(module04_validation['gc_boltzmann_pass'])} | max dimensionless residual {module04_validation['gc_boltzmann_residual']:.2e} |
-        | do chemical and electrical energies cancel at equilibrium? | {_status(module04_validation['gc_electrochemical_pass'])} | max residual {module04_validation['gc_electrochemical_residual_ev']:.2e} eV/defect |
-        | does the exact potential satisfy the lecture's tanh profile? | {_status(module04_validation['gc_solution_pass'])} | max residual {module04_validation['gc_solution_residual']:.2e} |
-        | does the surface field give the same core charge by Gauss's law? | {_status(module04_validation['gc_gauss_pass'])} | relative mismatch {module04_validation['gc_gauss_residual']:.2e} |
-        | is \(C_d\) really the slope \(dQ_{{\rm core}}/d\phi\)? | {_status(module04_validation['gc_capacitance_pass'])} | relative mismatch {module04_validation['gc_capacitance_residual']:.2e} |
-        | does the Mott–Schottky parabola meet both boundary potentials? | {_status(module04_validation['ms_boundary_pass'])} | max residual {max(module04_validation['ms_surface_residual'], module04_validation['ms_far_residual']):.2e} V |
-        | does its curvature match the frozen charge in Poisson's equation? | {_status(module04_validation['ms_poisson_pass'])} | relative mismatch {module04_validation['ms_poisson_residual']:.2e} |
-        | does \(Q_{{\rm core}}=ze c_{{i,\infty}}\lambda\) agree with Gauss's law? | {_status(module04_validation['ms_charge_pass'])} | relative mismatch {module04_validation['ms_charge_residual']:.2e} |
-        | is the mobile-defect electrochemical potential still flat? | {_status(module04_validation['ms_electrochemical_pass'])} | max residual {module04_validation['ms_electrochemical_residual_ev']:.2e} eV/defect |
-        | do the Stern and diffuse layers carry the same charge? | {_status(module04_validation['gcs_charge_pass'])} | relative mismatch {module04_validation['gcs_charge_residual']:.2e} |
-        | do the two potential drops add to \(\phi_0\)? | {_status(module04_validation['gcs_voltage_pass'])} | residual {module04_validation['gcs_voltage_residual']:.2e} V |
-        | is a series capacitance no larger than either layer? | {_status(module04_validation['gcs_series_capacitance_pass'])} | series-capacitance ordering |
-        | does the kinetics use the same reaction-plane \(\phi_1\) as GCS? | {_status(module04_validation['frumkin_phi1_pass'])} | residual {module04_validation['frumkin_phi1_residual']:.2e} V |
-        | does the plotted Frumkin factor match its analytical expression? | {_status(module04_validation['frumkin_factor_pass'])} | log10 residual {module04_validation['frumkin_factor_residual']:.2e} |
-        | are all characteristic lengths and capacitances positive and finite? | {_status(module04_validation['positive_finite_pass'])} | physical numerical values |
+        | status | physical statement | why it matters |
+        |---:|---|---|
+        | {_status(module04_validation['gc_boltzmann_pass'] and module04_validation['gc_electrochemical_pass'] and module04_validation['gc_solution_pass'])} | the Gouy–Chapman concentration and potential profiles obey Boltzmann equilibrium | chemical and electrical energies balance throughout the diffuse layer |
+        | {_status(module04_validation['gc_gauss_pass'] and module04_validation['gc_capacitance_pass'])} | the diffuse-layer charge agrees with Gauss's law and its slope gives \(C_d\) | charge, field, and capacitance are three views of the same interface |
+        | {_status(module04_validation['ms_boundary_pass'] and module04_validation['ms_poisson_pass'] and module04_validation['ms_charge_pass'] and module04_validation['ms_electrochemical_pass'])} | the Mott–Schottky profile obeys its boundary potentials, frozen charge, and flat electrochemical potential | the depletion approximation remains self-consistent |
+        | {_status(module04_validation['gcs_charge_pass'] and module04_validation['gcs_voltage_pass'] and module04_validation['gcs_series_capacitance_pass'] and module04_validation['gcs_capacitance_pass'] and module04_validation['gcs_pzc_capacitance_pass'])} | Stern and diffuse layers carry the same charge and add as series capacitances | the GCS voltage split and pZC limit agree |
+        | {_status(module04_validation['frumkin_phi1_pass'] and module04_validation['frumkin_factor_pass'])} | the Frumkin response uses the same reaction-plane concentration and potential | equilibrium space charge and interfacial kinetics are connected consistently |
+        | {_status(module04_validation['positive_finite_pass'])} | all lengths and capacitances are positive and finite | every plotted interfacial scale is physical |
 
-        **Why check these?** Each row protects one link in the reader's physical
-        chain. The first five connect Boltzmann redistribution, the exact
-        Gouy–Chapman profile, Gauss's law, and differential capacitance. The next
-        four test the frozen-dopant Mott–Schottky approximation. The final five
-        verify that the Stern and diffuse layers share one charge, split one
-        voltage, and pass the same reaction-plane potential into the Frumkin
-        kinetics.
+        These checks follow the physical chain from redistribution to charge,
+        capacitance, and the reaction-plane Frumkin effect.
         """
     )
     return
@@ -1752,9 +1934,13 @@ def _(mo):
     6. Gauss's law gives \(Q_{\rm core}(\phi)\), and its derivative is the
        differential capacitance.
     7. The Stern and diffuse layers carry the same charge and act as two
-       capacitances in series.
+       capacitances in series. At the pZC, the total is close to \(C_s\) only
+       when \(C_{d,\rm pZC}\gg C_s\); at high field the ideal GCS total tends
+       toward \(C_s\).
     8. A reaction at \(x=x_1\) experiences both the local concentration and the
        local potential. Their combined change is the **Frumkin effect**.
+       The transfer coefficient \(\alpha\) belongs to this kinetic step, not to
+       the equilibrium capacitance.
 
     **Model boundary.** The geometry is planar and one-dimensional. The
     Gouy–Chapman section uses an ideal symmetric \(+ze/-ze\) mobile pair. The

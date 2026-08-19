@@ -10,8 +10,8 @@ The notebooks complement the lectures and course materials collected on the
 [Solid State Ionics Lab teaching page](https://ssi-westlake.com/teaching/).
 
 The series helps students explore how defect formation, defect chemistry, ionic
-and electronic transport, electrochemical polarization, space charge, and
-titration transients emerge from governing equations. Each module favors transparent
+and electronic transport, electrochemical polarization, space charge, titration
+transients, and impedance spectra emerge from governing equations. Each module favors transparent
 physics, interactive controls, and numerical checks over preassembled textbook
 curves.
 
@@ -25,6 +25,7 @@ curves.
 | 04 | Space-Charge Layers and the Frumkin Effect | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/04-space-charge-frumkin/) |
 | 05 | Stoichiometry Polarization in a Mixed Conductor | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/05-stoichiometry-polarization/) |
 | 06 | PITT and GITT: Watching Chemical Diffusion | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/06-pitt-gitt/) |
+| 07 | Impedance Spectroscopy and Transmission Lines | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/07-impedance-tlm/) |
 
 ### Module 01: Defect Formation Thermodynamics
 
@@ -72,9 +73,9 @@ K_eh  = n p
 ~~~
 
 for oxygen vacancies V, electrons n, and holes p, with a fixed fully ionized
-acceptor concentration A. The unique positive solution is found with a
-bracketed log-space root solve. Brouwer regimes and slopes are measured only
-after solving the full equations; they are never used to construct the curves.
+acceptor concentration A. The full mass-action and charge-neutrality equations
+are satisfied together. Brouwer regimes and slopes are identified only after
+the equilibrium curves are calculated; they are never used to construct them.
 
 The default state is 973 K, A = 10^18 cm^-3, and pO2 from 10^-25 to 1 bar.
 Controls span 700-1500 K and log10(A/cm^-3) from 13 to 21.
@@ -177,7 +178,7 @@ D_delta = 2 D_i D_e / (D_i + D_e)
 J_i(0,t) = J_i(L,t) = 0.
 ~~~
 
-This explicit species model gives mu = mu_i + mu_e = 2 RT ln(c/c_bar). The
+This explicit species model gives mu = mu_i + mu_e = 2 RT ln(c/c0). The
 notebook therefore retains the factor 1/2 in the small-polarization boundary
 coefficient instead of importing a coefficient that belongs to a different
 chemical-potential model.
@@ -187,10 +188,10 @@ conductivity ratio sigma_e/sigma_i controls the carrier bottleneck, while the
 total conductivity sets the initial Ohmic scale. Interactive figures show the
 full concentration history, voltage/current relaxation, and separate chemical,
 electrical, and electrochemical potentials of the ion and electron. The
-current-controlled case uses the lecture Fourier solution; the
-voltage-controlled case solves the feedback between polarization and current.
+current- and voltage-controlled cases show how polarization and electrical
+response evolve together.
 
-The defaults are T = 800 K, c_bar = 10^20 cm^-3, L = 100 micrometers,
+The defaults are T = 800 K, c0 = 10^20 cm^-3, L = 100 micrometers,
 sigma_i + sigma_e = 10^-3 S/cm, sigma_e/sigma_i = 100, and beta = 0.8.
 Electron-blocking, reversible, and Hebb-Wagner electrode cases are deliberately
 reserved for later extensions with their own boundary conditions.
@@ -210,7 +211,9 @@ Positive current and voltage extract the neutral pair
 GITT fixes a current step and calculates the voltage. In both cases, the full
 finite-slab chemical-diffusion equation generates the transient concentration,
 chemical-potential, electrical-potential, and electrochemical-potential
-profiles. The final pulse profile becomes the initial condition for the OCV
+profiles. The selective contact fluxes are enforced directly at both faces, so
+the steep electrolyte-side concentration response remains smooth and physically
+consistent. The final pulse profile becomes the initial condition for the OCV
 relaxation, where terminal current is zero but equal internal ion and electron
 fluxes can continue.
 
@@ -221,6 +224,35 @@ expose temperature, concentration, thickness, chemical diffusivity,
 electronic-to-ionic conductivity ratio, pulse size, pulse duration, and rest
 duration. The defaults are T = 800 K, c0 = 10^20 cm^-3, L = 100 micrometers,
 D_delta = 10^-8 cm^2/s, and sigma_e/sigma_i = 100.
+
+### Module 07: Impedance Spectroscopy and Transmission Lines
+
+[07_impedance_tlm.py](07_impedance_tlm.py) begins with the lecture convention
+
+~~~text
+exp(i omega t),   Z = V_hat / I_hat = Z' + i Z'',
+Nyquist axes: Z' versus -Z''.
+~~~
+
+Students first connect voltage/current phase to complex impedance and explore
+how one or two ideal parallel-RC relaxations produce separated or overlapping
+arcs. The diffusion section then solves the one-dimensional frequency-domain
+chemical-diffusion equation. Semi-infinite, fixed-composition finite-length,
+and zero-flux finite-length Warburg responses are kept distinct, and the
+controls show how L and D_delta set the laboratory diffusion frequency.
+
+The final section incorporates the continuous dual-rail model from the
+[TLM teaching tool](https://qiyanglu.github.io/TLM-teaching-tool/):
+
+~~~text
+du_e/dx = -r_e I_e                    dI_e/dx = -i omega c_chem (u_e - u_i)
+du_i/dx = -r_i I_i                    dI_i/dx = +i omega c_chem (u_e - u_i)
+~~~
+
+Here u_e and u_i are voltage-equivalent electrochemical potentials. Three
+transparent ideal contact cases reveal how the same interior MIEC can look
+conducting, chemically polarized, or blocking. Interactive internal profiles
+show current transferring between rails while I_e + I_i remains conserved.
 
 ## Run locally
 
@@ -234,6 +266,7 @@ uv run marimo edit 03_defect_transport.py
 uv run marimo edit 04_space_charge_frumkin.py
 uv run marimo edit 05_stoichiometry_polarization.py
 uv run marimo edit 06_pitt_gitt.py
+uv run marimo edit 07_impedance_tlm.py
 ~~~
 
 To present a notebook as an app, replace edit with run.
@@ -244,21 +277,21 @@ Generated validation exports belong in the ignored `dist/` directory; they are
 not course source files.
 
 ~~~console
-uv run marimo check --strict 01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py 06_pitt_gitt.py
+uv run marimo check --strict 01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py 06_pitt_gitt.py 07_impedance_tlm.py
 uv run marimo export html 01_defect_formation.py -o dist/defect-formation.html --no-include-code -f
 uv run marimo export html 02_brouwer_sto.py -o dist/brouwer.html --no-include-code -f
 uv run marimo export html 03_defect_transport.py -o dist/defect-transport.html --no-include-code -f
 uv run marimo export html 04_space_charge_frumkin.py -o dist/space-charge-frumkin.html --no-include-code -f
 uv run marimo export html 05_stoichiometry_polarization.py -o dist/stoichiometry-polarization.html --no-include-code -f
 uv run marimo export html 06_pitt_gitt.py -o dist/pitt-gitt.html --no-include-code -f
+uv run marimo export html 07_impedance_tlm.py -o dist/impedance-tlm.html --no-include-code -f
 ~~~
 
 Module 01 checks its thermodynamic free-energy minimum, chemical-potential zero,
 finite-\(N\) macrostate spacing, large-\(N\) Stirling convergence, and dilute
 limit. Module 02 checks mass action, electroneutrality, positivity, regime
-coverage, and limiting slopes. Its mass-action rows report logarithmic residuals
-with an exact target of zero (equivalently, an unlogged equilibrium ratio of
-one); values below 1e-12 are displayed consistently as numerical zero.
+coverage, and limiting slopes. Student-facing tables report the physical result
+and why it matters, while detailed numerical tolerances remain internal.
 
 Module 03 checks the lecture identity \(D=a^2\Gamma/2\), the stochastic MSD
 fit, detailed balance, low-field Nernst-Einstein drift, one-dimensional
@@ -281,15 +314,21 @@ late-time linear profile and flat ionic electrochemical potential.
 
 Module 06 checks the uniform initial state, positivity, fixed-voltage PITT and
 fixed-current GITT control, zero terminal current and conserved mean composition
-during OCV, pulse mass balance, the Module 05 chemical-diffusivity identity,
+during OCV, selective-contact fluxes and pulse mass balance, the Module 05 chemical-diffusivity identity,
 potential reconstruction of the measured voltage, the PITT/GITT limiting
-series, and the long-rest first-mode decay.
+series, long-rest decay, and spatial-grid convergence.
+
+Module 07 checks the phasor sign convention, the ideal parallel-RC semicircle
+and apex, finite-length Warburg limits and passivity, TLM boundary residuals,
+total-current conservation, the reversible-contact limit, passivity, and
+finiteness.
+
 
 ## Repository layout
 
-The six numbered Python files are the self-contained marimo modules. The
+The seven numbered Python files are the self-contained marimo modules. The
 `pages/` directory is also source: `pages/index.html` is the course landing page.
-The Pages workflow copies it before exporting the six notebooks.
+The Pages workflow copies it before exporting the seven notebooks.
 
 Local `.venv/`, `__marimo__/`, `__pycache__/`, and `dist/` directories are
 generated working files. They are ignored by Git and may be removed whenever a
@@ -297,7 +336,7 @@ clean checkout is desired.
 
 ## Browser deployment
 
-All six notebooks use only marimo, NumPy, SciPy, and matplotlib and perform no
+All seven notebooks use only marimo, NumPy, SciPy, and matplotlib and perform no
 network or filesystem access at runtime. The workflow in
 [pages.yml](.github/workflows/pages.yml) exports each notebook as a
 browser-hosted WASM app and deploys the generated static site to GitHub Pages on

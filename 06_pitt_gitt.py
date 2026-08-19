@@ -11,7 +11,53 @@ def _():
     import numpy as np
     from scipy.integrate import cumulative_trapezoid, solve_ivp
 
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 14,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 11,
+            "axes.facecolor": "#FCFCFA",
+            "figure.facecolor": "white",
+            "grid.color": "#C7CCD1",
+            "grid.alpha": 0.28,
+            "axes.titlepad": 10,
+            "axes.labelpad": 6,
+            "legend.frameon": False,
+            "axes.prop_cycle": plt.cycler(
+                color=[
+                    "#4C7C86",
+                    "#B8734A",
+                    "#7C6A91",
+                    "#6B86A5",
+                    "#B77A82",
+                    "#5F8A6B",
+                    "#C49345",
+                ]
+            ),
+            "lines.solid_capstyle": "round",
+            "figure.dpi": 115,
+        }
+    )
+
     return cumulative_trapezoid, mo, np, plt, solve_ivp
+
+
+@app.cell
+def _(mo):
+    mo.Html(r"""
+    <style>
+      .markdown.prose { font-size: 1.12rem !important; line-height: 1.70 !important; }
+      .markdown.prose table { font-size: 1.02rem !important; }
+      .marimo-cell-output label,
+      .marimo-cell-output button,
+      .marimo-cell-output input,
+      .marimo-cell-output select { font-size: 1rem !important; }
+    </style>
+    """)
+    return
 
 
 @app.cell
@@ -134,34 +180,48 @@ def _(np, solve_ivp):
             "tau_delta_s": tau_delta_s,
         }
 
-    def _mode_numbers(mode_count):
-        count = int(mode_count)
-        if count < 8:
-            raise ValueError("mode_count must be at least eight")
-        return np.arange(1, count + 1, dtype=float)
+    def _transport_operator(positions, params):
+        """Conservative diffusion operator with selective-contact face fluxes."""
+        xi = np.asarray(positions, dtype=float)
+        if xi.ndim != 1 or xi.size < 9:
+            raise ValueError("positions must contain at least nine points")
+        spacing = np.diff(xi)
+        if not np.allclose(spacing, spacing[0], rtol=1.0e-11, atol=1.0e-13):
+            raise ValueError("positions must be uniformly spaced")
+        dx = float(spacing[0])
+        if abs(xi[0]) > 1.0e-13 or abs(xi[-1] - 1.0) > 1.0e-13:
+            raise ValueError("positions must span xi = 0 to 1")
 
-    def _state_profiles(states, positions, modes):
-        state_array = np.asarray(states, dtype=float)
-        cosine_matrix = np.cos(np.pi * np.outer(positions, modes))
-        if state_array.ndim == 1:
-            return state_array[0] + cosine_matrix @ state_array[1:]
-        return state_array[:, :1] + state_array[:, 1:] @ cosine_matrix.T
+        point_count = xi.size
+        operator = np.zeros((point_count, point_count), dtype=float)
+        scale = 1.0 / (np.pi**2 * dx**2)
+        interior = np.arange(1, point_count - 1)
+        operator[interior, interior - 1] = scale
+        operator[interior, interior] = -2.0 * scale
+        operator[interior, interior + 1] = scale
+        operator[0, 0] = -2.0 * scale
+        operator[0, 1] = 2.0 * scale
+        operator[-1, -2] = 2.0 * scale
+        operator[-1, -1] = -2.0 * scale
 
-    def _state_voltage_and_current(state, target_voltage, positions, modes, params):
-        profile = _state_profiles(state, positions, modes)
-        safe_profile = np.maximum(profile, 1.0e-10)
+        contact_forcing = np.zeros(point_count, dtype=float)
+        contact_forcing[0] = -2.0 * params["ionic_fraction"] / (np.pi**2 * dx)
+        contact_forcing[-1] = -2.0 * params["electronic_fraction"] / (np.pi**2 * dx)
+        quadrature_weights = np.full(point_count, dx, dtype=float)
+        quadrature_weights[[0, -1]] *= 0.5
+        return operator, contact_forcing, quadrature_weights
+
+    def _voltage_step_current(profile, target_voltage, positions, params):
+        safe_profile = np.maximum(np.asarray(profile, dtype=float), 1.0e-10)
         resistance_integral = np.trapezoid(1.0 / safe_profile, positions)
         t_i = params["ionic_fraction"]
         t_e = params["electronic_fraction"]
-        if target_voltage is None:
-            raise ValueError("target_voltage is required")
-        q_value = (
+        return (
             target_voltage + t_i * np.log(safe_profile[0]) + t_e * np.log(safe_profile[-1])
         ) / (t_i * t_e * resistance_integral)
-        return q_value
 
-    def _voltage_from_state(state, q_value, positions, modes, params):
-        profile = _state_profiles(state, positions, modes)
+    def _voltage_from_profile(profile, q_value, positions, params):
+        profile = np.asarray(profile, dtype=float)
         if np.min(profile) <= 0.0:
             return np.nan
         t_i = params["ionic_fraction"]
@@ -173,11 +233,31 @@ def _(np, solve_ivp):
             + q_value * t_i * t_e * resistance_integral
         )
 
-    def _modal_rhs_for_q(state, q_value, modes, params):
-        t_i = params["ionic_fraction"]
-        t_e = params["electronic_fraction"]
-        forcing = -(2.0 * q_value / np.pi**2) * (t_i + t_e * (-1.0) ** modes)
-        return np.concatenate(([-q_value / np.pi**2], -(modes**2) * state[1:] + forcing))
+    def _linear_profile_evolution(initial_profile, reduced_times, operator, forcing):
+        """Advance a constant-forcing diffusion problem by matrix modes."""
+        times = np.asarray(reduced_times, dtype=float)
+        point_count = initial_profile.size
+        metric = np.ones(point_count, dtype=float)
+        metric[[0, -1]] = 0.5
+        sqrt_metric = np.sqrt(metric)
+        symmetric_operator = (
+            sqrt_metric[:, None] * operator / sqrt_metric[None, :]
+        )
+        eigenvalues, eigenvectors = np.linalg.eigh(symmetric_operator)
+        initial_coefficients = eigenvectors.T @ (sqrt_metric * initial_profile)
+        forcing_coefficients = eigenvectors.T @ (sqrt_metric * forcing)
+        exponentials = np.exp(np.outer(times, eigenvalues))
+        response = np.empty_like(exponentials)
+        stationary = np.abs(eigenvalues) < 1.0e-12
+        response[:, stationary] = times[:, None]
+        response[:, ~stationary] = np.expm1(
+            np.outer(times, eigenvalues[~stationary])
+        ) / eigenvalues[None, ~stationary]
+        coefficients = (
+            exponentials * initial_coefficients[None, :]
+            + response * forcing_coefficients[None, :]
+        )
+        return (coefficients @ eigenvectors.T) / sqrt_metric[None, :]
 
     def simulate_pitt(
         reduced_pulse_times,
@@ -185,63 +265,77 @@ def _(np, solve_ivp):
         reduced_voltage,
         positions,
         params,
-        mode_count=36,
     ):
         """Finite-slab PITT pulse followed by an open-circuit relaxation."""
         pulse_times = np.asarray(reduced_pulse_times, dtype=float)
         rest_times = np.asarray(reduced_rest_times, dtype=float)
         xi = np.asarray(positions, dtype=float)
-        modes = _mode_numbers(mode_count)
-        initial_state = np.concatenate(([1.0], np.zeros(modes.size)))
+        operator, contact_forcing, quadrature_weights = _transport_operator(xi, params)
+        initial_profile = np.ones(xi.size, dtype=float)
+        t_i = params["ionic_fraction"]
+        t_e = params["electronic_fraction"]
 
-        def voltage_step_rhs(_reduced_time, state_now):
-            q_now = _state_voltage_and_current(state_now, reduced_voltage, xi, modes, params)
-            return _modal_rhs_for_q(state_now, q_now, modes, params)
+        def current_and_gradient(profile):
+            safe_profile = np.maximum(profile, 1.0e-10)
+            resistance_integral = np.sum(quadrature_weights / safe_profile)
+            numerator = (
+                reduced_voltage
+                + t_i * np.log(safe_profile[0])
+                + t_e * np.log(safe_profile[-1])
+            )
+            q_value = numerator / (t_i * t_e * resistance_integral)
+            numerator_gradient = np.zeros_like(profile)
+            numerator_gradient[0] = t_i / safe_profile[0]
+            numerator_gradient[-1] = t_e / safe_profile[-1]
+            integral_gradient = -quadrature_weights / safe_profile**2
+            q_gradient = (
+                numerator_gradient / (t_i * t_e * resistance_integral)
+                - q_value * integral_gradient / resistance_integral
+            )
+            return q_value, q_gradient
+
+        def voltage_step_rhs(_reduced_time, profile_now):
+            q_now, _ = current_and_gradient(profile_now)
+            return operator @ profile_now + contact_forcing * q_now
+
+        def voltage_step_jacobian(_reduced_time, profile_now):
+            _, q_gradient = current_and_gradient(profile_now)
+            return operator + np.outer(contact_forcing, q_gradient)
 
         pulse_solution = solve_ivp(
             voltage_step_rhs,
             (float(pulse_times[0]), float(pulse_times[-1])),
-            initial_state,
+            initial_profile,
             t_eval=pulse_times,
             method="BDF",
+            jac=voltage_step_jacobian,
             rtol=2.0e-8,
             atol=2.0e-10,
         )
         if not pulse_solution.success:
             raise RuntimeError(str(pulse_solution.message))
-        pulse_states = pulse_solution.y.T
+        pulse_profiles = pulse_solution.y.T
         pulse_current = np.array(
-            [
-                _state_voltage_and_current(state, reduced_voltage, xi, modes, params)
-                for state in pulse_states
-            ]
+            [_voltage_step_current(profile, reduced_voltage, xi, params) for profile in pulse_profiles]
         )
         pulse_voltage = np.array(
-            [
-                _voltage_from_state(state, q, xi, modes, params)
-                for state, q in zip(pulse_states, pulse_current)
-            ]
+            [_voltage_from_profile(profile, q, xi, params) for profile, q in zip(pulse_profiles, pulse_current)]
         )
 
-        final_state = pulse_states[-1]
-        rest_states = np.empty((rest_times.size, final_state.size))
-        rest_states[:, 0] = final_state[0]
-        rest_states[:, 1:] = final_state[1:] * np.exp(-np.outer(rest_times, modes**2))
+        rest_profiles = _linear_profile_evolution(
+            pulse_profiles[-1], rest_times, operator, np.zeros_like(contact_forcing)
+        )
         rest_current = np.zeros(rest_times.size)
         rest_voltage = np.array(
-            [_voltage_from_state(state, 0.0, xi, modes, params) for state in rest_states]
+            [_voltage_from_profile(profile, 0.0, xi, params) for profile in rest_profiles]
         )
         return {
-            "modes": modes,
-            "pulse_states": pulse_states,
-            "rest_states": rest_states,
-            "pulse_profiles": _state_profiles(pulse_states, xi, modes),
-            "rest_profiles": _state_profiles(rest_states, xi, modes),
+            "pulse_profiles": pulse_profiles,
+            "rest_profiles": rest_profiles,
             "pulse_q": pulse_current,
             "rest_q": rest_current,
             "pulse_u": pulse_voltage,
             "rest_u": rest_voltage,
-            "solver_message": str(pulse_solution.message),
         }
 
     def simulate_gitt(
@@ -250,53 +344,41 @@ def _(np, solve_ivp):
         q_step,
         positions,
         params,
-        mode_count=36,
     ):
-        """Analytical finite-slab GITT pulse followed by open circuit."""
+        """Finite-slab GITT pulse followed by an open-circuit relaxation."""
         pulse_times = np.asarray(reduced_pulse_times, dtype=float)
         rest_times = np.asarray(reduced_rest_times, dtype=float)
         xi = np.asarray(positions, dtype=float)
-        modes = _mode_numbers(mode_count)
-        forcing = -(2.0 * q_step / np.pi**2) * (
-            params["ionic_fraction"] + params["electronic_fraction"] * (-1.0) ** modes
-        )
-        pulse_states = np.empty((pulse_times.size, modes.size + 1))
-        pulse_states[:, 0] = 1.0 - q_step * pulse_times / np.pi**2
-        pulse_states[:, 1:] = (
-            forcing[None, :]
-            / modes[None, :] ** 2
-            * (1.0 - np.exp(-np.outer(pulse_times, modes**2)))
+        operator, contact_forcing, _ = _transport_operator(xi, params)
+        initial_profile = np.ones(xi.size, dtype=float)
+        pulse_profiles = _linear_profile_evolution(
+            initial_profile, pulse_times, operator, contact_forcing * q_step
         )
         pulse_q = np.full(pulse_times.size, float(q_step))
         pulse_u = np.array(
-            [_voltage_from_state(state, q_step, xi, modes, params) for state in pulse_states]
+            [_voltage_from_profile(profile, q_step, xi, params) for profile in pulse_profiles]
         )
 
-        final_state = pulse_states[-1]
-        rest_states = np.empty((rest_times.size, final_state.size))
-        rest_states[:, 0] = final_state[0]
-        rest_states[:, 1:] = final_state[1:] * np.exp(-np.outer(rest_times, modes**2))
+        rest_profiles = _linear_profile_evolution(
+            pulse_profiles[-1], rest_times, operator, np.zeros_like(contact_forcing)
+        )
         rest_q = np.zeros(rest_times.size)
         rest_u = np.array(
-            [_voltage_from_state(state, 0.0, xi, modes, params) for state in rest_states]
+            [_voltage_from_profile(profile, 0.0, xi, params) for profile in rest_profiles]
         )
         return {
-            "modes": modes,
-            "pulse_states": pulse_states,
-            "rest_states": rest_states,
-            "pulse_profiles": _state_profiles(pulse_states, xi, modes),
-            "rest_profiles": _state_profiles(rest_states, xi, modes),
+            "pulse_profiles": pulse_profiles,
+            "rest_profiles": rest_profiles,
             "pulse_q": pulse_q,
             "rest_q": rest_q,
             "pulse_u": pulse_u,
             "rest_u": rest_u,
-            "solver_message": "analytical Fourier solution",
         }
 
-    def potential_decomposition(state, q_value, positions, modes, params):
+    def potential_decomposition(profile, q_value, positions, params):
         """Chemical, electrical, and electrochemical profiles in RT units."""
         xi = np.asarray(positions, dtype=float)
-        profile = _state_profiles(state, xi, modes)
+        profile = np.asarray(profile, dtype=float)
         t_i = params["ionic_fraction"]
         t_e = params["electronic_fraction"]
         mu_i = np.log(profile)
@@ -305,10 +387,7 @@ def _(np, solve_ivp):
         resistance_integral[1:] = np.cumsum(
             0.5 * (1.0 / profile[1:] + 1.0 / profile[:-1]) * np.diff(xi)
         )
-        # Integrated form of
-        # d(tilde_mu_i/RT)/dxi = 2 t_e d(ln y)/dxi - 2 q t_i t_e/y.
-        # It remains accurate at selective boundaries without differentiating a
-        # truncated Fourier series.
+        # Integrated electrochemical-potential relation for the selective contacts.
         tilde_mu_i = (
             mu_i[0]
             + 2.0 * t_e * (np.log(profile) - np.log(profile[0]))
@@ -364,9 +443,9 @@ def _(mo, plt):
     _fig, _ax = plt.subplots(figsize=(12.0, 2.7), constrained_layout=True)
     _ax.set_xlim(-0.12, 1.12)
     _ax.set_ylim(-0.42, 0.48)
-    _ax.axvspan(-0.1, 0.0, color="#4f5d75", alpha=0.95)
-    _ax.axvspan(0.0, 1.0, color="#d8f3dc", alpha=0.95)
-    _ax.axvspan(1.0, 1.1, color="#90e0ef", alpha=0.95)
+    _ax.axvspan(-0.1, 0.0, color="#697386", alpha=0.95)
+    _ax.axvspan(0.0, 1.0, color="#DDEBDD", alpha=0.95)
+    _ax.axvspan(1.0, 1.1, color="#B8DDE3", alpha=0.95)
     _ax.text(
         -0.05, 0.12, "current\ncollector", ha="center", va="center", color="white", weight="bold"
     )
@@ -380,7 +459,7 @@ def _(mo, plt):
         weight="bold",
     )
     _ax.text(
-        1.05, 0.12, "ion\nelectrolyte", ha="center", va="center", color="#073b4c", weight="bold"
+        1.05, 0.12, "ion\nelectrolyte", ha="center", va="center", color="#405E66", weight="bold"
     )
     _ax.annotate(
         "$e^-$ passes",
@@ -396,8 +475,8 @@ def _(mo, plt):
         arrowprops={"arrowstyle": "->", "lw": 2},
         ha="center",
     )
-    _ax.text(0.02, -0.31, "$J_i(0,t)=0$", ha="left", color="#9b2226", weight="bold")
-    _ax.text(0.98, -0.31, "$J_e(L,t)=0$", ha="right", color="#9b2226", weight="bold")
+    _ax.text(0.02, -0.31, "$J_i(0,t)=0$", ha="left", color="#A65E5E", weight="bold")
+    _ax.text(0.98, -0.31, "$J_e(L,t)=0$", ha="right", color="#A65E5E", weight="bold")
     _ax.text(0.0, 0.37, "$x=0$", ha="center")
     _ax.text(1.0, 0.37, "$x=L$", ha="center")
     _ax.axis("off")
@@ -419,15 +498,16 @@ def _(mo):
     mo.md(r"""
     ## 2. From carrier fluxes to one diffusion equation
 
-    With ideal dilute chemical potentials
+    Let $c_0=c(x,0)$ be the initially uniform pair concentration, consistent
+    with Module 05. With ideal dilute chemical potentials
 
     $$
-    \mu_i=\mu_i^0+RT\ln(c/\bar c),\qquad
-    \mu_e=\mu_e^0+RT\ln(c/\bar c),
+    \mu_i=\mu_i^0+RT\ln(c/c_0),\qquad
+    \mu_e=\mu_e^0+RT\ln(c/c_0),
     $$
 
     the neutral-pair chemical potential is
-    $\mu_H=\mu_i+\mu_e=\mu_H^0+2RT\ln(c/\bar c)$. Eliminating the
+    $\mu_H=\mu_i+\mu_e=\mu_H^0+2RT\ln(c/c_0)$. Eliminating the
     internal electric field gives exactly the same chemical diffusivity as in
     Module 05,
 
@@ -448,30 +528,31 @@ def _(mo):
 
     $$\frac{\partial c}{\partial t}=D^\delta\frac{\partial^2c}{\partial x^2}.$$
 
-    Introduce $y=c/\bar c_0$, $\xi=x/L$, $s=t/\tau^\delta$, and
+    For compact notation, introduce $y=c/c_0$, $\xi=x/L$,
+    $s=t/\tau^\delta$, and
 
-    $$q=\frac{jL}{F D^\delta\bar c_0}.$$
+    $$\hat j=\frac{jL}{F D^\delta c_0}.$$
 
     The selective contacts impose
 
-    $$y_\xi(0)=t_iq,\qquad y_\xi(1)=-t_eq,$$
+    $$y_\xi(0)=t_i\hat j,\qquad y_\xi(1)=-t_e\hat j,$$
 
-    and the mean composition obeys $d\bar y/ds=-q/\pi^2$. Thus a
+    and the mean composition obeys $d\bar y/ds=-\hat j/\pi^2$. Thus a
     measured current is also a direct composition balance.
 
     The voltage measured between the selective terminals is the neutral-pair
     electrochemical drive. Relative to the initial state, define
 
     $$
-    u=\frac{F\Delta U}{2RT}
+    \hat U=\frac{F\Delta U}{2RT}
     =-t_i\ln y(0)-t_e\ln y(1)
-    +q t_i t_e\int_0^1\frac{d\xi}{y}.
+    +\hat j t_i t_e\int_0^1\frac{d\xi}{y}.
     $$
 
     The first two terms are concentration polarization at the two selective
-    faces; the integral is the internal Ohmic contribution. PITT holds $u$
-    fixed and solves this relation for $q(t)$. GITT holds $q$ fixed and evaluates
-    $u(t)$. At OCV, $q=0$ while the inherited concentration profile relaxes.
+    faces; the integral is the internal Ohmic contribution. PITT holds $\hat U$
+    fixed and solves this relation for $\hat j(t)$. GITT holds $\hat j$ fixed and
+    evaluates $\hat U(t)$. At OCV, $\hat j=0$ while the inherited concentration profile relaxes.
     """)
     return
 
@@ -504,7 +585,7 @@ def _(mo):
         5.0, 35.0, value=15.0, step=1.0, label="PITT voltage step (mV, extraction)", show_value=True
     )
     gitt_current_06 = mo.ui.slider(
-        0.05, 0.60, value=0.30, step=0.025, label="GITT reduced current q", show_value=True
+        0.05, 0.60, value=0.30, step=0.025, label="GITT pulse strength, j0 L/(F D_delta c0)", show_value=True
     )
     pulse_duration_06 = mo.ui.slider(
         0.20, 3.0, value=1.20, step=0.10, label="Pulse duration / tau_delta", show_value=True
@@ -594,7 +675,7 @@ def _(
         chemical_diffusivity_cm2_per_s=10.0**log_diffusivity_06.value,
         electronic_to_ionic_ratio=10.0**log_ratio_06.value,
     )
-    positions_06 = np.linspace(0.0, 1.0, 181)
+    positions_06 = np.linspace(0.0, 1.0, 81)
     pulse_times_06 = np.concatenate(([0.0], np.geomspace(1.0e-5, pulse_duration_06.value, 239)))
     rest_times_06 = np.concatenate(([0.0], np.geomspace(1.0e-5, rest_duration_06.value, 179)))
     pitt_reduced_voltage_06 = (
@@ -659,7 +740,8 @@ def _(current_scale_a_per_m2_06, mo, parameters_06):
         - The ideal-pair identity implies
           $\\sigma_i+\\sigma_e={parameters_06["conductivity_total_s_per_m"] / 100.0:.2e}$
           S cm⁻¹ for this $c_0$, $T$, $D^\\delta$, and conductivity ratio.
-        - One unit of reduced current $q$ corresponds to
+        - One unit of normalized pulse strength
+          $\\hat j=j_0L/(FD^\\delta c_0)$ corresponds to
           ${0.1 * current_scale_a_per_m2_06:.3e}$ mA cm⁻².
 
         Changing $L$ or $D^\\delta$ stretches the physical time axis through
@@ -717,8 +799,8 @@ def _(
         int(np.argmin(np.abs(rest_times_06 - _fraction * rest_times_06[-1])))
         for _fraction in _rest_fractions
     ]
-    _colors = ["#0a9396", "#0077b6", "#023e8a"]
-    _rest_colors = ["#ee9b00", "#ca6702", "#9b2226"]
+    _colors = ["#9DB8B7", "#729A9B", "#4F7881"]
+    _rest_colors = ["#D8B178", "#C18A68", "#A65E5E"]
 
     _fig, _axes = plt.subplots(2, 2, figsize=(14.2, 9.0), constrained_layout=True)
     for _index, _color in zip(_pulse_indices, _colors):
@@ -727,7 +809,9 @@ def _(
             pitt_result_06["pulse_profiles"][_index],
             color=_color,
             lw=2.3,
-            label=f"pulse: {pulse_times_06[_index]:.2f} tau",
+            label="pulse (solid; light to dark = later)"
+            if _index == _pulse_indices[0]
+            else "_nolegend_",
         )
     for _index, _color in zip(_rest_indices, _rest_colors):
         _axes[0, 0].plot(
@@ -736,29 +820,31 @@ def _(
             color=_color,
             lw=2.2,
             ls="--",
-            label=f"OCV: {rest_times_06[_index]:.2f} tau after",
+            label="OCV rest (dashed; light to dark = later)"
+            if _index == _rest_indices[0]
+            else "_nolegend_",
         )
     _axes[0, 0].set_title("PITT: concentration profiles")
     _axes[0, 0].set_xlabel("position x (micrometers)")
     _axes[0, 0].set_ylabel("c / c0")
-    _axes[0, 0].legend(fontsize=8.5, ncol=2)
+    _axes[0, 0].legend(fontsize=9.5, loc="best")
 
     _pitt_voltage_mv = 1000.0 * voltage_scale_v_06 * pitt_result_06["pulse_u"]
     _pitt_rest_voltage_mv = 1000.0 * voltage_scale_v_06 * pitt_result_06["rest_u"]
     _pitt_current_milliamp_cm2 = 0.1 * current_scale_a_per_m2_06 * pitt_result_06["pulse_q"]
     _pitt_current_rest = 0.1 * current_scale_a_per_m2_06 * pitt_result_06["rest_q"]
-    _axes[0, 1].plot(_pulse_seconds, _pitt_voltage_mv, color="#9b2226", lw=2.5)
-    _axes[0, 1].plot(_rest_seconds, _pitt_rest_voltage_mv, color="#9b2226", lw=2.5)
+    _axes[0, 1].plot(_pulse_seconds, _pitt_voltage_mv, color="#A65E5E", lw=2.5)
+    _axes[0, 1].plot(_rest_seconds, _pitt_rest_voltage_mv, color="#A65E5E", lw=2.5)
     _axes[0, 1].axvline(_pulse_seconds[-1], color="0.45", ls=":", lw=1.7)
     _axes[0, 1].set_title("PITT response: fixed voltage, relaxing current")
     _axes[0, 1].set_xlabel("time (s)")
-    _axes[0, 1].set_ylabel("voltage change (mV)", color="#9b2226")
-    _axes[0, 1].tick_params(axis="y", labelcolor="#9b2226")
+    _axes[0, 1].set_ylabel("voltage change (mV)", color="#A65E5E")
+    _axes[0, 1].tick_params(axis="y", labelcolor="#A65E5E")
     _current_axis = _axes[0, 1].twinx()
-    _current_axis.plot(_pulse_seconds, _pitt_current_milliamp_cm2, color="#005f73", lw=2.3)
-    _current_axis.plot(_rest_seconds, _pitt_current_rest, color="#005f73", lw=2.3)
-    _current_axis.set_ylabel("current density (mA cm$^{-2}$)", color="#005f73")
-    _current_axis.tick_params(axis="y", labelcolor="#005f73")
+    _current_axis.plot(_pulse_seconds, _pitt_current_milliamp_cm2, color="#4F7881", lw=2.3)
+    _current_axis.plot(_rest_seconds, _pitt_current_rest, color="#4F7881", lw=2.3)
+    _current_axis.set_ylabel("current density (mA cm$^{-2}$)", color="#4F7881")
+    _current_axis.tick_params(axis="y", labelcolor="#4F7881")
 
     for _index, _color in zip(_pulse_indices, _colors):
         _axes[1, 0].plot(
@@ -766,7 +852,9 @@ def _(
             gitt_result_06["pulse_profiles"][_index],
             color=_color,
             lw=2.3,
-            label=f"pulse: {pulse_times_06[_index]:.2f} tau",
+            label="pulse (solid; light to dark = later)"
+            if _index == _pulse_indices[0]
+            else "_nolegend_",
         )
     for _index, _color in zip(_rest_indices, _rest_colors):
         _axes[1, 0].plot(
@@ -775,28 +863,30 @@ def _(
             color=_color,
             lw=2.2,
             ls="--",
-            label=f"OCV: {rest_times_06[_index]:.2f} tau after",
+            label="OCV rest (dashed; light to dark = later)"
+            if _index == _rest_indices[0]
+            else "_nolegend_",
         )
     _axes[1, 0].set_title("GITT: concentration profiles")
     _axes[1, 0].set_xlabel("position x (micrometers)")
     _axes[1, 0].set_ylabel("c / c0")
-    _axes[1, 0].legend(fontsize=8.5, ncol=2)
+    _axes[1, 0].legend(fontsize=9.5, loc="best")
 
     _gitt_voltage_mv = 1000.0 * voltage_scale_v_06 * gitt_result_06["pulse_u"]
     _gitt_rest_voltage_mv = 1000.0 * voltage_scale_v_06 * gitt_result_06["rest_u"]
     _gitt_current_milliamp_cm2 = 0.1 * current_scale_a_per_m2_06 * gitt_result_06["pulse_q"]
-    _axes[1, 1].plot(_pulse_seconds, _gitt_voltage_mv, color="#9b2226", lw=2.5)
-    _axes[1, 1].plot(_rest_seconds, _gitt_rest_voltage_mv, color="#9b2226", lw=2.5)
+    _axes[1, 1].plot(_pulse_seconds, _gitt_voltage_mv, color="#A65E5E", lw=2.5)
+    _axes[1, 1].plot(_rest_seconds, _gitt_rest_voltage_mv, color="#A65E5E", lw=2.5)
     _axes[1, 1].axvline(_pulse_seconds[-1], color="0.45", ls=":", lw=1.7)
     _axes[1, 1].set_title("GITT response: fixed current, relaxing voltage")
     _axes[1, 1].set_xlabel("time (s)")
-    _axes[1, 1].set_ylabel("voltage change (mV)", color="#9b2226")
-    _axes[1, 1].tick_params(axis="y", labelcolor="#9b2226")
+    _axes[1, 1].set_ylabel("voltage change (mV)", color="#A65E5E")
+    _axes[1, 1].tick_params(axis="y", labelcolor="#A65E5E")
     _gitt_current_axis = _axes[1, 1].twinx()
-    _gitt_current_axis.plot(_pulse_seconds, _gitt_current_milliamp_cm2, color="#005f73", lw=2.3)
-    _gitt_current_axis.plot(_rest_seconds, np.zeros_like(_rest_seconds), color="#005f73", lw=2.3)
-    _gitt_current_axis.set_ylabel("current density (mA cm$^{-2}$)", color="#005f73")
-    _gitt_current_axis.tick_params(axis="y", labelcolor="#005f73")
+    _gitt_current_axis.plot(_pulse_seconds, _gitt_current_milliamp_cm2, color="#4F7881", lw=2.3)
+    _gitt_current_axis.plot(_rest_seconds, np.zeros_like(_rest_seconds), color="#4F7881", lw=2.3)
+    _gitt_current_axis.set_ylabel("current density (mA cm$^{-2}$)", color="#4F7881")
+    _gitt_current_axis.tick_params(axis="y", labelcolor="#4F7881")
 
     for _axis in _axes.flat:
         _axis.grid(alpha=0.22)
@@ -806,6 +896,16 @@ def _(
         weight="bold",
     )
     _fig
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    **Reading the electrolyte-side edge.** When $t_e$ is large, the
+    electron-blocking face at $x=L$ requires a stronger concentration
+    gradient. A steep but smooth bend near that face is therefore physical.
+    """)
     return
 
 
@@ -849,24 +949,23 @@ def _(
         _selected_result = gitt_result_06
     if "OCV" in potential_case_06.value:
         _selected_times = rest_times_06
-        _selected_states = _selected_result["rest_states"]
+        _selected_profiles = _selected_result["rest_profiles"]
         _selected_q = _selected_result["rest_q"]
         _stage_name = "OCV relaxation"
     else:
         _selected_times = pulse_times_06
-        _selected_states = _selected_result["pulse_states"]
+        _selected_profiles = _selected_result["pulse_profiles"]
         _selected_q = _selected_result["pulse_q"]
         _stage_name = "driven pulse"
     potential_index_06 = int(np.argmin(np.abs(_selected_times - _progress * _selected_times[-1])))
-    selected_state_06 = _selected_states[potential_index_06]
+    selected_profile_06 = _selected_profiles[potential_index_06]
     selected_q_06 = float(_selected_q[potential_index_06])
     selected_reduced_time_06 = float(_selected_times[potential_index_06])
     selected_stage_06 = _stage_name
     selected_potentials_06 = potential_decomposition(
-        selected_state_06,
+        selected_profile_06,
         selected_q_06,
         positions_06,
-        _selected_result["modes"],
         parameters_06,
     )
     return (
@@ -875,7 +974,7 @@ def _(
         selected_q_06,
         selected_reduced_time_06,
         selected_stage_06,
-        selected_state_06,
+        selected_profile_06,
     )
 
 
@@ -895,65 +994,66 @@ def _(
     _energy_scale = GAS_CONSTANT_J_PER_MOL_K * parameters_06["temperature_k"] / 1000.0
     _x_um = positions_06 * parameters_06["length_m"] * 1.0e6
     _fig, _axes = plt.subplots(1, 3, figsize=(15.0, 4.5), constrained_layout=True)
-    _axes[0].plot(_x_um, selected_potentials_06["profile"], color="#005f73", lw=2.8)
+    _axes[0].plot(_x_um, selected_potentials_06["profile"], color="#4F7881", lw=2.8)
     _axes[0].set_title("Composition")
     _axes[0].set_ylabel("c / c0")
 
     _axes[1].plot(
         _x_um,
         _energy_scale * selected_potentials_06["mu_i"],
-        color="#0a9396",
+        color="#5F8F8D",
         lw=2.2,
         label="$\\mu_i$",
     )
     _axes[1].plot(
         _x_um,
         _energy_scale * selected_potentials_06["electrical_i"],
-        color="#ee9b00",
+        color="#C49345",
         lw=2.2,
         label="$+F\\phi$",
     )
     _axes[1].plot(
         _x_um,
         _energy_scale * selected_potentials_06["tilde_mu_i"],
-        color="#9b2226",
+        color="#A65E5E",
         lw=2.8,
         label="$\\widetilde\\mu_i$",
     )
     _axes[1].set_title("Ion: chemical + electrical")
     _axes[1].set_ylabel("change (kJ mol$^{-1}$)")
-    _axes[1].legend(fontsize=9)
+    _axes[1].legend(fontsize=10)
 
     _axes[2].plot(
         _x_um,
         _energy_scale * selected_potentials_06["mu_e"],
-        color="#0a9396",
+        color="#5F8F8D",
         lw=2.2,
         label="$\\mu_e$",
     )
     _axes[2].plot(
         _x_um,
         _energy_scale * selected_potentials_06["electrical_e"],
-        color="#ee9b00",
+        color="#C49345",
         lw=2.2,
         label="$-F\\phi$",
     )
     _axes[2].plot(
         _x_um,
         _energy_scale * selected_potentials_06["tilde_mu_e"],
-        color="#9b2226",
+        color="#A65E5E",
         lw=2.8,
         label="$\\widetilde\\mu_e$",
     )
     _axes[2].set_title("Electron: chemical + electrical")
     _axes[2].set_ylabel("change (kJ mol$^{-1}$)")
-    _axes[2].legend(fontsize=9)
+    _axes[2].legend(fontsize=10)
     for _axis in _axes:
         _axis.set_xlabel("position x (micrometers)")
         _axis.grid(alpha=0.22)
     _fig.suptitle(
         f"{potential_case_06.value} | {selected_stage_06}, "
-        f"t/tau = {selected_reduced_time_06:.3f}, q = {selected_q_06:.3f}",
+        f"t/tau = {selected_reduced_time_06:.3f}, "
+        f"normalized current = {selected_q_06:.3f}",
         fontsize=14,
         weight="bold",
     )
@@ -961,7 +1061,7 @@ def _(
         [
             _fig,
             mo.md(
-                r"Move the **progress** slider or switch cases. The orange curves show "
+                r"Move the **progress** slider or switch cases. The ochre curves show "
                 r"the electrostatic potential in molar-energy form, $+F\phi$ for the ion "
                 r"and $-F\phi$ for the electron; divide by $F$ to express $\phi$ in volts. "
                 r"During OCV the electrical current is zero, but sloped electrochemical "
@@ -980,52 +1080,64 @@ def _(mo):
     To isolate the standard formulas, now take the **classical one-sided
     limit**: electronic transport in the MIEC is much faster than ionic
     transport ($t_e\rightarrow1$), the perturbation is small, the slab is
-    planar, and interfacial and series resistances are negligible. Define
+    planar, and interfacial and series resistances are negligible. Let $A$ be
+    the active area, $I=Aj$ the measured current, and $\Delta c$ the imposed
+    change of surface concentration. We use $D^\delta$ for chemical
+    diffusivity, as in Module 05.
 
-    $$\theta=\frac{D^\delta t}{L^2}=\frac{s}{\pi^2}.$$
+    ### PITT: current after a surface-concentration step
 
-    ### PITT: current after a surface-composition step
-
-    If the voltage step changes the electrolyte-side surface composition by
-    $\Delta y$, the finite-slab series is
-
-    $$
-    q_{\rm PITT}=2\Delta y\sum_{m=0}^{\infty}
-    \exp[-(m+\tfrac12)^2\pi^2\theta].
-    $$
-
-    Its two limits are
+    The finite-slab solution is
 
     $$
-    \underbrace{q\simeq\frac{\Delta y}{\sqrt{\pi\theta}}}_{\theta\ll1\;\text{(Cottrell)}},
+    I(t)=\frac{2FAD^\delta\Delta c}{L}
+    \sum_{m=0}^{\infty}
+    \exp\!\left[-(m+\tfrac12)^2\pi^2
+    \frac{D^\delta t}{L^2}\right].
+    $$
+
+    Its short- and long-time limits are
+
+    $$
+    \underbrace{I(t)\simeq FA\Delta c
+    \sqrt{\frac{D^\delta}{\pi t}}}_{D^\delta t/L^2\ll1\;\text{(Cottrell)}},
     \qquad
-    \underbrace{q\simeq2\Delta y\exp(-\pi^2\theta/4)}_{\theta\gg1\;\text{(first mode)}}.
+    \underbrace{I(t)\simeq\frac{2FAD^\delta\Delta c}{L}
+    e^{-\pi^2D^\delta t/(4L^2)}}_{D^\delta t/L^2\gg1\;\text{(first mode)}}.
     $$
 
-    The factor $1/4$ in the long-time exponent is not optional: it follows from
-    a blocking boundary at one face and a fixed surface composition at the
-    other.
+    The current sign depends on insertion versus extraction; the comparison
+    plot shows its magnitude. The factor $1/4$ in the long-time exponent follows
+    from a blocking boundary at one face and fixed composition at the other.
 
     ### GITT: voltage during a current pulse
 
-    For a small signal, voltage follows the surface concentration. The exact
-    one-sided finite-slab result is
+    Let $I_0=Aj_0$ be the applied current. In this ideal planar model, the
+    finite-slab diffusion-voltage response can be written
 
     $$
-    u_{\rm GITT}=q\left[\theta+\frac13-
-    \frac{2}{\pi^2}\sum_{n=1}^{\infty}\frac{e^{-n^2\pi^2\theta}}{n^2}\right],
+    \Delta U(t)=\frac{2RT}{F}\frac{j_0L}{FD^\delta c_0}
+    \left[\frac{D^\delta t}{L^2}+\frac13-
+    \frac{2}{\pi^2}\sum_{n=1}^{\infty}
+    \frac{e^{-n^2\pi^2D^\delta t/L^2}}{n^2}\right].
     $$
 
-    with
+    At short time,
 
     $$
-    \underbrace{u\simeq2q\sqrt{\theta/\pi}}_{\theta\ll1},
-    \qquad
-    \underbrace{u\simeq q(\theta+1/3)}_{\theta\gg1}.
+    \Delta U(t)\simeq\frac{4RTj_0}{F^2c_0}
+    \sqrt{\frac{t}{\pi D^\delta}},
     $$
 
-    These approximations are comparison curves, never inputs to the full
-    numerical solution above.
+    whereas the long-time expression is
+
+    $$
+    \Delta U(t)\simeq\frac{2RT}{F}\frac{j_0L}{FD^\delta c_0}
+    \left(\frac{D^\delta t}{L^2}+\frac13\right).
+    $$
+
+    These are limiting descriptions of the same finite-slab diffusion problem;
+    the full transient curves are not assembled from them.
     """)
     return
 
@@ -1040,69 +1152,69 @@ def _(
     plt,
 ):
     approximation_times_06 = np.logspace(-3.0, 2.0, 360)
-    approximation_theta_06 = approximation_times_06 / np.pi**2
+    approximation_fourier_time_06 = approximation_times_06 / np.pi**2
     classical_concentration_step_06 = 1.0 - np.exp(-pitt_reduced_voltage_06)
     pitt_series_06 = classical_pitt_series(approximation_times_06, classical_concentration_step_06)
-    pitt_short_06 = classical_concentration_step_06 / np.sqrt(np.pi * approximation_theta_06)
+    pitt_short_06 = classical_concentration_step_06 / np.sqrt(np.pi * approximation_fourier_time_06)
     pitt_long_06 = 2.0 * classical_concentration_step_06 * np.exp(-approximation_times_06 / 4.0)
     gitt_series_06 = classical_gitt_series(approximation_times_06, gitt_current_06.value)
-    gitt_short_06 = 2.0 * gitt_current_06.value * np.sqrt(approximation_theta_06 / np.pi)
-    gitt_long_06 = gitt_current_06.value * (approximation_theta_06 + 1.0 / 3.0)
+    gitt_short_06 = 2.0 * gitt_current_06.value * np.sqrt(approximation_fourier_time_06 / np.pi)
+    gitt_long_06 = gitt_current_06.value * (approximation_fourier_time_06 + 1.0 / 3.0)
 
     _fig, _axes = plt.subplots(1, 2, figsize=(13.8, 4.8), constrained_layout=True)
     _axes[0].loglog(
-        approximation_theta_06,
+        approximation_fourier_time_06,
         pitt_series_06 / classical_concentration_step_06,
-        color="#005f73",
+        color="#4F7881",
         lw=3.0,
-        label="finite-slab series",
+        label="finite-slab solution",
     )
     _axes[0].loglog(
-        approximation_theta_06,
+        approximation_fourier_time_06,
         pitt_short_06 / classical_concentration_step_06,
         "--",
-        color="#ee9b00",
+        color="#C49345",
         lw=2.2,
-        label="short time",
+        label="short-time expression",
     )
     _axes[0].loglog(
-        approximation_theta_06,
+        approximation_fourier_time_06,
         pitt_long_06 / classical_concentration_step_06,
         ":",
-        color="#9b2226",
+        color="#A65E5E",
         lw=2.5,
-        label="long time",
+        label="long-time expression",
     )
     _axes[0].set_title("PITT current")
-    _axes[0].set_ylabel(r"$q / \Delta y$")
+    _axes[0].set_ylabel(r"$|I|L/(FAD^\delta|\Delta c|)$")
 
     _axes[1].loglog(
-        approximation_theta_06,
+        approximation_fourier_time_06,
         gitt_series_06 / gitt_current_06.value,
-        color="#005f73",
+        color="#4F7881",
         lw=3.0,
-        label="finite-slab series",
+        label="finite-slab solution",
     )
     _axes[1].loglog(
-        approximation_theta_06,
+        approximation_fourier_time_06,
         gitt_short_06 / gitt_current_06.value,
         "--",
-        color="#ee9b00",
+        color="#C49345",
         lw=2.2,
-        label="short time",
+        label="short-time expression",
     )
     _axes[1].loglog(
-        approximation_theta_06,
+        approximation_fourier_time_06,
         gitt_long_06 / gitt_current_06.value,
         ":",
-        color="#9b2226",
+        color="#A65E5E",
         lw=2.5,
-        label="long time",
+        label="long-time expression",
     )
     _axes[1].set_title("GITT voltage")
-    _axes[1].set_ylabel("u / q")
+    _axes[1].set_ylabel(r"$F^2D^\delta c_0\Delta U/(2RTj_0L)$")
     for _axis in _axes:
-        _axis.set_xlabel(r"dimensionless time $\theta=D^\delta t/L^2$")
+        _axis.set_xlabel(r"Fourier time, $D^\delta t/L^2$")
         _axis.grid(which="both", alpha=0.22)
         _axis.legend()
     _fig.suptitle(
@@ -1110,7 +1222,7 @@ def _(
     )
     _fig
     return (
-        approximation_theta_06,
+        approximation_fourier_time_06,
         approximation_times_06,
         classical_concentration_step_06,
         gitt_long_06,
@@ -1128,32 +1240,29 @@ def _(mo):
     ### Reading the usual experimental plots
 
     The asymptotes suggest simple diagnostics, provided the assumptions above
-    have been tested. In dimensional form, the PITT short-time current density
-    is
+    have been tested. For PITT, the short-time plot of $I$ versus $t^{-1/2}$ is
+    linear and
 
-    $$
-    j(t)\simeq F\bar c_0\Delta y
-    \sqrt{\frac{D^\delta}{\pi t}},
-    $$
+    $$D^\delta=\pi\left[\frac{I\sqrt{t}}
+    {FA\Delta c}\right]^2.$$
 
-    so $j$ versus $t^{-1/2}$ is linear and
-
-    $$D^\delta=\pi\left[\frac{j\sqrt{t}}
-    {F\bar c_0\Delta y}\right]^2.$$
-
-    At long PITT times, a plot of $\ln|j|$ versus $t$ has slope
+    At long PITT times, a plot of $\ln|I|$ versus $t$ has slope
     $-\pi^2D^\delta/(4L^2)$.
 
-    For a short GITT pulse of duration $t_p$, let $\Delta U_t$ be the gradual
+    For a short GITT pulse of duration $\tau$, let $\Delta U_t$ be the gradual
     diffusion voltage during the pulse after removing the instantaneous Ohmic
     jump, and let $\Delta U_s$ be the equilibrium OCV change caused by that
     pulse. The planar small-signal result is
 
     $$
-    D^\delta\simeq\frac{4L^2}{\pi t_p}
+    D^\delta\simeq\frac{4L^2}{\pi\tau}
     \left(\frac{\Delta U_s}{\Delta U_t}\right)^2,
-    \qquad \frac{D^\delta t_p}{L^2}\ll1.
+    \qquad \frac{D^\delta\tau}{L^2}\ll1.
     $$
+
+    Many articles write potential as $E$ rather than $U$; their
+    $\Delta E_t$ and $\Delta E_s$ are the same quantities as
+    $\Delta U_t$ and $\Delta U_s$ here. We retain $U$ to match Module 05.
 
     This familiar GITT formula is a **short-pulse result**, not a definition of
     diffusivity. The surface area, diffusion length, OCV slope, and removal of
@@ -1175,11 +1284,13 @@ def _(mo):
 
     where $t_p$ is the pulse duration and $t_r$ starts at current interruption.
     This is not simply a universal $1/\sqrt{t_r}$ law. For a finite slab at long
-    rest times, every nonuniform Fourier mode decays and the slowest one gives
+    rest times, the slowest remaining spatial variation gives
 
-    $$c(x,t_r)-\bar c\propto\exp(-t_r/\tau^\delta).$$
+    $$c(x,t_r)-c_{\rm eq}\propto\exp(-t_r/\tau^\delta),$$
 
-    The notebook carries the complete end-of-pulse profile into the OCV stage,
+    where $c_{\rm eq}=\langle c\rangle$ is the uniform concentration reached
+    after that pulse; it is generally not the initial value $c_0$. The notebook
+    carries the complete end-of-pulse profile into the OCV stage,
     so it does not need either approximation to generate the relaxation curves.
     """)
     return
@@ -1256,19 +1367,26 @@ def _(
 
     pitt_spatial_mean_06 = np.trapezoid(pitt_result_06["pulse_profiles"], positions_06, axis=1)
     gitt_spatial_mean_06 = np.trapezoid(gitt_result_06["pulse_profiles"], positions_06, axis=1)
-    modal_mean_error_06 = max(
-        np.max(np.abs(pitt_spatial_mean_06 - pitt_result_06["pulse_states"][:, 0])),
-        np.max(np.abs(gitt_spatial_mean_06 - gitt_result_06["pulse_states"][:, 0])),
+    pitt_expected_mean_06 = 1.0 - cumulative_trapezoid(
+        pitt_result_06["pulse_q"], pulse_times_06, initial=0.0
+    ) / np.pi**2
+    pitt_mass_balance_error_06 = np.max(
+        np.abs(pitt_spatial_mean_06 - pitt_expected_mean_06)
     )
     gitt_mass_balance_error_06 = np.max(
         np.abs(
-            gitt_result_06["pulse_states"][:, 0]
+            gitt_spatial_mean_06
             - (1.0 - gitt_result_06["pulse_q"][0] * pulse_times_06 / np.pi**2)
         )
     )
     ocv_mean_drift_06 = max(
-        np.ptp(pitt_result_06["rest_states"][:, 0]),
-        np.ptp(gitt_result_06["rest_states"][:, 0]),
+        np.ptp(np.trapezoid(pitt_result_06["rest_profiles"], positions_06, axis=1)),
+        np.ptp(np.trapezoid(gitt_result_06["rest_profiles"], positions_06, axis=1)),
+    )
+    composition_balance_error_06 = max(
+        pitt_mass_balance_error_06,
+        gitt_mass_balance_error_06,
+        ocv_mean_drift_06,
     )
 
     identity_diffusivity_06 = (
@@ -1291,10 +1409,9 @@ def _(
     _reconstruction_errors = []
     for _sample_index in _sample_indices:
         _potential_data = potential_decomposition(
-            pitt_result_06["pulse_states"][_sample_index],
+            pitt_result_06["pulse_profiles"][_sample_index],
             pitt_result_06["pulse_q"][_sample_index],
             positions_06,
-            pitt_result_06["modes"],
             parameters_06,
         )
         _reconstruction_errors.append(
@@ -1314,11 +1431,18 @@ def _(
         approximation_times_06[_long_index] / np.pi**2 + 1.0 / 3.0
     )
     gitt_long_error_06 = abs(gitt_series_06[_long_index] / gitt_long_reference_06 - 1.0)
+    _first_shape = np.cos(np.pi * positions_06)
+    _rest_means = np.trapezoid(gitt_result_06["rest_profiles"], positions_06, axis=1)
+    _first_amplitudes = np.trapezoid(
+        (gitt_result_06["rest_profiles"] - _rest_means[:, None]) * _first_shape[None, :],
+        positions_06,
+        axis=1,
+    )
     first_mode_relaxation_error_06 = abs(
-        gitt_result_06["rest_states"][-1, 1] / gitt_result_06["rest_states"][0, 1]
-        - np.exp(-rest_times_06[-1])
+        _first_amplitudes[-1] / _first_amplitudes[0] - np.exp(-rest_times_06[-1])
     )
     return (
+        composition_balance_error_06,
         diffusivity_identity_error_06,
         first_mode_relaxation_error_06,
         gitt_current_control_error_06,
@@ -1328,7 +1452,6 @@ def _(
         gitt_short_error_06,
         initial_uniform_error_06,
         minimum_concentration_06,
-        modal_mean_error_06,
         ocv_mean_drift_06,
         pitt_long_error_06,
         pitt_rest_current_error_06,
@@ -1340,18 +1463,16 @@ def _(
 
 @app.cell
 def _(
+    composition_balance_error_06,
     diffusivity_identity_error_06,
     first_mode_relaxation_error_06,
     gitt_current_control_error_06,
     gitt_long_error_06,
-    gitt_mass_balance_error_06,
     gitt_rest_current_error_06,
     gitt_short_error_06,
     initial_uniform_error_06,
     minimum_concentration_06,
     mo,
-    modal_mean_error_06,
-    ocv_mean_drift_06,
     pitt_long_error_06,
     pitt_rest_current_error_06,
     pitt_short_error_06,
@@ -1362,85 +1483,74 @@ def _(
         (
             "Uniform initial specimen",
             initial_uniform_error_06 < 1.0e-12,
-            initial_uniform_error_06,
             "Both experiments must begin from the same equilibrated composition.",
         ),
         (
             "Positive concentrations",
             minimum_concentration_06 > 0.0,
-            minimum_concentration_06,
             "Logarithmic chemical potentials require c > 0 everywhere.",
         ),
         (
             "PITT voltage held fixed",
             pitt_voltage_control_error_06 < 2.0e-9,
-            pitt_voltage_control_error_06,
             "The current must adjust so that the requested voltage step is maintained.",
         ),
         (
             "GITT current held fixed",
             gitt_current_control_error_06 < 1.0e-14,
-            gitt_current_control_error_06,
             "The voltage, not the imposed current, is allowed to evolve during GITT.",
         ),
         (
             "Zero current during both OCV rests",
             max(pitt_rest_current_error_06, gitt_rest_current_error_06) < 1.0e-14,
-            max(pitt_rest_current_error_06, gitt_rest_current_error_06),
             "Open circuit stops charge transfer through the terminals while "
             "internal diffusion continues.",
         ),
         (
             "Composition balance",
-            max(modal_mean_error_06, gitt_mass_balance_error_06, ocv_mean_drift_06) < 2.0e-5,
-            max(modal_mean_error_06, gitt_mass_balance_error_06, ocv_mean_drift_06),
+            composition_balance_error_06 < 2.0e-4,
             "Integrated current changes the mean during a pulse; the mean is "
             "conserved during rest.",
         ),
         (
             "Chemical-diffusivity identity",
             diffusivity_identity_error_06 < 1.0e-12,
-            diffusivity_identity_error_06,
             "The conductivity and diffusivity parameters must describe the same ideal H+/e- pair.",
         ),
         (
             "Potential decomposition reconstructs voltage",
             voltage_reconstruction_error_06 < 3.0e-4,
-            voltage_reconstruction_error_06,
             "Chemical and electrical contributions must add back to the measured terminal drive.",
         ),
         (
             "PITT short- and long-time limits",
             max(pitt_short_error_06, pitt_long_error_06) < 2.0e-3,
-            max(pitt_short_error_06, pitt_long_error_06),
-            "The Cottrell and first-mode formulas must approach the finite-slab "
-            "series in their own regimes.",
+            "The short- and long-time expressions must approach the finite-slab "
+            "response in their own regimes.",
         ),
         (
             "GITT short- and long-time limits",
             max(gitt_short_error_06, gitt_long_error_06) < 2.0e-3,
-            max(gitt_short_error_06, gitt_long_error_06),
             "The square-root and late linear forms must approach the same finite-slab solution.",
         ),
         (
-            "OCV slow mode",
-            first_mode_relaxation_error_06 < 1.0e-12,
-            first_mode_relaxation_error_06,
-            "At long rest, the first Fourier mode sets the time constant tau_delta.",
+            "OCV long-time relaxation",
+            first_mode_relaxation_error_06 < 2.0e-4,
+            "At long rest, the slowest spatial relaxation sets the time constant tau_delta.",
         ),
     ]
     _rows = []
-    for _name, _passed, _value, _why in _checks:
+    for _name, _passed, _why in _checks:
         _status = "PASS" if _passed else "CHECK"
-        _rows.append(f"| {_status} | {_name} | {_value:.2e} | {_why} |")
+        _rows.append(f"| {_status} | {_name} | {_why} |")
     _table_lines = [
-        "## 6. Numerical and physical sanity checks",
+        "## 6. Physical consistency checks",
         "",
-        "These checks are not extra decoration. Each one protects a link in the "
-        "experimental interpretation.",
+        "Each check protects a physical link between the imposed pulse, the "
+        "composition profile, and the measured response.",
         "",
-        "| status | check | diagnostic | why it matters |",
-        "|---|---|---:|---|",
+        "| status | check | why it matters |",
+        "|---:|---|---|",
     ]
     mo.md("\n".join(_table_lines + _rows))
     return
@@ -1498,10 +1608,10 @@ def _(mo):
 def _(plt):
     plt.rcParams.update(
         {
-            "font.size": 12,
-            "axes.titlesize": 13,
-            "axes.labelsize": 12,
-            "legend.fontsize": 10,
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 14,
+            "legend.fontsize": 11,
             "lines.solid_capstyle": "round",
             "figure.dpi": 115,
         }

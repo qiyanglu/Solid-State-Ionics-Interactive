@@ -10,7 +10,51 @@ def _():
     import matplotlib.pyplot as plt
     import numpy as np
 
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 14,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 11,
+            "axes.facecolor": "#FCFCFA",
+            "figure.facecolor": "white",
+            "grid.color": "#C7CCD1",
+            "grid.alpha": 0.28,
+            "axes.titlepad": 10,
+            "axes.labelpad": 6,
+            "legend.frameon": False,
+            "axes.prop_cycle": plt.cycler(
+                color=[
+                    "#4C7C86",
+                    "#B8734A",
+                    "#7C6A91",
+                    "#6B86A5",
+                    "#B77A82",
+                    "#5F8A6B",
+                    "#C49345",
+                ]
+            ),
+        }
+    )
+
     return mo, np, plt
+
+
+@app.cell
+def _(mo):
+    mo.Html(r"""
+    <style>
+      .markdown.prose { font-size: 1.12rem !important; line-height: 1.70 !important; }
+      .markdown.prose table { font-size: 1.02rem !important; }
+      .marimo-cell-output label,
+      .marimo-cell-output button,
+      .marimo-cell-output input,
+      .marimo-cell-output select { font-size: 1rem !important; }
+    </style>
+    """)
+    return
 
 
 @app.cell
@@ -573,10 +617,10 @@ def _(
 ):
     plt.rcParams.update(
         {
-            "font.size": 12,
-            "axes.titlesize": 15,
-            "axes.labelsize": 13,
-            "legend.fontsize": 10,
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 14,
+            "legend.fontsize": 11,
         }
     )
     display_time, time_unit = scaled_time_axis(walk_times_s)
@@ -595,15 +639,15 @@ def _(
     barrier_axis.plot(
         reaction_coordinate,
         barrier_energy_ev,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
     )
     barrier_axis.scatter(
         [0.0, 1.0, 2.0],
         [0.0, 0.0, 0.0],
         s=80,
-        color="#EE9B00",
-        edgecolor="#222222",
+        color="#C49345",
+        edgecolor="#40464D",
         zorder=4,
         label="equivalent sites",
     )
@@ -611,13 +655,13 @@ def _(
         "",
         xy=(0.5, migration_enthalpy_ev),
         xytext=(0.5, 0.0),
-        arrowprops={"arrowstyle": "<->", "color": "#CC3311", "lw": 1.8},
+        arrowprops={"arrowstyle": "<->", "color": "#B65C4A", "lw": 1.8},
     )
     barrier_axis.text(
         0.55,
         0.52 * migration_enthalpy_ev,
         r"$H_{\rm mig}$",
-        color="#CC3311",
+        color="#B65C4A",
     )
     barrier_axis.set(
         xlabel="position / a",
@@ -646,14 +690,14 @@ def _(
     msd_axis.plot(
         display_time,
         walk_msd_m2 * 1.0e18,
-        color="#007C91",
+        color="#4C7C86",
         lw=2.8,
         label="deterministic-seed simulation",
     )
     msd_axis.plot(
         display_time,
         2.0 * defect_diffusivity_m2_per_s * walk_times_s * 1.0e18,
-        color="#D55E00",
+        color="#B8734A",
         lw=2.0,
         ls="--",
         label=r"$2Dt$",
@@ -844,7 +888,7 @@ def _(
     profile_axis.plot(
         master_position,
         evolved_master_occupancy,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label="master-equation solution",
     )
@@ -861,10 +905,10 @@ def _(
     _flux_axis.plot(
         master_position,
         microscopic_bond_flux_per_s / flux_scale,
-        color="#D55E00",
+        color="#B8734A",
         lw=2.5,
     )
-    _flux_axis.axhline(0.0, color="#555555", lw=1.0)
+    _flux_axis.axhline(0.0, color="#666D73", lw=1.0)
     _flux_axis.set(
         xlabel="bond position / periodic cell length",
         ylabel="net bond flux / max |flux|",
@@ -1144,7 +1188,7 @@ def _(
         figsize=(15.2, 4.9),
         dpi=120,
     )
-    tilt_axis.plot(field_coordinate, tilted_energy_ev, color="#007C91", lw=3.0)
+    tilt_axis.plot(field_coordinate, tilted_energy_ev, color="#4C7C86", lw=3.0)
     tilt_axis.scatter(
         [0.0, 1.0, 2.0],
         [
@@ -1153,8 +1197,8 @@ def _(
             -2.0 * charge_number_value * electric_field_v_per_m * jump_distance_m,
         ],
         s=65,
-        color="#EE9B00",
-        edgecolor="#222222",
+        color="#C49345",
+        edgecolor="#40464D",
         zorder=4,
     )
     tilt_axis.set(
@@ -1174,7 +1218,7 @@ def _(
     gradient_axis.bar(
         ["chemical", "electrical", "total"],
         gradient_values,
-        color=["#007C91", "#D55E00", "#EE9B00"],
+        color=["#4C7C86", "#B8734A", "#C49345"],
     )
     gradient_axis.axhline(0.0, color="#333333", lw=1.0)
     gradient_axis.set(
@@ -1194,7 +1238,7 @@ def _(
     _flux_axis.bar(
         ["diffusion", "electrical", "total"],
         flux_values,
-        color=["#007C91", "#D55E00", "#EE9B00"],
+        color=["#4C7C86", "#B8734A", "#C49345"],
     )
     _flux_axis.axhline(0.0, color="#333333", lw=1.0)
     _flux_axis.set(
@@ -1225,10 +1269,9 @@ def _(
         **One field, two views.** The field is
         **{electric_field_v_per_m / 100.0:.3e} V/cm**, so
         \(d\phi/dx={demonstration_potential_gradient_v_per_m / 100.0:.3e}\) V/cm.
-        The residual
-        total flux is **{total_np_flux_mol_per_m2_s:.3e} mol/(m² s)**, or
-        **{abs(total_np_flux_mol_per_m2_s) / balance_scale:.2e}** of the two
-        opposing contributions.
+        At equilibrium the chemical and electrical contributions oppose one
+        another, so the total flux vanishes even though each contribution is
+        nonzero.
         """
     )
     mo.vstack([field_figure, field_summary])
@@ -1507,7 +1550,7 @@ def _(
     ratio_axis.loglog(
         ratio_curve,
         chemical_to_ionic_ratio_curve,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label=r"$2r/(1+r)$",
     )
@@ -1519,12 +1562,12 @@ def _(
             / (1.0 + electronic_to_ionic_ratio)
         ],
         s=95,
-        color="#EE9B00",
-        edgecolor="#222222",
+        color="#C49345",
+        edgecolor="#40464D",
         zorder=5,
         label="current state",
     )
-    ratio_axis.axhline(1.0, color="#777777", lw=1.0, ls=":")
+    ratio_axis.axhline(1.0, color="#858B90", lw=1.0, ls=":")
     ratio_axis.set(
         xlabel=r"mobility contrast, $r=D_{e^-}/D_{\rm Li^+}$",
         ylabel=r"$D_{\rm Li}^{\delta}/D_{\rm Li^+}$",
@@ -1542,7 +1585,7 @@ def _(
             "common flux\n" + r"$J_{\rm Li^+}=J_{e^-}$",
         ],
         flux_magnitudes,
-        color=["#007C91", "#CC3311", "#EE9B00"],
+        color=["#4C7C86", "#B65C4A", "#C49345"],
     )
     coupling_axis.set_yscale("log")
     coupling_axis.set(
@@ -1737,7 +1780,7 @@ def _(
     time_axis.loglog(
         length_curve_m,
         relaxation_curve_s,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label=r"$L^2/D_{\rm Li}^{\delta}$",
     )
@@ -1745,8 +1788,8 @@ def _(
         [selected_length_m],
         [selected_relaxation_time_s],
         s=95,
-        color="#EE9B00",
-        edgecolor="#222222",
+        color="#C49345",
+        edgecolor="#40464D",
         zorder=5,
         label="selected length",
     )
@@ -1761,7 +1804,7 @@ def _(
     relaxation_profile_axis.plot(
         slab_position,
         selected_slab_profile,
-        color="#CC3311",
+        color="#B65C4A",
         lw=3.0,
     )
     relaxation_profile_axis.set(
@@ -1944,28 +1987,20 @@ def _(mo, transport_validation):
 
     mo.md(
         rf"""
-        ## Numerical sanity checks
+        ## Physical consistency checks
 
-        | question | status | numerical result |
-        |---|---:|---:|
-        | does the lecture identity \(D=a^2\Gamma/2\) hold? | {_check_mark(transport_validation['zero_field_identity_pass'])} | relative error {transport_validation['zero_field_identity_error']:.2e} |
-        | does the random walk recover the same \(D\)? | {_check_mark(transport_validation['msd_pass'])} | \(D\) error {transport_validation['msd_diffusivity_error']:.2e}, \(R^2={transport_validation['msd_r_squared']:.6f}\) |
-        | do the forward/backward rates obey detailed balance? | {_check_mark(transport_validation['detailed_balance_pass'])} | relative error {transport_validation['detailed_balance_error']:.2e} |
-        | does the low-field drift approach Nernst-Einstein? | {_check_mark(transport_validation['low_field_drift_pass'])} | relative error {transport_validation['low_field_drift_error']:.2e} |
-        | does the 1D master equation conserve defects? | {_check_mark(transport_validation['mass_pass'])} | relative change {transport_validation['mass_error']:.2e} |
-        | does its bond flux equal discrete Fick flux? | {_check_mark(transport_validation['fick_pass'])} | relative error {transport_validation['fick_error']:.2e} |
-        | can chemical and electrical driving forces cancel? | {_check_mark(transport_validation['electrochemical_flux_pass'])} | scaled residual {transport_validation['electrochemical_flux_relative']:.2e} |
-        | does chemical diffusion keep \(J_{{\rm Li^+}}=J_{{e^-}}\)? | {_check_mark(transport_validation['ambipolar_flux_match_pass'])} | relative mismatch {transport_validation['ambipolar_flux_match_error']:.2e} |
-        | is the corresponding open-circuit current zero? | {_check_mark(transport_validation['ambipolar_current_pass'])} | scaled residual {transport_validation['ambipolar_current_relative']:.2e} |
-        | does the common flux give \(D_{{\rm Li}}^\delta\)? | {_check_mark(transport_validation['analytic_chemical_flux_pass'])} | relative error {transport_validation['analytic_chemical_flux_error']:.2e} |
-        | do the conductivity and diffusivity forms agree? | {_check_mark(transport_validation['conductivity_form_pass'])} | relative error {transport_validation['conductivity_form_error']:.2e} |
-        | are all rates and diffusivities positive and finite? | {_check_mark(transport_validation['positive_pass'] and transport_validation['finite_pass'])} | physical numerical values |
+        | status | physical statement | why it matters |
+        |---:|---|---|
+        | {_check_mark(transport_validation['zero_field_identity_pass'] and transport_validation['msd_pass'])} | atomic hops and the random walk give \(D=a^2\Gamma/2\) | microscopic motion connects to measurable diffusion |
+        | {_check_mark(transport_validation['detailed_balance_pass'] and transport_validation['low_field_drift_pass'])} | biased hops obey detailed balance and approach Nernst–Einstein at low field | the field response has the correct equilibrium limit |
+        | {_check_mark(transport_validation['mass_pass'] and transport_validation['fick_pass'])} | one-dimensional transport conserves defects and follows Fick's law | the concentration profile and flux describe the same motion |
+        | {_check_mark(transport_validation['electrochemical_flux_pass'])} | chemical and electrical driving forces cancel at equilibrium | a flat electrochemical potential means zero total flux |
+        | {_check_mark(transport_validation['ambipolar_flux_match_pass'] and transport_validation['ambipolar_current_pass'])} | Li⁺ and electrons carry a common chemical-diffusion flux with zero current | local neutrality couples the two carriers |
+        | {_check_mark(transport_validation['analytic_chemical_flux_pass'] and transport_validation['conductivity_form_pass'])} | the two forms of \(D_{{\rm Li}}^\delta\) agree | transport and conductivity descriptions are consistent |
+        | {_check_mark(transport_validation['positive_pass'] and transport_validation['finite_pass'])} | all rates and diffusivities are positive and finite | every displayed quantity is physical |
 
-        **Why check these?** The first six rows connect the atomic-hop picture to
-        the one-dimensional Fick and Nernst-Einstein equations used in class.
-        The next row checks electrochemical equilibrium. The final four rows
-        verify the Lecture 5 idea that Li⁺ and electrons carry one common
-        chemical-diffusion flux without net current.
+        These checks follow the notebook's main chain from atomic hopping to
+        coupled chemical diffusion; they do not add new assumptions.
         """
     )
     return

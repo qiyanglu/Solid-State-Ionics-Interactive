@@ -43,11 +43,10 @@ self-contained notebooks over framework-building.
   electroneutrality c_i = c_e = c, two ion-blocking/electron-reversible
   electrodes, and the lecture voltage convention
   U = (mu_tilde_e(L) - mu_tilde_e(0))/F.
-- Preserve mu = mu_i + mu_e = 2 RT ln(c/c_bar),
+- Preserve mu = mu_i + mu_e = 2 RT ln(c/c0),
   D_delta = 2 D_i D_e/(D_i + D_e), total ion conservation, and zero ionic flux
   at both boundaries. Support constant current and constant potential without
   assuming the transient concentration or potential profiles.
-
 - In Module 06, retain the Module 05 ideal H <-> H+ + e- pair,
   local electroneutrality, mu_H = mu_i + mu_e = 2 RT ln(c/c0), and
   D_delta = 2 D_i D_e/(D_i + D_e), but use complementary selective contacts:
@@ -57,9 +56,24 @@ self-contained notebooks over framework-building.
   Generate PITT, GITT, and OCV concentration and potential profiles from the
   full finite one-dimensional diffusion model. At OCV set terminal current to
   zero, preserve the end-of-pulse profile, and conserve the mean composition.
+  Enforce the two selective-contact face fluxes directly with a conservative
+  spatial representation; do not reconstruct a nonzero boundary gradient from
+  a basis whose derivative is forced to zero at the endpoints.
 - Present the Cottrell, square-root, first-mode, and late linear formulas only
   as classical one-sided, small-signal limits. Never use them as solver inputs,
   and keep theta = D_delta t/L^2 distinct from t/tau_delta.
+- In Module 07, use the e^(i omega t) convention, define Z = Z' + i Z'', and
+  plot Z' against -Z'' on Nyquist axes. Preserve the distinction between
+  frequency in Hz and angular frequency in rad/s.
+- Derive Warburg curves from the one-dimensional chemical-diffusion equation.
+  Keep the semi-infinite, fixed-composition finite-length, and zero-flux
+  finite-length boundary conditions explicit; never insert a 45-degree line as
+  a solver input.
+- For the Module 07 transmission line, preserve the continuous two-rail MIEC
+  equations, voltage-equivalent electrochemical potentials, total-current
+  conservation, SI circuit units, and explicit terminal boundary conditions.
+  Keep the chemical time scale distinct from a universally assigned peak
+  frequency.
 - If a species set or thermodynamic constant changes, explain the scientific
   reason and update the displayed assumptions and validation checks together.
 
@@ -90,7 +104,7 @@ Before handing off a change:
    electrochemical-potential cancellation, equal Li-ion/electron flux,
    zero current, conductivity-form equivalence, positivity, and finiteness.
 6. For Module 04, check the Boltzmann and electrochemical-potential identities,
-   exact Gouy-Chapman profile and Gauss law, Mott-Schottky boundaries and
+   exact Gouy-Chapman profile and Gauss law, the Mott-Schottky boundaries and
    Poisson curvature, GCS charge and voltage matching, series capacitance,
    Frumkin reaction-plane consistency, positivity, and finiteness.
 7. For Module 05, check the uniform initial state, total-ion conservation,
@@ -100,10 +114,15 @@ Before handing off a change:
    steady state.
 8. For Module 06, check the uniform initial state, positivity, PITT voltage and
    GITT current control, zero terminal current and constant mean composition
-   during OCV, current-composition balance, the chemical-diffusivity identity,
+   during OCV, selective-contact face fluxes, current-composition balance,
+   spatial-grid convergence, the chemical-diffusivity identity,
    voltage reconstruction from chemical and electrical potentials, classical
-   PITT/GITT short- and long-time limits, and first-mode OCV decay.
-9. Run git diff --check and review all rendered figures at projector scale.
+   PITT/GITT short- and long-time limits, and long-time OCV decay.
+9. For Module 07, check the phasor convention, ideal parallel-RC semicircle and
+   apex, finite-length Warburg limits and passivity, TLM boundary residuals,
+   total-current conservation, reversible-contact limit, passivity, and
+   finiteness.
+10. Run git diff --check and review all rendered figures at projector scale.
 
 Do not weaken numerical tolerances simply to silence a failed physics check;
 identify whether the model, regime test, or implementation is responsible.

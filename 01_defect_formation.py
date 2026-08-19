@@ -13,7 +13,51 @@ def _():
     import numpy as np
     from scipy import optimize, special
 
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 14,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 11,
+            "axes.facecolor": "#FCFCFA",
+            "figure.facecolor": "white",
+            "grid.color": "#C7CCD1",
+            "grid.alpha": 0.28,
+            "axes.titlepad": 10,
+            "axes.labelpad": 6,
+            "legend.frameon": False,
+            "axes.prop_cycle": plt.cycler(
+                color=[
+                    "#4C7C86",
+                    "#B8734A",
+                    "#7C6A91",
+                    "#6B86A5",
+                    "#B77A82",
+                    "#5F8A6B",
+                    "#C49345",
+                ]
+            ),
+        }
+    )
+
     return math, mo, np, optimize, plt, special
+
+
+@app.cell
+def _(mo):
+    mo.Html(r"""
+    <style>
+      .markdown.prose { font-size: 1.12rem !important; line-height: 1.70 !important; }
+      .markdown.prose table { font-size: 1.02rem !important; }
+      .marimo-cell-output label,
+      .marimo-cell-output button,
+      .marimo-cell-output input,
+      .marimo-cell-output select { font-size: 1rem !important; }
+    </style>
+    """)
+    return
 
 
 @app.cell
@@ -486,10 +530,10 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
 
     plt.rcParams.update(
         {
-            "font.size": 12,
+            "font.size": 14,
             "axes.titlesize": 16,
-            "axes.labelsize": 13,
-            "legend.fontsize": 11,
+            "axes.labelsize": 14,
+            "legend.fontsize": 12,
         }
     )
     _lattice_fig, _lattice_axis = plt.subplots(figsize=(11.5, 4.8), dpi=120)
@@ -497,7 +541,7 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
         _x_positions[~_defect_mask],
         _y_positions[~_defect_mask],
         s=115,
-        color="#007C91",
+        color="#4C7C86",
         edgecolor="white",
         linewidth=0.8,
         label="occupied site",
@@ -510,7 +554,7 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
             s=130,
             marker="s",
             facecolor="white",
-            edgecolor="#D55E00",
+            edgecolor="#B8734A",
             linewidth=2.2,
             label="defect",
             zorder=3,
@@ -522,7 +566,7 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
             s=130,
             marker="s",
             facecolor="white",
-            edgecolor="#D55E00",
+            edgecolor="#B8734A",
             linewidth=2.2,
             label="defect (none in this finite-N mode)",
         )
@@ -596,18 +640,18 @@ def _(
         log_omega,
         "o",
         ms=3.2,
-        color="#007C91",
+        color="#4C7C86",
         alpha=0.75,
         label=r"exact $\ln\binom{N}{n}$",
     )
     _multiplicity_axis.plot(
         _entropy_x,
         site_count * _entropy_stirling,
-        color="#D55E00",
+        color="#B8734A",
         lw=2.7,
         label="Stirling limit",
     )
-    _multiplicity_axis.axvline(finite_x_eq, color="#222222", ls=":", lw=1.2)
+    _multiplicity_axis.axvline(finite_x_eq, color="#40464D", ls=":", lw=1.2)
     _multiplicity_axis.set(
         xlabel="defect fraction, x = n/N",
         ylabel=r"$\ln\Omega$",
@@ -622,18 +666,18 @@ def _(
         entropy_exact_kb_per_site,
         "o",
         ms=3.2,
-        color="#007C91",
+        color="#4C7C86",
         alpha=0.75,
         label=r"exact $S_{\rm config}/(Nk_B)$",
     )
     _entropy_axis.plot(
         _entropy_x,
         _entropy_stirling,
-        color="#D55E00",
+        color="#B8734A",
         lw=2.7,
         label="Stirling limit",
     )
-    _entropy_axis.axvline(finite_x_eq, color="#222222", ls=":", lw=1.2)
+    _entropy_axis.axvline(finite_x_eq, color="#40464D", ls=":", lw=1.2)
     _entropy_axis.set(
         xlabel="defect fraction, x = n/N",
         ylabel=r"configurational entropy per site, $s_{\rm config}/k_B$",
@@ -695,21 +739,21 @@ def _(
         _free_energy_axis.plot(
             focus_x,
             _energy_scale * formation_term_ev,
-            color="#CC3311",
+            color="#B65C4A",
             lw=2.2,
             label=r"formation: $x\Delta g_f^0$",
         )
         _free_energy_axis.plot(
             focus_x,
             _energy_scale * entropy_term_ev,
-            color="#7B3294",
+            color="#7C6A91",
             lw=2.2,
             label=r"entropy: $-Ts_{\rm config}$",
         )
     _free_energy_axis.plot(
         focus_x,
         _energy_scale * total_free_energy_ev,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.4,
         label=r"total: $G/N$",
         zorder=4,
@@ -727,7 +771,7 @@ def _(
             "o",
             ms=4.0,
             mfc="white",
-            mec="#222222",
+            mec="#40464D",
             alpha=0.8,
             label="exact finite-N states",
             zorder=5,
@@ -739,8 +783,8 @@ def _(
         [equilibrium_x],
         [_energy_scale * _equilibrium_energy],
         s=105,
-        color="#EE9B00",
-        edgecolor="#222222",
+        color="#C49345",
+        edgecolor="#40464D",
         zorder=7,
         label=r"thermodynamic $x_{\rm eq}$",
     )
@@ -751,7 +795,7 @@ def _(
             [_energy_scale * _finite_energy],
             s=80,
             marker="D",
-            color="#222222",
+            color="#40464D",
             zorder=7,
             label="most probable finite-N macrostate",
         )
@@ -767,22 +811,22 @@ def _(
         "Formation energy competes with configurational entropy"
     )
     _free_energy_axis.grid(alpha=0.25)
-    _free_energy_axis.legend(frameon=False, fontsize=10)
+    _free_energy_axis.legend(frameon=False, fontsize=11)
 
     _mu_axis.plot(
         focus_x,
         chemical_potential_values_ev,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
     )
-    _mu_axis.axhline(0.0, color="#555555", ls="--", lw=1.4)
-    _mu_axis.axvline(equilibrium_x, color="#EE9B00", ls=":", lw=2.0)
+    _mu_axis.axhline(0.0, color="#666D73", ls="--", lw=1.4)
+    _mu_axis.axvline(equilibrium_x, color="#C49345", ls=":", lw=2.0)
     _mu_axis.scatter(
         [equilibrium_x],
         [0.0],
         s=100,
-        color="#EE9B00",
-        edgecolor="#222222",
+        color="#C49345",
+        edgecolor="#40464D",
         zorder=5,
     )
     _mu_axis.set_xlim(focus_x[0], focus_x[-1])
@@ -862,14 +906,14 @@ def _(
     _comparison_axis.semilogy(
         _driving_force,
         _thermodynamic_fraction,
-        color="#007C91",
+        color="#4C7C86",
         lw=3.0,
         label="Stirling / thermodynamic limit",
     )
     _comparison_axis.semilogy(
         _driving_force,
         _dilute_fraction_curve,
-        color="#D55E00",
+        color="#B8734A",
         lw=2.3,
         ls="--",
         label=r"dilute $\exp[-\Delta g_f^0/(k_BT)]$",
@@ -879,14 +923,14 @@ def _(
         _driving_force[_positive_finite],
         _finite_fraction_curve[_positive_finite],
         where="mid",
-        color="#222222",
+        color="#40464D",
         lw=2.0,
         label=f"most probable finite-N macrostate (N = {site_count})",
     )
     _comparison_axis.axvspan(
         np.log(20.0),
         16.0,
-        color="#228833",
+        color="#5F8A6B",
         alpha=0.08,
         label="dilute relative error below 5%",
     )
@@ -895,8 +939,8 @@ def _(
             [reduced_formation_energy],
             [equilibrium_x],
             s=100,
-            color="#EE9B00",
-            edgecolor="#222222",
+            color="#C49345",
+            edgecolor="#40464D",
             zorder=6,
             label="current thermodynamic state",
         )
@@ -906,7 +950,7 @@ def _(
                 [finite_x_eq],
                 s=70,
                 marker="D",
-                color="#222222",
+                color="#40464D",
                 zorder=6,
             )
     _comparison_axis.set(
@@ -920,7 +964,7 @@ def _(
     _comparison_axis.legend(
         loc="upper right",
         frameon=False,
-        fontsize=10,
+        fontsize=11,
     )
     _comparison_axis.text(
         0.02,
@@ -928,7 +972,7 @@ def _(
         "The finite-N mode eventually becomes n = 0;\n"
         "the ensemble mean remains nonzero.",
         transform=_comparison_axis.transAxes,
-        fontsize=10,
+        fontsize=11,
         color="#444444",
     )
     _comparison_fig.tight_layout()
@@ -1068,27 +1112,19 @@ def _(mo, validation):
 
     mo.md(
         rf"""
-        ## Numerical sanity checks
+        ## Physical consistency checks
 
-        | Check | Result | Error or scale |
-        |---|---:|---:|
-        | numerical minimum of Stirling \(G(x)\) matches analytical \(x_{{\rm eq}}\) | {_mark(validation['minimum_pass'])} | {validation['minimum_error']:.2e} in \(x\) |
-        | zero of \(\mu_D(x)\) matches the same \(x_{{\rm eq}}\) | {_mark(validation['root_pass'])} | {validation['root_error']:.2e} in \(x\) |
-        | \(\lvert\mu_D(x_{{\rm eq}})\rvert\) | {_mark(validation['root_pass'])} | {validation['mu_at_equilibrium']:.2e} eV |
-        | most probable finite-\(N\) macrostate is within one composition step of \(x_{{\rm eq}}\) | {_mark(validation['finite_rounding_pass'])} | {validation['finite_rounding']:.2e}, step \(1/N\) |
-        | exact entropy approaches Stirling at \(N=10^6,\ x=0.2\) | {_mark(validation['large_entropy_pass'])} | relative error {validation['large_entropy_relative_error']:.2e} |
-        | dilute approximation at \(\Delta g_f^0/(k_BT)=12\) | {_mark(validation['dilute_pass'])} | relative error {validation['dilute_reference_relative_error']:.2e} |
-        | all validation quantities finite | {_mark(validation['all_finite'])} | - |
+        | status | physical statement | why it matters |
+        |---:|---|---|
+        | {_mark(validation['minimum_pass'])} | the minimum of \(G(x)\) occurs at the analytical \(x_{{\rm eq}}\) | equilibrium is the lowest-free-energy composition |
+        | {_mark(validation['root_pass'])} | \(\mu_D=0\) at the same composition | the chemical-potential and free-energy views agree |
+        | {_mark(validation['finite_rounding_pass'])} | the most probable finite lattice lies within one site of \(x_{{\rm eq}}\) | a finite lattice changes only in steps of \(1/N\) |
+        | {_mark(validation['large_entropy_pass'])} | the exact entropy approaches Stirling's expression for large \(N\) | the smooth thermodynamic curve has the correct large-system limit |
+        | {_mark(validation['dilute_pass'])} | the dilute exponential agrees at low defect fraction | the familiar approximation is used only in its proper limit |
+        | {_mark(validation['all_finite'])} | all displayed quantities are well defined | every plotted point has physical meaning |
 
-        The finite-\(N\) check uses the physically meaningful tolerance \(1/N\):
-        a discrete lattice cannot match an arbitrary continuous fraction more
-        closely than its composition spacing.
-
-        **Why check these?** The first three rows verify that “minimum of
-        \(G\)” and “zero of \(\mu_D\)” really identify the same equilibrium.
-        The next two verify when the finite lattice may be replaced by the
-        smooth Stirling description. The dilute row verifies when the familiar
-        Boltzmann exponential is actually a good approximation.
+        These checks connect the different descriptions of the same
+        equilibrium. They are not additional assumptions in the model.
         """
     )
     return
