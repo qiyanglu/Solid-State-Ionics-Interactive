@@ -251,10 +251,8 @@ late-time linear profile and flat ionic electrochemical potential.
 ## Repository layout
 
 The five numbered Python files are the self-contained marimo modules. The
-`pages/` directory is also source: `pages/index.html` is the course landing page,
-and `pages/01-brouwer-sto/index.html` keeps the original Module 01 URL working as
-a redirect. The Pages workflow copies those files before exporting the five
-notebooks.
+`pages/` directory is also source: `pages/index.html` is the course landing page.
+The Pages workflow copies it before exporting the five notebooks.
 
 Local `.venv/`, `__marimo__/`, `__pycache__/`, and `dist/` directories are
 generated working files. They are ignored by Git and may be removed whenever a
@@ -270,5 +268,3 @@ every push to main. The project root is a stable module index; each notebook is
 published under its own numbered path. After deployment, the workflow retries
 all live module routes and verifies their browser entry bundles plus the
 dynamically imported marimo run-page modules.
-
-The former /01-brouwer-sto/ URL redirects to /02-brouwer-sto/.
