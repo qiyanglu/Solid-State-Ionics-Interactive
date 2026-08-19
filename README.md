@@ -211,13 +211,16 @@ To present a notebook as an app, replace edit with run.
 
 ## Validation
 
+Generated validation exports belong in the ignored `dist/` directory; they are
+not course source files.
+
 ~~~console
 uv run marimo check --strict 01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py
-uv run marimo export html 01_defect_formation.py -o defect-formation.html --no-include-code -f
-uv run marimo export html 02_brouwer_sto.py -o brouwer.html --no-include-code -f
-uv run marimo export html 03_defect_transport.py -o defect-transport.html --no-include-code -f
-uv run marimo export html 04_space_charge_frumkin.py -o space-charge-frumkin.html --no-include-code -f
-uv run marimo export html 05_stoichiometry_polarization.py -o stoichiometry-polarization.html --no-include-code -f
+uv run marimo export html 01_defect_formation.py -o dist/defect-formation.html --no-include-code -f
+uv run marimo export html 02_brouwer_sto.py -o dist/brouwer.html --no-include-code -f
+uv run marimo export html 03_defect_transport.py -o dist/defect-transport.html --no-include-code -f
+uv run marimo export html 04_space_charge_frumkin.py -o dist/space-charge-frumkin.html --no-include-code -f
+uv run marimo export html 05_stoichiometry_polarization.py -o dist/stoichiometry-polarization.html --no-include-code -f
 ~~~
 
 Module 01 checks its thermodynamic free-energy minimum, chemical-potential zero,
@@ -244,6 +247,18 @@ constant-current or constant-potential control, the initial total-conductivity
 response, zero ionic boundary flux, the ambipolar diffusivity identity, both
 electrochemical-potential decompositions, the measured voltage, and the
 late-time linear profile and flat ionic electrochemical potential.
+
+## Repository layout
+
+The five numbered Python files are the self-contained marimo modules. The
+`pages/` directory is also source: `pages/index.html` is the course landing page,
+and `pages/01-brouwer-sto/index.html` keeps the original Module 01 URL working as
+a redirect. The Pages workflow copies those files before exporting the five
+notebooks.
+
+Local `.venv/`, `__marimo__/`, `__pycache__/`, and `dist/` directories are
+generated working files. They are ignored by Git and may be removed whenever a
+clean checkout is desired.
 
 ## Browser deployment
 
