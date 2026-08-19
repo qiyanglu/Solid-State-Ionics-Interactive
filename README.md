@@ -11,7 +11,7 @@ The notebooks complement the lectures and course materials collected on the
 
 The series helps students explore how defect formation, defect chemistry, ionic
 and electronic transport, electrochemical polarization, space charge, and
-impedance emerge from governing equations. Each module favors transparent
+titration transients emerge from governing equations. Each module favors transparent
 physics, interactive controls, and numerical checks over preassembled textbook
 curves.
 
@@ -24,6 +24,7 @@ curves.
 | 03 | Defect Transport: From Atomic Hopping to Chemical Diffusion | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/03-defect-transport/) |
 | 04 | Space-Charge Layers and the Frumkin Effect | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/04-space-charge-frumkin/) |
 | 05 | Stoichiometry Polarization in a Mixed Conductor | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/05-stoichiometry-polarization/) |
+| 06 | PITT and GITT: Watching Chemical Diffusion | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/06-pitt-gitt/) |
 
 ### Module 01: Defect Formation Thermodynamics
 
@@ -194,6 +195,33 @@ sigma_i + sigma_e = 10^-3 S/cm, sigma_e/sigma_i = 100, and beta = 0.8.
 Electron-blocking, reversible, and Hebb-Wagner electrode cases are deliberately
 reserved for later extensions with their own boundary conditions.
 
+### Module 06: PITT and GITT
+
+[06_pitt_gitt.py](06_pitt_gitt.py) extends the ideal one-dimensional pair model
+from Module 05 to complementary selective contacts:
+
+~~~text
+current collector at x = 0:  J_i = 0
+ion electrolyte at x = L:    J_e = 0
+~~~
+
+Positive current and voltage extract the neutral pair
+`H <-> H+ + e-`. PITT fixes a small voltage step and solves for the current;
+GITT fixes a current step and calculates the voltage. In both cases, the full
+finite-slab chemical-diffusion equation generates the transient concentration,
+chemical-potential, electrical-potential, and electrochemical-potential
+profiles. The final pulse profile becomes the initial condition for the OCV
+relaxation, where terminal current is zero but equal internal ion and electron
+fluxes can continue.
+
+The notebook then derives the classical one-sided, small-signal PITT and GITT
+series and their short- and long-time limits. These formulas are displayed as
+asymptotic comparisons, not used to construct the full solutions. Controls
+expose temperature, concentration, thickness, chemical diffusivity,
+electronic-to-ionic conductivity ratio, pulse size, pulse duration, and rest
+duration. The defaults are T = 800 K, c0 = 10^20 cm^-3, L = 100 micrometers,
+D_delta = 10^-8 cm^2/s, and sigma_e/sigma_i = 100.
+
 ## Run locally
 
 With Python 3.11 or newer and [uv](https://docs.astral.sh/uv/) installed:
@@ -205,6 +233,7 @@ uv run marimo edit 02_brouwer_sto.py
 uv run marimo edit 03_defect_transport.py
 uv run marimo edit 04_space_charge_frumkin.py
 uv run marimo edit 05_stoichiometry_polarization.py
+uv run marimo edit 06_pitt_gitt.py
 ~~~
 
 To present a notebook as an app, replace edit with run.
@@ -215,12 +244,13 @@ Generated validation exports belong in the ignored `dist/` directory; they are
 not course source files.
 
 ~~~console
-uv run marimo check --strict 01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py
+uv run marimo check --strict 01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py 06_pitt_gitt.py
 uv run marimo export html 01_defect_formation.py -o dist/defect-formation.html --no-include-code -f
 uv run marimo export html 02_brouwer_sto.py -o dist/brouwer.html --no-include-code -f
 uv run marimo export html 03_defect_transport.py -o dist/defect-transport.html --no-include-code -f
 uv run marimo export html 04_space_charge_frumkin.py -o dist/space-charge-frumkin.html --no-include-code -f
 uv run marimo export html 05_stoichiometry_polarization.py -o dist/stoichiometry-polarization.html --no-include-code -f
+uv run marimo export html 06_pitt_gitt.py -o dist/pitt-gitt.html --no-include-code -f
 ~~~
 
 Module 01 checks its thermodynamic free-energy minimum, chemical-potential zero,
@@ -248,11 +278,18 @@ response, zero ionic boundary flux, the ambipolar diffusivity identity, both
 electrochemical-potential decompositions, the measured voltage, and the
 late-time linear profile and flat ionic electrochemical potential.
 
+
+Module 06 checks the uniform initial state, positivity, fixed-voltage PITT and
+fixed-current GITT control, zero terminal current and conserved mean composition
+during OCV, pulse mass balance, the Module 05 chemical-diffusivity identity,
+potential reconstruction of the measured voltage, the PITT/GITT limiting
+series, and the long-rest first-mode decay.
+
 ## Repository layout
 
-The five numbered Python files are the self-contained marimo modules. The
+The six numbered Python files are the self-contained marimo modules. The
 `pages/` directory is also source: `pages/index.html` is the course landing page.
-The Pages workflow copies it before exporting the five notebooks.
+The Pages workflow copies it before exporting the six notebooks.
 
 Local `.venv/`, `__marimo__/`, `__pycache__/`, and `dist/` directories are
 generated working files. They are ignored by Git and may be removed whenever a
@@ -260,7 +297,7 @@ clean checkout is desired.
 
 ## Browser deployment
 
-All five notebooks use only marimo, NumPy, SciPy, and matplotlib and perform no
+All six notebooks use only marimo, NumPy, SciPy, and matplotlib and perform no
 network or filesystem access at runtime. The workflow in
 [pages.yml](.github/workflows/pages.yml) exports each notebook as a
 browser-hosted WASM app and deploys the generated static site to GitHub Pages on

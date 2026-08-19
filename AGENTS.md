@@ -47,6 +47,19 @@ self-contained notebooks over framework-building.
   D_delta = 2 D_i D_e/(D_i + D_e), total ion conservation, and zero ionic flux
   at both boundaries. Support constant current and constant potential without
   assuming the transient concentration or potential profiles.
+
+- In Module 06, retain the Module 05 ideal H <-> H+ + e- pair,
+  local electroneutrality, mu_H = mu_i + mu_e = 2 RT ln(c/c0), and
+  D_delta = 2 D_i D_e/(D_i + D_e), but use complementary selective contacts:
+  J_i(0,t) = 0 at the electronic current collector and J_e(L,t) = 0 at the
+  ion-conducting electrolyte.
+- Define positive current and voltage as extraction and state that convention.
+  Generate PITT, GITT, and OCV concentration and potential profiles from the
+  full finite one-dimensional diffusion model. At OCV set terminal current to
+  zero, preserve the end-of-pulse profile, and conserve the mean composition.
+- Present the Cottrell, square-root, first-mode, and late linear formulas only
+  as classical one-sided, small-signal limits. Never use them as solver inputs,
+  and keep theta = D_delta t/L^2 distinct from t/tau_delta.
 - If a species set or thermodynamic constant changes, explain the scientific
   reason and update the displayed assumptions and validation checks together.
 
@@ -85,7 +98,12 @@ Before handing off a change:
    response, zero ionic boundary flux, chemical-diffusivity identity,
    electrochemical-potential decomposition, measured voltage, and late-time
    steady state.
-8. Run git diff --check and review all rendered figures at projector scale.
+8. For Module 06, check the uniform initial state, positivity, PITT voltage and
+   GITT current control, zero terminal current and constant mean composition
+   during OCV, current-composition balance, the chemical-diffusivity identity,
+   voltage reconstruction from chemical and electrical potentials, classical
+   PITT/GITT short- and long-time limits, and first-mode OCV decay.
+9. Run git diff --check and review all rendered figures at projector scale.
 
 Do not weaken numerical tolerances simply to silence a failed physics check;
 identify whether the model, regime test, or implementation is responsible.
