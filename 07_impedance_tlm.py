@@ -62,7 +62,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    # Impedance Spectroscopy: From a Semicircle to a Transmission Line
+    # Impedance Spectroscopy, Warburg Diffusion, and Transmission Lines
 
     **Guiding question.** What physical process is able to respond at each
     frequency, and how does that response appear in the complex impedance?
@@ -73,6 +73,24 @@ def _(mo):
     interface, or still slower chemical diffusion. The shape is therefore a
     compressed map of **dynamics**, not a collection of arcs to name by eye.
 
+    **Learning goals**
+
+    1. Translate sinusoidal voltage and current into $Z(\omega)$, Nyquist, and
+       Bode representations without losing the sign convention.
+    2. Recognize semi-infinite and finite-length Warburg responses as solutions
+       of the same chemical-diffusion equation with different far boundaries.
+    3. Read a two-rail MIEC transmission line as transport, chemical storage,
+       and contact boundary conditions—not an arbitrary fitting circuit.
+
+    > **Predict before exploring.** If specimen thickness $L$ doubles while
+    > $D^\delta$ is unchanged, does the diffusion feature move to higher or
+    > lower frequency? By what factor?
+
+    **Model and notation scope.** The changing concentration is a neutral
+    composition species. $S$ is area, $I$ is total current, and distributed TLM
+    quantities carry units per length. See the shared
+    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
+
     This notebook follows three steps:
 
     1. build the complex-number language of EIS from voltage and current waves;
@@ -82,7 +100,7 @@ def _(mo):
 
     The convention throughout is
 
-    $$e^{i\omega t},\qquad Z=\frac{\widehat V}{\widehat I}=Z'+iZ'',$$
+    $$e^{\mathrm{i}\omega t},\qquad Z=\frac{\widehat V}{\widehat I}=Z'+\mathrm{i}Z'',$$
 
     so a capacitor has $Z''<0$. A Nyquist plot displays $Z'$ horizontally and
     **$-Z''$ vertically**, putting passive capacitive responses above the axis.
@@ -181,6 +199,14 @@ def _(np):
         faraday = 96485.33212
         tau_diffusion_s = length_m**2 / diffusivity_m2_per_s
         frequency_diffusion_hz = 1.0 / (2.0 * np.pi * tau_diffusion_s)
+        thermodynamic_slope_v_m3_per_mol = (
+            gas_constant * temperature / (electrons * faraday * concentration)
+        )
+        resistance_general_ohm = (
+            length_m
+            * abs(thermodynamic_slope_v_m3_per_mol)
+            / (electrons * faraday * area_m2 * diffusivity_m2_per_s)
+        )
         resistance_diffusion_ohm = (
             gas_constant
             * temperature
@@ -198,6 +224,8 @@ def _(np):
             "diffusivity_m2_per_s": diffusivity_m2_per_s,
             "tau_diffusion_s": tau_diffusion_s,
             "frequency_diffusion_hz": frequency_diffusion_hz,
+            "thermodynamic_slope_v_m3_per_mol": thermodynamic_slope_v_m3_per_mol,
+            "resistance_general_ohm": resistance_general_ohm,
             "resistance_diffusion_ohm": resistance_diffusion_ohm,
         }
 
@@ -382,8 +410,8 @@ def _(mo):
     response at the same frequency:
 
     $$
-    \Delta V(t)=\Re\!\left[\widehat V e^{i\omega t}\right],\qquad
-    \Delta I(t)=\Re\!\left[\widehat I e^{i\omega t}\right].
+    \Delta V(t)=\Re\!\left[\widehat V e^{\mathrm{i}\omega t}\right],\qquad
+    \Delta I(t)=\Re\!\left[\widehat I e^{\mathrm{i}\omega t}\right].
     $$
 
     The complex ratio $Z=\widehat V/\widehat I$ stores two measurements at once:
@@ -415,7 +443,7 @@ def _(waveform_data_07, waveform_frequency_07, waveform_lead_07):
 
 
 @app.cell
-def _(np, plt, waveform_result_07):
+def _(mo, np, plt, waveform_result_07):
     _time_s, _voltage, _current, _z_phase = waveform_result_07
     _period_s = (_time_s[-1] - _time_s[0]) / 2.0
     _time_cycles = _time_s / _period_s
@@ -460,7 +488,10 @@ def _(np, plt, waveform_result_07):
     _axis_phasor.set_xlabel("real component")
     _axis_phasor.set_ylabel("imaginary component")
     _axis_phasor.grid(True)
-    _figure
+    mo.vstack([
+        _figure,
+        mo.md(r"**Figure takeaway.** A phase lead or lag is the same information in the time traces and the rotating phasors; $Z=\widehat V/\widehat I$ records it as a complex phase."),
+    ])
     return
 
 
@@ -472,8 +503,8 @@ def _(mo):
     | element | impedance | Nyquist signature |
     |---|---:|---|
     | resistor | $Z_R=R$ | point on the real axis |
-    | capacitor | $Z_C=1/(i\omega C)$ | vertical capacitive line |
-    | parallel $R\parallel C$ | $Z=R/(1+i\omega RC)$ | semicircle |
+    | capacitor | $Z_C=1/(\mathrm{i}\omega C)$ | vertical capacitive line |
+    | parallel $R\parallel C$ | $Z=R/(1+\mathrm{i}\omega RC)$ | semicircle |
 
     For a parallel $R\parallel C$ element, the relaxation time is
     $\tau=RC$ and the top of its ideal semicircle occurs at
@@ -561,6 +592,7 @@ def _(
 
 @app.cell
 def _(
+    mo,
     np,
     plt,
     rc_capacitance_1_07,
@@ -596,6 +628,16 @@ def _(
     _axis_nyquist.set_aspect("equal", adjustable="datalim")
     _axis_nyquist.grid(True)
     _axis_nyquist.legend(loc="best")
+    _axis_nyquist.annotate(
+        "lower frequency", xy=(rc_spectrum_07.real[0], -rc_spectrum_07.imag[0]),
+        xytext=(16, 20), textcoords="offset points",
+        arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
+    )
+    _axis_nyquist.annotate(
+        "higher frequency", xy=(rc_spectrum_07.real[-1], -rc_spectrum_07.imag[-1]),
+        xytext=(-104, 22), textcoords="offset points",
+        arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
+    )
 
     _axis_bode.semilogx(rc_frequency_07, np.abs(rc_spectrum_07), lw=2.7, color="#4C7C86")
     _axis_bode_phase = _axis_bode.twinx()
@@ -614,7 +656,10 @@ def _(
         transform=_axis_bode.transAxes,
         color="#526173",
     )
-    _figure
+    mo.vstack([
+        _figure,
+        mo.md(r"**Figure takeaway.** Each ideal $R\parallel C$ branch contributes one relaxation time; Nyquist shows shape, while Bode plots preserve the frequency location needed to interpret it."),
+    ])
     return
 
 
@@ -646,40 +691,51 @@ def _(mo):
     $$
     \frac{\partial c}{\partial t}=D^\delta\frac{\partial^2c}{\partial x^2}
     \quad\Longrightarrow\quad
-    i\omega\widehat{\Delta c}=D^\delta\frac{d^2\widehat{\Delta c}}{dx^2}.
+    \mathrm{i}\omega\widehat{\Delta c}=D^\delta\frac{d^2\widehat{\Delta c}}{dx^2}.
     $$
 
     Here $D^\delta$ is the same **chemical diffusivity** used in Modules 05 and
-    06. A concentration wave penetrates a distance of order
-    $\sqrt{D^\delta/\omega}$. At high frequency it samples only a thin region;
-    at low frequency it can reach the far boundary.
+    06. The dc and ac views are the same scaling idea:
 
-    For a semi-infinite sample,
+    $$\ell_{D,\rm dc}\sim\sqrt{D^\delta t},\qquad
+    \ell_{D,\rm ac}\sim\sqrt{D^\delta/\omega}.$$
+
+    High frequency samples only a thin region; low frequency can reach the far
+    boundary. For a semi-infinite sample,
 
     $$
-    Z_W=\frac{W}{\sqrt{i\omega}}
+    Z_W=\frac{W}{\sqrt{\mathrm{i}\omega}}
        =\frac{W(1-i)}{\sqrt{2\omega}},
     $$
 
-    so $Z'=-Z''$: the famous $45^\circ$ line follows from diffusion, rather
-    than being inserted as an equivalent-circuit element.
+    so $Z'=-Z''$: the $45^\circ$ line follows from diffusion rather than being
+    inserted as an equivalent-circuit element.
 
-    With
-    $\widetilde\omega=\omega L^2/D^\delta$ and
-    $R_D=RTL/(n^2F^2c_0SD^\delta)$ for a dilute host, the two finite-length
-    boundary conditions are
+    With $\widetilde\omega=\omega L^2/D^\delta$, the general resistance scale is
+
+    $$R_D=\frac{L}{zFS D^\delta}\left|\frac{\partial E}{\partial c}\right|.$$
+
+    Here $c$ is molar concentration. In the dilute ideal limit,
+    $|\partial E/\partial c|=RT/(zFc_0)$, giving
+    $R_D=RTL/(z^2F^2c_0SD^\delta)$. The far-boundary cases are
 
     $$
+    \underbrace{\widehat{\Delta c}(L)=0}_{\text{open: fixed composition}},
+    \quad
     \widetilde Z_{\rm open}
-      =\frac{\tanh\sqrt{i\widetilde\omega}}{\sqrt{i\widetilde\omega}},
-    \qquad
-    \widetilde Z_{\rm blocked}
-      =\frac{\coth\sqrt{i\widetilde\omega}}{\sqrt{i\widetilde\omega}}.
+      =\frac{\tanh\sqrt{\mathrm{i}\widetilde\omega}}{\sqrt{\mathrm{i}\widetilde\omega}},
     $$
 
-    In this section, **open** means the far-face composition perturbation is
-    clamped to zero; **blocked** means its flux is zero. These diffusion labels
-    should not be confused with electrical open circuit.
+    $$
+    \underbrace{d\widehat{\Delta c}/dx|_L=0}_{\text{blocked / FSW: zero flux}},
+    \quad
+    \widetilde Z_{\rm blocked}
+      =\frac{\coth\sqrt{\mathrm{i}\widetilde\omega}}{\sqrt{\mathrm{i}\widetilde\omega}}.
+    $$
+
+    **Open boundary does not mean electrical open circuit.** It means a
+    composition reservoir is maintained at the far face. The blocked case is
+    also called finite-space Warburg (FSW).
     """)
     return
 
@@ -711,22 +767,89 @@ def _(mo):
     warburg_length_07 = mo.ui.slider(
         start=10, stop=500, step=10, value=100, label=r"$L$ ($\mu$m)"
     )
-    mo.hstack(
+    dc_log_time_07 = mo.ui.slider(
+        start=-2.0, stop=6.0, step=0.25, value=2.0,
+        label=r"dc: $\log_{10}(t/\mathrm{s})$",
+    )
+    ac_log_frequency_07 = mo.ui.slider(
+        start=-4.0, stop=5.0, step=0.25, value=-1.0,
+        label=r"ac: $\log_{10}(f/\mathrm{Hz})$",
+    )
+    mo.vstack(
         [
-            warburg_boundary_07,
-            warburg_log_omega_07,
-            warburg_log_diffusivity_07,
-            warburg_length_07,
-        ],
-        justify="start",
-        gap=1.4,
+            mo.hstack(
+                [warburg_boundary_07, warburg_log_omega_07],
+                justify="start", gap=1.4,
+            ),
+            mo.hstack(
+                [warburg_log_diffusivity_07, warburg_length_07, dc_log_time_07, ac_log_frequency_07],
+                justify="start", gap=1.4,
+            ),
+        ]
     )
     return (
+        ac_log_frequency_07,
+        dc_log_time_07,
         warburg_boundary_07,
         warburg_length_07,
         warburg_log_diffusivity_07,
         warburg_log_omega_07,
     )
+
+
+@app.cell
+def _(
+    ac_log_frequency_07,
+    dc_log_time_07,
+    mo,
+    np,
+    plt,
+    warburg_length_07,
+    warburg_log_diffusivity_07,
+):
+    _diffusivity_m2_s = 10.0 ** warburg_log_diffusivity_07.value * 1.0e-4
+    _length_m = warburg_length_07.value * 1.0e-6
+    _time_s = 10.0 ** dc_log_time_07.value
+    _frequency_hz = 10.0 ** ac_log_frequency_07.value
+    _omega = 2.0 * np.pi * _frequency_hz
+    _dc_length = np.sqrt(_diffusivity_m2_s * _time_s)
+    _ac_length = np.sqrt(_diffusivity_m2_s / _omega)
+    _ratios = np.array([_dc_length, _ac_length]) / _length_m
+    _visible = np.minimum(_ratios, 1.0)
+
+    _figure, _axis = plt.subplots(figsize=(11.8, 3.7), constrained_layout=True)
+    _axis.barh(
+        [1.0, 0.0], [1.0, 1.0], height=0.34,
+        color="#E7EAED", edgecolor="#B8C0C8", label="specimen thickness",
+    )
+    _axis.barh(
+        [1.0, 0.0], _visible, height=0.34,
+        color=["#6B86A5", "#B8734A"], alpha=0.82,
+    )
+    for _y, _ratio in zip([1.0, 0.0], _ratios):
+        _axis.text(
+            min(_ratio, 1.0) + 0.025, _y,
+            rf"$\ell_D/L={_ratio:.3g}$" + (" (far face reached)" if _ratio >= 1.0 else ""),
+            va="center", color="#526173",
+        )
+    _axis.set(
+        xlim=(0.0, 1.43),
+        yticks=[0.0, 1.0],
+        yticklabels=[r"ac: $\sqrt{D^\delta/\omega}$", r"dc: $\sqrt{D^\delta t}$"],
+        xlabel=r"penetration length / specimen thickness, $\ell_D/L$",
+        title="DC time and AC frequency ask how far composition can respond",
+    )
+    _axis.grid(axis="x", alpha=0.22)
+    mo.vstack([
+        mo.md(r"""
+        **Figure takeaway.** Longer dc time and lower ac
+        frequency both let the composition disturbance travel farther. The far
+        boundary can affect the response only when $\ell_D$ becomes comparable
+        with $L$.
+        """),
+        _figure,
+    ])
+    return
 
 
 @app.cell
@@ -821,6 +944,21 @@ def _(
     )
     _axis_warburg.plot([0.0, 1.2], [0.0, 1.2], ls="--", lw=1.3, color="#9AA3AB")
     _axis_warburg.annotate("45° semi-infinite limit", xy=(0.65, 0.65), xytext=(0.92, 0.28), arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173")
+    _axis_warburg.annotate(
+        "higher frequency",
+        xy=(0.13, 0.13),
+        xytext=(0.36, 0.50),
+        arrowprops={"arrowstyle": "->", "color": "#6B86A5"},
+        color="#526173",
+    )
+    _axis_warburg.annotate(
+        "lower frequency\n(far boundary appears)",
+        xy=(1.02, 1.02),
+        xytext=(0.58, 1.55),
+        arrowprops={"arrowstyle": "->", "color": "#B8734A"},
+        color="#526173",
+        ha="center",
+    )
     _axis_warburg.set(
         xlim=(-0.04, 1.55),
         ylim=(-0.04, 2.0),
@@ -868,6 +1006,10 @@ def _(mo):
     mo.md(r"""
     ### Read the two finite-length limits
 
+    **Figure takeaway.** The $45^\circ$ segment is the high-frequency
+    semi-infinite asymptote. Only the low-frequency end reveals whether the far
+    boundary is a fixed-composition reservoir or a zero-flux wall.
+
     $$
     \begin{aligned}
     \widetilde Z_{\rm open}&\longrightarrow 1-
@@ -888,15 +1030,36 @@ def _(mo):
     $D^\delta$ move that shape along the laboratory frequency axis through
     $f_D=D^\delta/(2\pi L^2)$. The displayed resistance scale is an illustrative
     dilute example with $T=800$ K, $c_0=160$ mol m$^{-3}$, $S=0.5$ cm$^2$,
-    and $n=1$; those fixed values affect $R_D$ but not the dimensionless curve.
+    and $z=1$; those fixed values affect $R_D$ but not the dimensionless curve.
     """)
     return
 
 
 @app.cell
 def _(mo):
+    mo.accordion({
+        "Advanced interpretation — why DRT needs caution": mo.md(r"""
+        A finite-length diffusion response is one physical process, yet its
+        $45^\circ$ region requires a distribution of relaxation times when
+        represented by many $R\parallel C$ elements. A DRT calculation may
+        therefore show several peaks or shoulders for this single diffusion
+        problem. Conversely, a peak does not by itself identify one microscopic
+        mechanism.
+
+        Use DRT as a representation aid only after checking geometry, scaling,
+        boundary conditions, and whether the proposed process reproduces both
+        Nyquist and Bode behavior.
+        """)
+    })
+    return
+
+
+
+@app.cell
+def _(mo):
     mo.md(r"""
     ## 3. Why a mixed conductor needs a transmission line
+
 
     A homogeneous MIEC has two conducting pathways. The electronic rail carries
     $I_e$ with resistance per length $r_e=1/(\sigma_e S)$; the ionic rail
@@ -912,8 +1075,8 @@ def _(mo):
     $$
 
     $$
-    \frac{dI_e}{dx}=-i\omega c_{\rm chem}(u_e-u_i),\qquad
-    \frac{dI_i}{dx}=+i\omega c_{\rm chem}(u_e-u_i).
+    \frac{dI_e}{dx}=-\mathrm{i}\omega c_{\rm chem}(u_e-u_i),\qquad
+    \frac{dI_i}{dx}=+\mathrm{i}\omega c_{\rm chem}(u_e-u_i).
     $$
 
     $u_e$ and $u_i$ are **voltage-equivalent electrochemical potentials** in
@@ -921,6 +1084,23 @@ def _(mo):
     equations gives $d(I_e+I_i)/dx=0$: total current is conserved even though
     its division between carriers changes with position.
 
+
+    For monovalent carriers the rail voltages are defined by
+
+    $$u_e=-\widetilde\mu_e/F,\qquad
+    u_i=+\widetilde\mu_i/F,\qquad
+    u_e-u_i=-\mu_M/F.$$
+
+    These signs make the rail difference the voltage equivalent of the neutral
+    composition chemical potential. They also keep conventional electronic and
+    ionic currents in the same circuit-current orientation.
+
+    The general TLM places four contact impedances at its ends:
+    $Z_A$ and $Z_B$ connect the left electrode to the electronic and ionic
+    rails; $Z_C$ and $Z_D$ do the same on the right. Changing these impedances
+    changes the boundary conditions without changing the bulk rails. That is
+    why a TLM is a representation of transport equations and contacts rather
+    than an arbitrary collection of fit elements.
     A useful time scale is
 
     $$
@@ -928,15 +1108,20 @@ def _(mo):
     f_{\rm chem}=\frac{1}{2\pi\tau_{\rm chem}},
     $$
 
-    where $R_e=r_eL$, $R_i=r_iL$, and
-    $C_{\rm chem}=c_{\rm chem}L$. It is a scaling frequency, not a promise that
-    every boundary condition has a peak exactly there.
+    Here $r_e,r_i$ have units $\Omega$ m$^{-1}$ and $c_{\rm chem}$ has units
+    F m$^{-1}$. Total quantities are $R_e=r_eL$, $R_i=r_iL$, and
+    $C_{\rm chem}=c_{\rm chem}L$. The area $S$ is already included in the rail
+    resistances. The resulting $f_{\rm chem}$ is a scaling frequency, not a
+    promise that every boundary condition has a peak exactly there.
+
+    A dielectric capacitance $C_{\rm diel}$ can be added for an electrolyte,
+    but it is shown only as an application below and is not in this teaching model.
     """)
     return
 
 
 @app.cell
-def _(np, plt):
+def _(mo, np, plt):
     _figure, _axis = plt.subplots(figsize=(12.6, 3.2), constrained_layout=True)
     _x_nodes = np.linspace(0.12, 0.88, 6)
     _y_e, _y_i = 0.72, 0.25
@@ -952,8 +1137,38 @@ def _(np, plt):
     _axis.text(0.02, 0.48, "left contacts", ha="left", va="center", color="#526173")
     _axis.text(0.98, 0.48, "right contacts", ha="right", va="center", color="#526173")
     _axis.set(xlim=(0.0, 1.0), ylim=(0.0, 1.0), title="A continuous two-rail transmission line")
+    _axis.text(0.06, 0.78, r"$Z_A$", color="#8F5638", weight="bold")
+    _axis.text(0.06, 0.18, r"$Z_B$", color="#3D6972", weight="bold")
+    _axis.text(0.94, 0.78, r"$Z_C$", color="#8F5638", weight="bold", ha="right")
+    _axis.text(0.94, 0.18, r"$Z_D$", color="#3D6972", weight="bold", ha="right")
+    _axis.text(
+        0.50, 0.94, r"optional $C_{\rm diel}$ is not included here",
+        ha="center", color="#73808C", fontsize=11,
+    )
     _axis.axis("off")
-    _figure
+    mo.vstack([
+        _figure,
+        mo.md("**Figure takeaway.** The two rails are transport equations made visible: rail resistances carry electronic and ionic current, distributed chemical capacitance stores neutral composition, and the four terminal impedances impose boundary conditions."),
+    ])
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ### Contact presets used by the interactive line
+
+    | preset | left face | right face | main consequence |
+    |---|---|---|---|
+    | electron-reversible, ions blocked | $u_e$ fixed; $I_i=0$ | $u_e$ fixed; $I_i=0$ | electronic dc path plus chemical polarization |
+    | cross-selective | $u_e$ fixed; $I_i=0$ | $I_e=0$; $u_i$ fixed | no single carrier spans the specimen; blocking low-frequency response |
+    | both carriers reversible | $u_e=u_i$ fixed | $u_e=u_i$ fixed | no chemical rail difference; $R_e\parallel R_i$ |
+
+    **Prediction.** Before changing the contact preset, decide whether a dc
+    path remains and whether the contacts can drive $u_e-u_i$. Those two
+    questions predict the low-frequency response more reliably than naming the
+    shape afterward.
+    """)
     return
 
 
@@ -962,7 +1177,7 @@ def _(mo):
     tlm_contact_case_07 = mo.ui.dropdown(
         options={
             "Electron-reversible contacts; ions blocked at both faces": "electron contacts, ions blocked",
-            "Current collector on left; ion electrolyte on right": "cross-selective contacts",
+            "Cross-selective: electron contact left; ion contact right": "cross-selective contacts",
             "Both carriers reversible at both faces": "both carriers reversible",
         },
         value="Electron-reversible contacts; ions blocked at both faces",
@@ -1065,6 +1280,7 @@ def _(
 
 @app.cell
 def _(
+    mo,
     np,
     plt,
     tlm_contact_case_07,
@@ -1132,6 +1348,22 @@ def _(
     _axis_nyquist.grid(True)
     if _visible[_selected_index]:
         _axis_nyquist.legend(loc="best")
+    _visible_indices = np.flatnonzero(_visible)
+    if _visible_indices.size:
+        _low_index = int(_visible_indices[0])
+        _high_index = int(_visible_indices[-1])
+        _axis_nyquist.annotate(
+            "lower frequency",
+            xy=(_normalized_impedance.real[_low_index], _minus_imaginary[_low_index]),
+            xytext=(14, 18), textcoords="offset points",
+            arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
+        )
+        _axis_nyquist.annotate(
+            "higher frequency",
+            xy=(_normalized_impedance.real[_high_index], _minus_imaginary[_high_index]),
+            xytext=(-104, 18), textcoords="offset points",
+            arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
+        )
 
     _axis_bode.loglog(
         tlm_frequency_ratio_07,
@@ -1167,12 +1399,16 @@ def _(
         color="#526173",
         bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.82},
     )
-    _figure
+    mo.vstack([
+        _figure,
+        mo.md("**Figure takeaway.** The same MIEC interior produces conducting, polarized, or blocking low-frequency behavior when only the contact boundary conditions change."),
+    ])
     return
 
 
 @app.cell
 def _(
+    mo,
     np,
     plt,
     tlm_parameter_data_07,
@@ -1237,7 +1473,10 @@ def _(
         rf"Internal TLM state at $f/f_{{\rm chem}}={tlm_selected_omega_07:.3g}$ and $\omega t={tlm_profile_phase_07.value}^\circ$",
         fontsize=17,
     )
-    _figure
+    mo.vstack([
+        _figure,
+        mo.md(r"**Figure takeaway.** Chemical storage is driven by $u_e-u_i=-\mu_M/F$; current can transfer between rails with position even though $I_e+I_i$ remains constant."),
+    ])
     return
 
 
@@ -1252,8 +1491,8 @@ def _(mo, tlm_contact_case_07):
         "cross-selective contacts": (
             "The left face passes electrons and the right face passes ions. No carrier has "
             "a complete dc path by itself, so the low-frequency response becomes blocking "
-            "and capacitive. This is the selective-contact geometry behind Modules 06 and many "
-            "chemical-diffusion measurements."
+            "and capacitive. It is the mirror-coordinate version of the selective-contact "
+            "geometry displayed in Module 06 and in many chemical-diffusion measurements."
         ),
         "both carriers reversible": (
             "Both rails are pinned to the same reservoir voltage at each face. Then "
@@ -1269,6 +1508,52 @@ def _(mo, tlm_contact_case_07):
 
 
 @app.cell
+def _(mo):
+    _scope = mo.callout(
+        mo.md(r"""
+        **Scope of the interactive TLM model.** It includes uniform,
+        one-dimensional electronic and ionic rails, distributed chemical
+        capacitance, and three ideal contact presets. It does **not** fit finite
+        $Z_A$–$Z_D$, dielectric/stray capacitance, surface reaction impedance,
+        constant-phase elements, microstructural distributions, or nonlinear
+        large-signal response. Those belong in a model only when the experiment
+        supplies evidence for them.
+        """),
+        kind="warn",
+    )
+    _applications = mo.md(r"""
+    ### Three application cards for the same TLM anatomy
+
+    **1. Warburg measurement in an electron-dominant MIEC**
+
+    Let $r_e\ll r_i$ and use one ion-selective face. Chemical capacitance and
+    ionic transport set the diffusion response; changing the far contact selects
+    the fixed-composition or blocked finite-length limit.
+
+    **2. Solid electrolyte between ion-blocking metal electrodes**
+
+    Let $r_e\gg r_i$. Chemical capacitance can become small enough that the
+    dielectric specimen capacitance $C_{\rm diel}$ and stray capacitance matter.
+    The present teaching model does not add them, but the general anatomy shows where
+    they enter.
+
+    **3. Thin MIEC electrode with surface exchange**
+
+    If both rail resistances are small compared with a surface reaction
+    resistance, the body equilibrates nearly uniformly. Surface reaction
+    resistance can then appear in parallel with the total
+    $C_{\rm chem}=c_{\rm chem}L$, explaining why a surface process can be paired
+    with a volume-scaling capacitance.
+
+    **Takeaway.** These are controlled simplifications of one transport model,
+    not three unrelated equivalent circuits.
+    """)
+    mo.vstack([_scope, _applications])
+    return
+
+
+
+@app.cell
 def _(
     np,
     rc_impedance_07,
@@ -1277,6 +1562,7 @@ def _(
     tlm_solution_07,
     tlm_spectrum_07,
     warburg_impedance_07,
+    warburg_scales_07,
     waveform_data_07,
 ):
     _check_frequency = np.logspace(-5.0, 5.0, 800)
@@ -1345,7 +1631,33 @@ def _(
         np.all(np.isfinite(_tlm_check_profile[_key]))
         for _key in ("u_e", "u_i", "u_chemical", "I_e", "I_i", "I_total")
     )
+    tlm_voltage_mapping_error_07 = np.max(np.abs(
+        _tlm_check_profile["u_e"]
+        - _tlm_check_profile["u_i"]
+        - _tlm_check_profile["u_chemical"]
+    ))
+    _length_check_m = 2.5e-4
+    _r_e_per_m = _tlm_check_parameters["R_e_ohm"] / _length_check_m
+    _c_per_m = _tlm_check_parameters["C_chemical_f"] / _length_check_m
+    tlm_total_distributed_error_07 = max(
+        abs(_r_e_per_m * _length_check_m / _tlm_check_parameters["R_e_ohm"] - 1.0),
+        abs(_c_per_m * _length_check_m / _tlm_check_parameters["C_chemical_f"] - 1.0),
+    )
+    _scale_check = warburg_scales_07(120.0, 2.0e-8, 250.0, 0.8, 800.0, 1.0)
+    warburg_resistance_scale_error_07 = abs(
+        _scale_check["resistance_general_ohm"]
+        / _scale_check["resistance_diffusion_ohm"]
+        - 1.0
+    )
+    _dc_time = 3.7
+    _dc_ac_diffusivity = 4.2e-11
+    dc_ac_length_error_07 = abs(
+        np.sqrt(_dc_ac_diffusivity * _dc_time)
+        / np.sqrt(_dc_ac_diffusivity / (1.0 / _dc_time))
+        - 1.0
+    )
     return (
+        dc_ac_length_error_07,
         phasor_sign_error_07,
         rc_circle_error_07,
         rc_peak_error_07,
@@ -1354,14 +1666,18 @@ def _(
         tlm_finiteness_07,
         tlm_passivity_margin_07,
         tlm_reversible_error_07,
+        tlm_total_distributed_error_07,
+        tlm_voltage_mapping_error_07,
         warburg_high_frequency_error_07,
         warburg_low_frequency_error_07,
         warburg_passivity_margin_07,
+        warburg_resistance_scale_error_07,
     )
 
 
 @app.cell
 def _(
+    dc_ac_length_error_07,
     mo,
     phasor_sign_error_07,
     rc_circle_error_07,
@@ -1371,9 +1687,12 @@ def _(
     tlm_finiteness_07,
     tlm_passivity_margin_07,
     tlm_reversible_error_07,
+    tlm_total_distributed_error_07,
+    tlm_voltage_mapping_error_07,
     warburg_high_frequency_error_07,
     warburg_low_frequency_error_07,
     warburg_passivity_margin_07,
+    warburg_resistance_scale_error_07,
 ):
     _checks = [
         (
@@ -1385,6 +1704,16 @@ def _(
             "Ideal $R\\parallel C$ semicircle",
             max(rc_circle_error_07, rc_peak_error_07) < 2.0e-2,
             "The geometric arc and its $\\omega RC=1$ apex must come from the same circuit equation.",
+        ),
+        (
+            "DC/AC diffusion-length scaling",
+            dc_ac_length_error_07 < 1.0e-14,
+            r"Choosing $\omega=1/t$ must give the same penetration length in time and frequency views.",
+        ),
+        (
+            "General and dilute Warburg resistance scales",
+            warburg_resistance_scale_error_07 < 1.0e-14,
+            "The general thermodynamic slope must reduce to the ideal dilute expression under the stated assumption.",
         ),
         (
             "Finite Warburg limits",
@@ -1405,6 +1734,11 @@ def _(
             "TLM total-current conservation",
             abs(tlm_current_conservation_error_07) < 1.0e-12,
             "Current may transfer between rails, but $I_e+I_i$ must be independent of position.",
+        ),
+        (
+            "TLM voltage and unit mappings",
+            max(tlm_voltage_mapping_error_07, tlm_total_distributed_error_07) < 1.0e-12,
+            "$u_e-u_i$ must be the stored chemical voltage, and distributed quantities must recover their totals after multiplication by $L$.",
         ),
         (
             "Reversible-contact limit",
@@ -1431,14 +1765,15 @@ def _(
         "| status | check | why it matters |",
         "|---:|---|---|",
     ]
-    mo.md("\n".join(_heading + _rows))
+    _checks_table = mo.md("\n".join(_heading + _rows))
+    mo.accordion({"Physical consistency checks": _checks_table})
     return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 5. Take-home map
+    ## 5. Three messages to keep
 
     $$
     \boxed{
@@ -1449,15 +1784,15 @@ def _(mo):
     }
     $$
 
-    - A semicircle follows from a relaxation; its diameter and characteristic
-      frequency carry different information.
-    - A Warburg response is the frequency-domain solution of chemical diffusion.
-      Its low-frequency end identifies what the far boundary allows.
-    - In a MIEC, the TLM keeps electronic conduction, ionic conduction, chemical
-      storage, and contact selectivity in one constrained physical model.
-    - The same interior material can show a different spectrum when the contacts
-      change. Always state geometry, sign convention, and boundary conditions
-      before assigning a feature.
+    1. **Frequency selects a time and length scale.** A semicircle marks a
+       relaxation; Warburg behavior appears when chemical diffusion is the
+       distributed response.
+    2. **The far boundary controls the low-frequency end.** Fixed composition
+       gives a finite resistance; zero flux gives capacitive accumulation. Both
+       share the high-frequency $45^\circ$ limit.
+    3. **A TLM connects physics, storage, and contacts.** The same MIEC rails can
+       produce different spectra when $Z_A$–$Z_D$ change, so geometry, sign
+       convention, units, and boundary conditions must precede feature labels.
 
     This notebook deliberately uses ideal capacitors, uniform one-dimensional
     transport, linear response, and ideal contacts. Constant-phase elements,
@@ -1494,6 +1829,15 @@ def _(mo):
     the conventions stated in this notebook.
     """)
     return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    **Reference:** [shared notation and sign conventions](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md)
+    """)
+    return
+
 
 
 if __name__ == "__main__":

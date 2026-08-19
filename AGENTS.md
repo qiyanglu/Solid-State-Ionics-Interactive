@@ -47,11 +47,13 @@ self-contained notebooks over framework-building.
   D_delta = 2 D_i D_e/(D_i + D_e), total ion conservation, and zero ionic flux
   at both boundaries. Support constant current and constant potential without
   assuming the transient concentration or potential profiles.
-- In Module 06, retain the Module 05 ideal H <-> H+ + e- pair,
-  local electroneutrality, mu_H = mu_i + mu_e = 2 RT ln(c/c0), and
-  D_delta = 2 D_i D_e/(D_i + D_e), but use complementary selective contacts:
-  J_i(0,t) = 0 at the electronic current collector and J_e(L,t) = 0 at the
-  ion-conducting electrolyte.
+- In Module 06, retain the Module 05 ideal neutral M <-> M+ + e- pair, with a
+  Li/H label choice, local electroneutrality,
+  mu_M = mu_i + mu_e = 2 RT ln(c/c0), and
+  D_delta = 2 D_i D_e/(D_i + D_e). In the student-facing article coordinate,
+  J_e(0,t) = 0 at the ion-conducting electrolyte and J_i(L,t) = 0 at the
+  electronic current collector. A mirrored internal coordinate is acceptable
+  only when stated and all face-flux/profile mappings are checked.
 - Define positive current and voltage as extraction and state that convention.
   Generate PITT, GITT, and OCV concentration and potential profiles from the
   full finite one-dimensional diffusion model. At OCV set terminal current to
@@ -62,6 +64,11 @@ self-contained notebooks over framework-building.
 - Present the Cottrell, square-root, first-mode, and late linear formulas only
   as classical one-sided, small-signal limits. Never use them as solver inputs,
   and keep theta = D_delta t/L^2 distinct from t/tau_delta.
+- Keep the finite-kinetics PITT extension separate from the core ideal boundary.
+  Use Bi = k_delta L/D_delta, tau_d = L^2/D_delta, tau_ct = L/k_delta,
+  lambda tan(lambda) = Bi, and show reaction-, mixed-, and diffusion-controlled
+  limits without patching curves. Check fitting bias rather than claiming that
+  a linear long-time plot proves diffusion control.
 - In Module 07, use the e^(i omega t) convention, define Z = Z' + i Z'', and
   plot Z' against -Z'' on Nyquist axes. Preserve the distinction between
   frequency in Hz and angular frequency in rad/s.
@@ -69,11 +76,16 @@ self-contained notebooks over framework-building.
   Keep the semi-infinite, fixed-composition finite-length, and zero-flux
   finite-length boundary conditions explicit; never insert a 45-degree line as
   a solver input.
+  Pair every boundary name with its equation and state that an open diffusion
+  boundary is a fixed-composition reservoir, not electrical open circuit.
 - For the Module 07 transmission line, preserve the continuous two-rail MIEC
   equations, voltage-equivalent electrochemical potentials, total-current
   conservation, SI circuit units, and explicit terminal boundary conditions.
   Keep the chemical time scale distinct from a universally assigned peak
   frequency.
+  Use u_e = -mu_tilde_e/F and u_i = +mu_tilde_i/F for monovalent carriers, so
+  u_e - u_i = -mu_neutral/F. Distinguish distributed r_e, r_i, c_chem from
+  total R_e, R_i, C_chem and reserve S for area.
 - If a species set or thermodynamic constant changes, explain the scientific
   reason and update the displayed assumptions and validation checks together.
 
@@ -84,6 +96,14 @@ self-contained notebooks over framework-building.
 - Keep plotting and prose downstream of the solved data.
 - Use only marimo, NumPy, SciPy, and matplotlib unless a new dependency is
   clearly justified and compatible with browser/WASM execution.
+- Begin every module with a guiding question, two or three learning goals, a
+  notation/model-scope box, and a prediction before the main controls.
+- Organize the core classroom path as prediction -> controls -> figure ->
+  takeaway. Put extended derivations, implementation detail, advanced
+  interpretation, and detailed checks in collapsed sections where practical.
+- End every module with exactly three primary messages and cross-link the next
+  relevant module or the shared notation guide.
+
 - Do not create a separate physics package until multiple modules need shared
   kernels.
 
@@ -117,9 +137,13 @@ Before handing off a change:
    during OCV, selective-contact face fluxes, current-composition balance,
    spatial-grid convergence, the chemical-diffusivity identity,
    voltage reconstruction from chemical and electrical potentials, classical
-   PITT/GITT short- and long-time limits, and long-time OCV decay.
+   PITT/GITT short- and long-time limits, long-time OCV decay, finite-kinetics
+   eigenvalue limits, positivity and conservation, and the direction and
+   fitting-window dependence of diffusion-only bias versus Biot number.
 9. For Module 07, check the phasor convention, ideal parallel-RC semicircle and
-   apex, finite-length Warburg limits and passivity, TLM boundary residuals,
+   apex, DC/AC diffusion-length scaling, general-to-dilute Warburg resistance
+   mapping, finite-length Warburg limits and passivity, TLM boundary residuals,
+   voltage-equivalent-potential signs, distributed/total conversions,
    total-current conservation, reversible-contact limit, passivity, and
    finiteness.
 10. Run git diff --check and review all rendered figures at projector scale.

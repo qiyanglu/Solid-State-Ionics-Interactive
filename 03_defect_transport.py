@@ -66,6 +66,33 @@ def _(mo):
     measurable transport coefficient—and why can a composition profile relax
     only when ions and electrons move together?
 
+    **Learning goals**
+
+    1. Connect an activated hop rate to a one-dimensional diffusivity and
+       Fickian flux.
+    2. Read transport as motion down an electrochemical-potential gradient.
+    3. Explain why neutral chemical diffusion couples ionic and electronic
+       carriers and is limited by the slower one.
+
+    > **Predict before exploring.** If the electron diffusivity becomes much
+    > larger than the Li-ion diffusivity, can $D_{\rm Li}^{\delta}$ grow without
+    > limit, or does it approach a bottleneck value?
+
+    **Model scope.** All spatial pictures are one-dimensional. Particle-scale
+    equations use $k_B,e$; molar equations use $R,F$. The electric field is
+    $\mathcal E=-\partial\phi/\partial x$. See the shared
+    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
+
+    **Flux and current bridge.** Positive flux points toward $+x$:
+
+    \[
+    J_N\;[\mathrm{particles\,m^{-2}\,s^{-1}}],\qquad
+    J=J_N/N_A\;[\mathrm{mol\,m^{-2}\,s^{-1}}],
+    \]
+    \[
+    j=zFJ\;[\mathrm{A\,m^{-2}}],\qquad I=jS\;[\mathrm A].
+    \]
+
     This module follows one connected argument:
 
     \[
@@ -522,6 +549,11 @@ def _(hopping_controls, mo):
             mean time between hops. Each hop goes either left or right with
             equal probability when no electric field is present. Therefore
 
+            **Simulation convention.** The embedded random walk places one hop
+            in each fixed observation interval $1/\Gamma$. It is a transparent
+            demonstration of the spatial statistics, not a continuous-time
+            Poisson clock for the waiting times.
+
             \[
             \langle x^2\rangle=2Dt.
             \]
@@ -728,7 +760,7 @@ def _(microscopic_figure, microscopic_summary, mo):
             microscopic_figure,
             mo.md(f"**Current result.** {microscopic_summary}"),
             mo.md(r"""
-            A single path is noisy and has no preferred direction. Diffusivity is
+            **Figure takeaway.** A single path is noisy and has no preferred direction. Diffusivity is
             an ensemble property: many random paths produce a linear mean-square
             displacement. Raising \(T\) or lowering \(H_{\rm mig}\) increases
             \(\Gamma\), so the same number of lattice steps occurs in less time.
@@ -920,7 +952,7 @@ def _(
 
     master_summary = mo.md(
         f"""
-        The selected time is **{master_display_time[0]:.3g} {master_time_unit}**.
+        **Figure takeaway.** The selected time is **{master_display_time[0]:.3g} {master_time_unit}**.
         Total defect number changes by only
         **{master_mass_relative_error:.2e}** (relative), while the microscopic
         bond flux and discrete Fick flux differ by
@@ -1257,7 +1289,7 @@ def _(
     )
     field_summary = mo.md(
         rf"""
-        **Microscopic field response.** \(zeEa={field_work_per_hop_ev:.3e}\) eV,
+        **Figure takeaway.** The microscopic and macroscopic descriptions use the same electric driving force. \(ze\mathcal{{E}}a={field_work_per_hop_ev:.3e}\) eV,
         \(|zeEa|/(k_BT)={low_field_parameter:.3e}\), and
         \(\Gamma_+/\Gamma_-={hopping_bias_ratio:.5g}\). The exact drift is
         **{exact_drift_m_per_s:.3e} m/s**; the low-field prediction is
@@ -1284,7 +1316,7 @@ def _(mo):
     For number concentration \(c_N\), the one-dimensional low-field equation is
 
     \[
-    J_N=-D\frac{dc_N}{dx}+\frac{zeD}{k_BT}c_NE .
+    J_N=-D\frac{dc_N}{dx}+\frac{zeD}{k_BT}c_N\mathcal E .
     \]
 
     For molar concentration \(c\), use \(F=N_Ae\) and \(R=N_Ak_B\):
@@ -1320,6 +1352,16 @@ def _(mo):
     measurement can contain additional information about which atoms carry
     those hops and how their motions are correlated. Chemical diffusion is
     different because the material's composition changes.
+
+    Tracer and conductivity-derived diffusion are related by the **Haven
+    ratio**,
+
+    \[
+    D^*=H D^q.
+    \]
+
+    Here $H$ summarizes correlations between successive ionic motions; $H=1$
+    is the uncorrelated limit, not a rule for all solids.
     """)
     return
 
@@ -1599,7 +1641,8 @@ def _(
 
     ambipolar_summary = mo.md(
         rf"""
-        The internal potential gradient is
+        **Figure takeaway.** The internal field forces the ion and electron
+        to share one neutral-composition flux. The internal potential gradient is
         **{internal_potential_gradient_v_per_m / 100.0:.3e} V/cm**. It gives
         \(J_{{\rm Li^+}}={ionic_flux_mol_per_m2_s:.3e}\) and
         \(J_{{e^-}}={electronic_flux_mol_per_m2_s:.3e}\) mol/(m² s), while
@@ -1613,6 +1656,38 @@ def _(
     )
     mo.vstack([ambipolar_figure, ambipolar_summary])
     return (ambipolar_figure,)
+
+
+@app.cell
+def _(mo):
+    _general_chemical_diffusion = mo.md(r"""
+    For the monovalent pair used here, equal molar fluxes and local equilibrium
+    give
+
+    \[
+    J=-\frac{\sigma_i\sigma_e}{F^2(\sigma_i+\sigma_e)}
+    \frac{\partial\mu_{\rm Li}}{\partial x}
+    =-D_{\rm Li}^{\delta}\frac{\partial c}{\partial x},
+    \]
+
+    so the general composition-dependent result is
+
+    \[
+    \boxed{D_{\rm Li}^{\delta}=
+    \frac{\sigma_i\sigma_e}{F^2(\sigma_i+\sigma_e)}
+    \frac{\partial\mu_{\rm Li}}{\partial c}}.
+    \]
+
+    The transport prefactor contains the two conductivity pathways; the
+    derivative $\partial\mu_{\rm Li}/\partial c$ is the thermodynamic
+    susceptibility for molar $\mu_{\rm Li}$ (J mol$^{-1}$) and molar $c$
+    (mol m$^{-3}$). Together they give m$^2$ s$^{-1}$. For the ideal dilute
+    pair, $\mu_{\rm Li}=\mu_{\rm Li}^0+2RT\ln(c/c_0)$, so the expression
+    reduces to the Lecture 5 formula shown next. The compact harmonic-mean
+    result is therefore a special ideal limit, not a universal MIEC identity.
+    """)
+    mo.accordion({"General chemical diffusion (non-ideal bridge)": _general_chemical_diffusion})
+    return
 
 
 @app.cell
@@ -1687,7 +1762,7 @@ def _(mo):
         stop=0.50,
         step=0.01,
         value=0.08,
-        label=r"reduced time, t D_Li^delta / L²",
+        label=r"Fourier number, theta = D_Li^delta t / L²",
         show_value=True,
     )
     relaxation_controls = mo.hstack(
@@ -1707,16 +1782,20 @@ def _(mo, relaxation_controls):
             mo.md(r"""
             ## 6. Chemical diffusivity sets the relaxation time
 
-            In a one-dimensional sample of length \(L\), the characteristic
-            time follows the scaling used in Lecture 5:
+            Two related clocks must not be given the same name:
 
             \[
-            \tau^\delta \propto
-            \frac{L^2}{D_{\rm Li}^{\delta}}.
+            t_D=\frac{L^2}{D_{\rm Li}^{\delta}},\qquad
+            \tau^\delta=\frac{L^2}{\pi^2D_{\rm Li}^{\delta}},\qquad
+            \theta=\frac{D_{\rm Li}^{\delta}t}{L^2}.
             \]
 
-            Increasing the length by a factor of ten increases the diffusion
-            time by a factor of one hundred. This is why the same material can
+            $t_D$ is the direct diffusion scaling time. $\tau^\delta$ is the
+            slowest-mode time for this slab relaxation. The profile control is
+            the Fourier number $\theta$, not an unspecified “reduced time.”
+
+            Increasing the length by a factor of ten increases both diffusion
+            times by a factor of one hundred. This is why the same material can
             respond quickly as a thin film and slowly as a bulk sample.
             """),
             relaxation_controls,
@@ -1763,6 +1842,7 @@ def _(
     length_curve_m,
     lithium_chemical_diffusivity_cm2_per_s,
     mo,
+    np,
     plt,
     reduced_profile_time,
     relaxation_curve_s,
@@ -1782,7 +1862,15 @@ def _(
         relaxation_curve_s,
         color="#4C7C86",
         lw=3.0,
-        label=r"$L^2/D_{\rm Li}^{\delta}$",
+        label=r"scaling time $t_D=L^2/D_{\rm Li}^{\delta}$",
+    )
+    time_axis.loglog(
+        length_curve_m,
+        relaxation_curve_s / np.pi**2,
+        color="#B8734A",
+        lw=2.5,
+        ls="--",
+        label=r"first mode $\tau^\delta=t_D/\pi^2$",
     )
     time_axis.scatter(
         [selected_length_m],
@@ -1791,7 +1879,7 @@ def _(
         color="#C49345",
         edgecolor="#40464D",
         zorder=5,
-        label="selected length",
+        label="selected $t_D$",
     )
     time_axis.set(
         xlabel="sample length, L (m)",
@@ -1826,14 +1914,24 @@ def _(
     else:
         time_text = f"{selected_relaxation_time_s / 86400.0:.2f} days"
 
+    selected_first_mode_time_s = selected_relaxation_time_s / np.pi**2
+    if selected_first_mode_time_s < 1.0:
+        first_mode_text = f"{selected_first_mode_time_s:.3e} s"
+    elif selected_first_mode_time_s < 3600.0:
+        first_mode_text = f"{selected_first_mode_time_s / 60.0:.2f} min"
+    elif selected_first_mode_time_s < 86400.0:
+        first_mode_text = f"{selected_first_mode_time_s / 3600.0:.2f} h"
+    else:
+        first_mode_text = f"{selected_first_mode_time_s / 86400.0:.2f} days"
+
     relaxation_summary = mo.md(
         rf"""
-        With \(D_{{\rm Li}}^\delta
+        **Figure takeaway.** With \(D_{{\rm Li}}^\delta
         ={lithium_chemical_diffusivity_cm2_per_s:.3e}\) cm²/s and
-        \(L={selected_length_m:.3e}\) m,
-        \(L^2/D_{{\rm Li}}^\delta\) is **{time_text}**.
-        The right panel shows the remaining composition change at
-        \(tD_{{\rm Li}}^\delta/L^2={float(reduced_profile_time.value):.2f}\).
+        \(L={selected_length_m:.3e}\) m, $t_D$ is **{time_text}** and
+        $\tau^\delta$ is **{first_mode_text}**.
+        The right panel shows the remaining composition change at Fourier
+        number \(\theta={float(reduced_profile_time.value):.2f}\).
         """
     )
     mo.vstack([relaxation_figure, relaxation_summary])
@@ -1985,7 +2083,7 @@ def _(mo, transport_validation):
     def _check_mark(passed):
         return "PASS" if passed else "CHECK"
 
-    mo.md(
+    _checks = mo.md(
         rf"""
         ## Physical consistency checks
 
@@ -2003,6 +2101,7 @@ def _(mo, transport_validation):
         coupled chemical diffusion; they do not add new assumptions.
         """
     )
+    mo.accordion({"Physical consistency checks": _checks})
     return
 
 
@@ -2011,30 +2110,35 @@ def _(mo):
     mo.md(r"""
     ## Take-home map
 
-    1. The total hop frequency is
-       \(\Gamma=\nu\exp[-\Delta H_{\rm mig}/(k_BT)]\).
-    2. In one dimension, random hops give
-       \(D=a^2\Gamma/2\) and \(\langle x^2\rangle=2Dt\).
-    3. A concentration imbalance turns symmetric exchanges into
-       \(J=-D\,dc/dx\).
-    4. An electric field biases the two directions. In the low-field limit this
-       gives the Nernst-Einstein relation and
-       \(\widetilde{\mu}=\mu+zF\phi\).
-    5. For \(\mathrm{Li}\rightleftharpoons\mathrm{Li^+}+e^-\), local charge
-       neutrality and local equilibrium require
-       \(J_{\rm Li}=J_{\rm Li^+}=J_{e^-}\).
-    6. In the dilute Li example,
-       \(D_{\rm Li}^{\delta}=2D_{\rm Li^+}D_{e^-}/
-       (D_{\rm Li^+}+D_{e^-})\), and the relaxation time scales as
-       \(L^2/D_{\rm Li}^{\delta}\).
+    1. **Hops become diffusion.** In one dimension,
+       $\Gamma_{\rm hop}=\nu e^{-\Delta H_{\rm mig}/k_BT}$ gives
+       $D=a^2\Gamma_{\rm hop}/2$, $\langle x^2\rangle=2Dt$, and the
+       long-wavelength flux $J=-D\,dc/dx$.
+    2. **Electrochemical potential unifies the driving forces.** A concentration
+       gradient and $\mathcal E=-\partial\phi/\partial x$ enter through
+       $\widetilde\mu=\mu+zF\phi$; equilibrium means their contributions cancel.
+    3. **Chemical diffusion moves a neutral composition.** For the dilute ideal
+       Li pair, equal Li-ion/electron fluxes give
+       $D_{\rm Li}^{\delta}=2D_{\rm Li^+}D_{e^-}/(D_{\rm Li^+}+D_{e^-})$.
+       This compact factor of two is specific to the stated ideal pair, not a
+       universal formula for every defect reaction.
 
     **Model boundary.** Every spatial equation and simulation in this notebook
     is one-dimensional. We use ideal, dilute concentrations for the Li chemical
     diffusion derivation, exactly where the lecture obtains the compact
-    expression above. Correlation factors and interfaces are left for later
-    treatment.
+    expression above. The Haven ratio introduces correlation without
+    calculating it here; interfaces are left for later treatment.
     """)
     return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    **Continue:** [Module 04 — Space-Charge Layers and the Frumkin Effect](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/04-space-charge-frumkin/)
+    """)
+    return
+
 
 
 if __name__ == "__main__":

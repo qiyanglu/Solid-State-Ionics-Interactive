@@ -67,6 +67,24 @@ def _(mo):
     how do ion-blocking electrodes turn an electrical drive into a changing
     stoichiometry profile?
 
+    **Learning goals**
+
+    1. Use transference numbers to predict which carrier initially carries the
+       current.
+    2. Connect ion-blocking boundary conditions to stoichiometry polarization.
+    3. Separate the measured voltage into chemical, electrical, and
+       electrochemical-potential contributions.
+
+    > **Predict before exploring.** Under constant current, should the voltage
+    > remain at its initial ohmic value, rise, or fall as the concentration
+    > gradient grows? What changes if the current is weak versus strong?
+
+    **Core path.** Start with constant current and the named weak/moderate/strong
+    presets. Constant potential is the complementary extension. The generic
+    $H/H^+/e^-$ pair is motivated by proton-insertion MIECs such as
+    $H_xNdNiO_3$, but it is not a material-specific parameterization. See the
+    shared [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
+
     We use the one-dimensional geometry and notation of the lecture:
 
     $$
@@ -540,13 +558,15 @@ def _(mo):
         value="constant current",
         label="electrical drive",
     )
-    current_strength_control = mo.ui.slider(
-        start=-1.5,
-        stop=1.5,
-        step=0.05,
-        value=0.8,
-        label="constant-current polarization strength, beta",
-        show_value=True,
+    current_strength_control = mo.ui.dropdown(
+        options={
+            "weak forward polarization (beta = 0.25)": 0.25,
+            "moderate forward polarization (beta = 0.80)": 0.80,
+            "strong forward polarization (beta = 1.40)": 1.40,
+            "moderate reverse polarization (beta = -0.80)": -0.80,
+        },
+        value="moderate forward polarization (beta = 0.80)",
+        label="constant-current classroom preset",
     )
     applied_voltage_control = mo.ui.slider(
         start=-120,
@@ -590,11 +610,6 @@ def _(
     mo,
     temperature_control,
 ):
-    active_drive_control = (
-        current_strength_control
-        if drive_mode_control.value == "current"
-        else applied_voltage_control
-    )
     polarization_controls = mo.vstack(
         [
             mo.hstack(
@@ -619,7 +634,23 @@ def _(
                 gap=1.2,
             ),
             mo.hstack(
-                [drive_mode_control, active_drive_control, log_time_control],
+                [current_strength_control, log_time_control],
+                justify="start",
+                align="center",
+                wrap=True,
+                gap=1.2,
+            ),
+        ]
+    )
+    _voltage_extension = mo.vstack(
+        [
+            mo.md(r"""
+            Constant potential holds the two-terminal voltage $U$ while the
+            current relaxes. Select that mode here only after understanding the
+            constant-current path.
+            """),
+            mo.hstack(
+                [drive_mode_control, applied_voltage_control],
                 justify="start",
                 align="center",
                 wrap=True,
@@ -630,21 +661,22 @@ def _(
     mo.vstack(
         [
             mo.md(r"""
-            ## 2. Explore current-controlled and voltage-controlled polarization
-
+            ## 2. Core path: constant-current polarization
++
             The conductivity **ratio** controls which carrier is the bottleneck.
             The total conductivity fixes the initial ohmic scale. For constant
             current we use
-
++
             $$
             \beta=\frac{FjL}{2RT\sigma_e}.
             $$
-
++
             It is also the steady concentration slope in normalized coordinates:
             $c/c_0=1+\beta(x/L-1/2)$. Keeping
             $|\beta|<2$ preserves a positive steady concentration.
             """),
             polarization_controls,
+            mo.accordion({"Extension — constant-potential operation": _voltage_extension}),
         ]
     )
     return (polarization_controls,)
@@ -748,11 +780,22 @@ def _(
     selected_current_density_a_per_m2,
     selected_drive_mode,
     selected_parameters,
+    selected_beta_setpoint,
     selected_time_ratio,
     selected_time_s,
     selected_voltage_v,
 ):
     selected_tau_minutes = selected_parameters["tau_delta_s"] / 60.0
+    if selected_drive_mode == "current":
+        _drive_details = (
+            f"The selected preset has $\\beta={selected_beta_setpoint:.2f}$ and "
+            f"therefore $j={selected_current_density_a_per_m2 * 0.1:.3g}$ mA/cm²."
+        )
+    else:
+        _drive_details = (
+            "The constant-potential extension is active; the classroom current "
+            "preset is retained but is not imposed."
+        )
     mo.md(
         rf"""
         ### What the selected material parameters imply
@@ -774,6 +817,7 @@ def _(
         $U=\mathbf{{{selected_voltage_v * 1.0e3:.2f}}}$ mV and
         $j=\mathbf{{{selected_current_density_a_per_m2 * 0.1:.3g}}}$ mA/cm².
         The active drive is **{selected_drive_mode.replace('_', ' ')}**.
+        {_drive_details}
 
         The slow carrier limits $D^\delta$: making one conductivity enormous
         cannot compensate for making the other one vanishingly small.
@@ -884,7 +928,10 @@ def _(
     )
     ratio_figure.tight_layout()
     plt.close(ratio_figure)
-    ratio_figure
+    mo.vstack([
+        ratio_figure,
+        mo.md("**Figure takeaway.** Transference numbers partition the immediate current, while the slower carrier controls $D^\\delta$ and the polarization time."),
+    ])
     return (ratio_figure,)
 
 
@@ -1045,6 +1092,7 @@ def _(
             steady value.
             """),
             transient_figure,
+            mo.md("**Figure takeaway.** Blocking electrodes conserve the mean composition but build a gradient; that chemical polarization makes $U(t)$ grow at fixed $j$ or makes $j(t)$ relax at fixed $U$."),
         ]
     )
     return (transient_figure,)
@@ -1170,9 +1218,84 @@ def _(
                 """
             ),
             potential_figure,
+            mo.md("**Figure takeaway.** Chemical and electrical contributions are not separate experiments: their sum gives each carrier's electrochemical potential and reconstructs the measured terminal voltage."),
         ]
     )
     return (potential_figure,)
+
+
+@app.cell
+def _(
+    FARADAY_C_PER_MOL,
+    GAS_CONSTANT_J_PER_MOL_K,
+    mo,
+    polarization_solution,
+    selected_drive_mode,
+    selected_parameters,
+    selected_time_index,
+):
+    _scale_v = (
+        2.0
+        * GAS_CONSTANT_J_PER_MOL_K
+        * selected_parameters["temperature_k"]
+        / FARADAY_C_PER_MOL
+    )
+    _beta_now = float(polarization_solution["beta"][selected_time_index])
+    _ohmic_now_v = (
+        _scale_v
+        * _beta_now
+        * selected_parameters["electronic_fraction"]
+        * float(polarization_solution["resistance_integral"][selected_time_index])
+    )
+    _chemical_now_v = (
+        _scale_v
+        * selected_parameters["ionic_fraction"]
+        * float(polarization_solution["chemical_jump"][selected_time_index])
+    )
+    _chemical_final_v = (
+        _scale_v
+        * selected_parameters["ionic_fraction"]
+        * float(polarization_solution["chemical_jump"][-1])
+    )
+    _initial_voltage_mv = 1.0e3 * float(polarization_solution["voltage_v"][0])
+    _initial_current_ma_cm2 = 0.1 * float(
+        polarization_solution["current_density_a_per_m2"][0]
+    )
+    _imposed = "current density $j$" if selected_drive_mode == "current" else "two-terminal voltage $U$"
+    _measured = "voltage $U(t)$" if selected_drive_mode == "current" else "current density $j(t)$"
+    mo.md(
+        rf"""
+        ### Measurement decomposition
+
+        | part of the experiment | quantity in this model |
+        |---|---|
+        | imposed | {_imposed} |
+        | measured | {_measured} |
+        | immediate Ohmic response | $U(0^+)={_initial_voltage_mv:.3g}$ mV, $j(0^+)={_initial_current_ma_cm2:.3g}$ mA cm$^{{-2}}$ |
+        | selected-time transport contribution | ${1.0e3 * _ohmic_now_v:.3g}$ mV |
+        | selected-time chemical-polarization contribution | ${1.0e3 * _chemical_now_v:.3g}$ mV |
+        | late chemical / Nernstian contribution | ${1.0e3 * _chemical_final_v:.3g}$ mV |
+
+        The displayed contributions add to the same $U(t)$ calculated from the
+        carrier electrochemical potentials. The chemical term begins at zero
+        and grows only after stoichiometry redistributes.
+
+        **Bridge to chemical capacitance.** For molar concentration $c$ and
+        active volume $V_{{\rm act}}=SL$,
+
+        $$
+        C_{{\rm chem}}=z^2F^2V_{{\rm act}}
+        \left(\frac{{\partial c}}{{\partial\mu_{{\rm neutral}}}}\right),
+        \qquad c_{{\rm chem}}=\frac{{C_{{\rm chem}}}}{{L}}.
+        $$
+
+        Chemical capacitance is differential storage of **neutral composition**.
+        It scales with active volume; Module 07 uses the distributed quantity
+        $c_{{\rm chem}}$ in F m$^{{-1}}$. Here $z=1$, $c$ is mol m$^{{-3}}$, and
+        $\mu_{{\rm neutral}}$ is molar (J mol$^{{-1}}$).
+        """
+    )
+    return
 
 
 @app.cell
@@ -1365,7 +1488,7 @@ def _(mo, module05_validation):
     def _check_status(passed):
         return "PASS" if passed else "CHECK"
 
-    mo.md(
+    _checks = mo.md(
         rf"""
         ## Physical consistency checks
 
@@ -1382,6 +1505,7 @@ def _(mo, module05_validation):
         equations to the model.
         """
     )
+    mo.accordion({"Physical consistency checks": _checks})
     return
 
 
@@ -1390,19 +1514,17 @@ def _(mo):
     mo.md(r"""
     ## Take-home map
 
-    1. Bulk local electroneutrality ties the ion and electron concentrations to
-       one stoichiometry variable $c(x,t)$.
-    2. Ionic and electronic fluxes respond to their own electrochemical-
-       potential gradients, while the total current is spatially uniform.
-    3. Eliminating the internal field gives chemical diffusion with
-       $D^\delta=2D_iD_e/(D_i+D_e)$; the slower carrier is the bottleneck.
-    4. Ion-blocking electrodes conserve the total ion content but force a
-       concentration gradient to grow.
-    5. Under constant current, voltage increases as chemical polarization
-       develops. Under constant potential, current relaxes.
-    6. At steady state, $\widetilde\mu_i$ is flat and the remaining current is
-       electronic. The stoichiometry profile is linear only because this model
-       uses ideal species with constant $D_i$ and $D_e$.
+    1. **One neutral stoichiometry variable couples two carriers.** Local bulk
+       electroneutrality gives $c_i=c_e=c$, while the slower carrier limits
+       $D^\delta=2D_iD_e/(D_i+D_e)$ in this ideal pair model.
+    2. **Blocking changes profiles, not total ion content.** Ion-blocking faces
+       force a gradient to grow while conserving the spatial average. Under
+       constant current the voltage rises; under constant potential the current
+       relaxes.
+    3. **The measured voltage has several contributions.** Chemical and
+       electrical terms add to each carrier's electrochemical potential. At
+       steady state $\widetilde\mu_i$ is flat and the remaining terminal current
+       is electronic.
 
     **Model boundary.** This first stoichiometry-polarization module is planar
     and one-dimensional. It uses an ideal $H/H^+/e^-$ pair, local bulk
@@ -1415,6 +1537,15 @@ def _(mo):
     inside this model.
     """)
     return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    **Continue:** [Module 06 — From Coulometric Titration to PITT and GITT](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/06-pitt-gitt/)
+    """)
+    return
+
 
 
 if __name__ == "__main__":

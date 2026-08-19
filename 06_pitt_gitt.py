@@ -63,7 +63,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    # PITT and GITT: Watching Chemical Diffusion
+    # From Coulometric Titration to PITT and GITT
 
     **Guiding question.** How can a voltage or current pulse reveal both the
     equilibrium composition and the rate of chemical diffusion in a mixed
@@ -77,6 +77,25 @@ def _(mo):
     |---|---|---|---|
     | **PITT** | voltage step | current decay | $D^\delta$, differential capacity |
     | **GITT** | current step | voltage transient | OCV curve, $D^\delta$ |
+
+    **Learning goals**
+
+    1. Connect integrated charge to composition and long-rest electrode
+       potential to an equilibrium titration curve.
+    2. Distinguish PITT's fixed-potential boundary from GITT's fixed-flux
+       boundary and follow both into OCV relaxation.
+    3. Decide when diffusion-only formulas are trustworthy and when finite
+       surface kinetics biases an inferred $D^\delta$.
+
+    > **Predict before exploring.** After a small insertion step, where is the
+    > composition change largest first? When the circuit opens, can the internal
+    > concentration profile continue changing even though terminal current is zero?
+
+    **Notation and model scope.** The changing variable is the electrically
+    neutral composition species Li or H—not an isolated ion. Electrode potential
+    relative to a reference is $E$; total current is $I$ and $j=I/S$. The core
+    reader uses one-dimensional, small-step, ideal-pair chemical diffusion. See
+    the shared [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
 
     After each pulse, the circuit is opened. The current becomes zero, but a
     nonuniform composition can still relax internally. Repeating small steps
@@ -92,32 +111,82 @@ def _(mo):
 
 @app.cell
 def _(mo):
+    species_label_06 = mo.ui.dropdown(
+        options={
+            "Lithium host: Li ⇌ Li⁺ + e⁻": "Li",
+            "Hydrogen host: H ⇌ H⁺ + e⁻": "H",
+        },
+        value="Lithium host: Li ⇌ Li⁺ + e⁻",
+        label="neutral composition label",
+    )
+    species_label_06
+    return (species_label_06,)
+
+
+@app.cell
+def _(mo, np, plt, species_label_06):
+    _delta = np.linspace(0.03, 0.97, 400)
+    _reduced_potential = -np.log(_delta / (1.0 - _delta))
+    _selected = np.array([0.18, 0.36, 0.58, 0.78])
+    _selected_potential = -np.log(_selected / (1.0 - _selected))
+    _figure, _axis = plt.subplots(figsize=(11.8, 4.1), constrained_layout=True)
+    _axis.plot(_delta, _reduced_potential, color="#4F7881", lw=3.0)
+    _axis.scatter(
+        _selected, _selected_potential, marker="D", s=65, color="#B8734A",
+        edgecolor="white", zorder=4, label="successive long-rest states",
+    )
+    for _left, _right in zip(_selected[:-1], _selected[1:]):
+        _axis.annotate(
+            "", xy=(_right, -np.log(_right / (1.0 - _right))),
+            xytext=(_left, -np.log(_left / (1.0 - _left))),
+            arrowprops={"arrowstyle": "->", "color": "#7C6A91", "lw": 1.8},
+        )
+    _axis.set(
+        xlabel=rf"neutral {species_label_06.value} stoichiometry, $\delta$",
+        ylabel=r"illustrative $F(E-E^0)/(RT)$",
+        title="Coulometry locates composition; long-rest potential locates equilibrium",
+    )
+    _axis.grid(alpha=0.22)
+    _axis.legend(loc="best")
+    mo.vstack([
+        mo.md(rf"""
+        ## 1. First build an equilibrium titration curve
+
+        A pulse moves neutral **{species_label_06.value}**. For a monovalent
+        insertion reaction,
+
+        $$Q=\int I\,dt=F n_{{\rm host}}(\delta_2-\delta_1),\qquad
+        c=\frac{{\delta}}{{V_m}}.$$
+
+        Integrated charge gives the composition step. After a long OCV rest,
+        the uniform specimen gives one point on $E(\delta)$. Repeating small
+        pulse–rest steps maps equilibrium; each transient contains transport
+        information. The curve below is illustrative rather than a material fit.
+        """),
+        _figure,
+        mo.md("**Figure takeaway.** Coulometry answers *where equilibrium is*; PITT/GITT asks *how the solid approaches it*."),
+    ])
+    return
+
+
+@app.cell
+def _(mo):
     mo.md(r"""
-    ## 1. The selective-contact experiment
+    ## 2. The selective-contact experiment
 
-    We keep the ideal pair model and notation of Module 05,
+    Write the selectable neutral species as
+    $$M \rightleftharpoons M^+ + e^-, \qquad c_i=c_e=c(x,t).$$
 
-    $$H \rightleftharpoons H^+ + e^-, \qquad c_i=c_e=c(x,t),$$
+    Following the articles, the **ion electrolyte is at $x=0$** and the
+    **electronic current collector is at $x=L$**.
 
-    but change the contacts. The MIEC occupies $0\le x\le L$.
+    - At $x=0$, the electrolyte passes $M^+$ and blocks electrons: $J_e(0,t)=0$.
+    - At $x=L$, the collector passes electrons and blocks $M^+$: $J_i(L,t)=0$.
 
-    - At $x=0$, the **current collector passes electrons and blocks ions**:
-      $J_i(0,t)=0$.
-    - At $x=L$, the **electrolyte passes ions and blocks electrons**:
-      $J_e(L,t)=0$.
-
-    The two carriers therefore enter or leave through opposite faces. Local
-    electroneutrality couples them into a neutral composition change in the
-    MIEC. Thin interfacial layers and charge-transfer kinetics are not resolved
-    in this introductory bulk-diffusion model.
-
-    We define
-
-    $$j=F(J_i-J_e),$$
-
-    and choose **positive $j$ and positive $\Delta U$ to extract $H$**, so the
-    mean concentration decreases. This sign choice is stated here because
-    battery literature often uses the opposite charge/discharge convention.
+    The carriers cross opposite faces, while bulk electroneutrality couples them
+    into a neutral composition change. We define $j=F(J_i-J_e)$. With the sign
+    convention used here, positive drive extracts $M$, so the mean concentration
+    falls. Every displayed profile uses the left-to-right coordinate shown above.
     """)
     return
 
@@ -438,8 +507,68 @@ def _(np, solve_ivp):
     )
 
 
+
 @app.cell
-def _(mo, plt):
+def _(np):
+    from scipy.optimize import brentq
+
+    def finite_pitt_modes_06(biot_number, mode_count=100):
+        biot = float(biot_number)
+        if biot <= 0.0 and not np.isinf(biot):
+            raise ValueError("Bi must be positive")
+        modes = np.arange(int(mode_count), dtype=float)
+        if np.isinf(biot):
+            roots = (modes + 0.5) * np.pi
+        else:
+            roots = np.array([
+                brentq(
+                    lambda root: root * np.tan(root) - biot,
+                    mode * np.pi + 1.0e-12,
+                    mode * np.pi + 0.5 * np.pi - 1.0e-12,
+                ) for mode in modes
+            ])
+        coefficients = 4.0 * np.sin(roots) / (2.0 * roots + np.sin(2.0 * roots))
+        return roots, coefficients
+
+    def finite_pitt_kinetics_06(theta, position, biot_number, mode_count=100):
+        theta_values = np.atleast_1d(np.asarray(theta, dtype=float))
+        positions = np.atleast_1d(np.asarray(position, dtype=float))
+        if np.any(theta_values <= 0.0):
+            raise ValueError("theta must be positive")
+        if np.any((positions < 0.0) | (positions > 1.0)):
+            raise ValueError("position must lie between zero and one")
+        roots, coefficients = finite_pitt_modes_06(biot_number, mode_count)
+        decays = np.exp(-np.outer(theta_values, roots**2))
+        shapes = np.cos(roots[:, None] * (1.0 - positions[None, :]))
+        return {
+            "theta": theta_values,
+            "position": positions,
+            "Bi": float(biot_number),
+            "roots": roots,
+            "profile": (decays * coefficients[None, :]) @ shapes,
+            "current": decays @ (coefficients * roots * np.sin(roots)),
+            "mean_profile": decays @ (coefficients * np.sin(roots) / roots),
+        }
+
+    def finite_pitt_fit_bias_06(biot_values, fitting_windows, mode_count=70):
+        biot_grid = np.asarray(biot_values, dtype=float)
+        results = {name: np.empty_like(biot_grid) for name in fitting_windows}
+        theta_grid = np.geomspace(8.0e-3, 1.6, 420)
+        for index, biot in enumerate(biot_grid):
+            response = finite_pitt_kinetics_06(
+                theta_grid, np.array([0.0, 1.0]), biot, mode_count
+            )
+            log_current = np.log(response["current"])
+            for name, (lower, upper) in fitting_windows.items():
+                selected = (theta_grid >= lower) & (theta_grid <= upper)
+                slope = np.polyfit(theta_grid[selected], log_current[selected], 1)[0]
+                results[name][index] = -4.0 * slope / np.pi**2
+        return results
+
+    return finite_pitt_fit_bias_06, finite_pitt_kinetics_06, finite_pitt_modes_06
+
+@app.cell
+def _(mo, plt, species_label_06):
     _fig, _ax = plt.subplots(figsize=(12.0, 2.7), constrained_layout=True)
     _ax.set_xlim(-0.12, 1.12)
     _ax.set_ylim(-0.42, 0.48)
@@ -447,36 +576,36 @@ def _(mo, plt):
     _ax.axvspan(0.0, 1.0, color="#DDEBDD", alpha=0.95)
     _ax.axvspan(1.0, 1.1, color="#B8DDE3", alpha=0.95)
     _ax.text(
-        -0.05, 0.12, "current\ncollector", ha="center", va="center", color="white", weight="bold"
+        -0.05, 0.12, "ion\nelectrolyte", ha="center", va="center", color="white", weight="bold"
     )
     _ax.text(
         0.5,
         0.15,
-        "MIEC:  $H \u21cc H^+ + e^-$",
+        rf"MIEC:  ${species_label_06.value} \rightleftharpoons {species_label_06.value}^+ + e^-$",
         ha="center",
         va="center",
         fontsize=15,
         weight="bold",
     )
     _ax.text(
-        1.05, 0.12, "ion\nelectrolyte", ha="center", va="center", color="#405E66", weight="bold"
+        1.05, 0.12, "current\ncollector", ha="center", va="center", color="#405E66", weight="bold"
     )
     _ax.annotate(
-        "$e^-$ passes",
+        rf"${species_label_06.value}^+$ passes",
         xy=(-0.02, -0.12),
         xytext=(0.20, -0.12),
         arrowprops={"arrowstyle": "->", "lw": 2},
         ha="center",
     )
     _ax.annotate(
-        "$H^+$ passes",
+        "$e^-$ passes",
         xy=(1.02, -0.12),
         xytext=(0.80, -0.12),
         arrowprops={"arrowstyle": "->", "lw": 2},
         ha="center",
     )
-    _ax.text(0.02, -0.31, "$J_i(0,t)=0$", ha="left", color="#A65E5E", weight="bold")
-    _ax.text(0.98, -0.31, "$J_e(L,t)=0$", ha="right", color="#A65E5E", weight="bold")
+    _ax.text(0.02, -0.31, "$J_e(0,t)=0$", ha="left", color="#A65E5E", weight="bold")
+    _ax.text(0.98, -0.31, "$J_i(L,t)=0$", ha="right", color="#A65E5E", weight="bold")
     _ax.text(0.0, 0.37, "$x=0$", ha="center")
     _ax.text(1.0, 0.37, "$x=L$", ha="center")
     _ax.axis("off")
@@ -484,7 +613,7 @@ def _(mo, plt):
         [
             _fig,
             mo.md(
-                "The contacts are complementary: neither carrier can cross the whole "
+                "**Figure takeaway.** The contacts are complementary: neither carrier can cross the whole "
                 "cell by itself, yet the neutral pair can be inserted or extracted through "
                 "the external circuit."
             ),
@@ -496,7 +625,7 @@ def _(mo, plt):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 2. From carrier fluxes to one diffusion equation
+    ## 3. From carrier fluxes to one diffusion equation
 
     Let $c_0=c(x,0)$ be the initially uniform pair concentration, consistent
     with Module 05. With ideal dilute chemical potentials
@@ -507,14 +636,19 @@ def _(mo):
     $$
 
     the neutral-pair chemical potential is
-    $\mu_H=\mu_i+\mu_e=\mu_H^0+2RT\ln(c/c_0)$. Eliminating the
+    $\mu_M=\mu_i+\mu_e=\mu_M^0+2RT\ln(c/c_0)$. Eliminating the
     internal electric field gives exactly the same chemical diffusivity as in
     Module 05,
 
     $$
     D^\delta=\frac{2D_iD_e}{D_i+D_e},\qquad
+    t_D=\frac{L^2}{D^\delta},\qquad
     \tau^\delta=\frac{L^2}{\pi^2D^\delta}.
     $$
+
+    We use both clocks: $\theta=D^\delta t/L^2$ and
+    $s=t/\tau^\delta=\pi^2\theta$. The first exposes scaling; the second makes
+    the slowest finite-slab mode decay as $e^{-s}$.
 
     The coupled fluxes become
 
@@ -544,15 +678,15 @@ def _(mo):
     electrochemical drive. Relative to the initial state, define
 
     $$
-    \hat U=\frac{F\Delta U}{2RT}
+    \hat E=\frac{F\Delta E}{2RT}
     =-t_i\ln y(0)-t_e\ln y(1)
     +\hat j t_i t_e\int_0^1\frac{d\xi}{y}.
     $$
 
     The first two terms are concentration polarization at the two selective
-    faces; the integral is the internal Ohmic contribution. PITT holds $\hat U$
+    faces; the integral is the internal Ohmic contribution. PITT holds $\hat E$
     fixed and solves this relation for $\hat j(t)$. GITT holds $\hat j$ fixed and
-    evaluates $\hat U(t)$. At OCV, $\hat j=0$ while the inherited concentration profile relaxes.
+    evaluates $\hat E(t)$. At OCV, $\hat j=0$ while the inherited concentration profile relaxes.
     """)
     return
 
@@ -756,7 +890,7 @@ def _(current_scale_a_per_m2_06, mo, parameters_06):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 3. The three stages: pulse, interruption, relaxation
+    ## 4. The three stages: pulse, interruption, relaxation
 
     The plots below use the **full finite-slab solution**.
 
@@ -801,28 +935,27 @@ def _(
     ]
     _colors = ["#9DB8B7", "#729A9B", "#4F7881"]
     _rest_colors = ["#D8B178", "#C18A68", "#A65E5E"]
+    _styles = ["--", "-.", "-"]
+    _rest_styles = [":", "--", (0, (5, 2))]
 
     _fig, _axes = plt.subplots(2, 2, figsize=(14.2, 9.0), constrained_layout=True)
-    for _index, _color in zip(_pulse_indices, _colors):
+    for _index, _color, _style in zip(_pulse_indices, _colors, _styles):
         _axes[0, 0].plot(
             _x_um,
-            pitt_result_06["pulse_profiles"][_index],
+            pitt_result_06["pulse_profiles"][_index][::-1],
             color=_color,
+            ls=_style,
             lw=2.3,
-            label="pulse (solid; light to dark = later)"
-            if _index == _pulse_indices[0]
-            else "_nolegend_",
+            label=rf"pulse $t/\tau^\delta={pulse_times_06[_index]:.2g}$",
         )
-    for _index, _color in zip(_rest_indices, _rest_colors):
+    for _index, _color, _style in zip(_rest_indices, _rest_colors, _rest_styles):
         _axes[0, 0].plot(
             _x_um,
-            pitt_result_06["rest_profiles"][_index],
+            pitt_result_06["rest_profiles"][_index][::-1],
             color=_color,
             lw=2.2,
-            ls="--",
-            label="OCV rest (dashed; light to dark = later)"
-            if _index == _rest_indices[0]
-            else "_nolegend_",
+            ls=_style,
+            label=rf"OCV $t_r/\tau^\delta={rest_times_06[_index]:.2g}$",
         )
     _axes[0, 0].set_title("PITT: concentration profiles")
     _axes[0, 0].set_xlabel("position x (micrometers)")
@@ -846,26 +979,23 @@ def _(
     _current_axis.set_ylabel("current density (mA cm$^{-2}$)", color="#4F7881")
     _current_axis.tick_params(axis="y", labelcolor="#4F7881")
 
-    for _index, _color in zip(_pulse_indices, _colors):
+    for _index, _color, _style in zip(_pulse_indices, _colors, _styles):
         _axes[1, 0].plot(
             _x_um,
-            gitt_result_06["pulse_profiles"][_index],
+            gitt_result_06["pulse_profiles"][_index][::-1],
             color=_color,
+            ls=_style,
             lw=2.3,
-            label="pulse (solid; light to dark = later)"
-            if _index == _pulse_indices[0]
-            else "_nolegend_",
+            label=rf"pulse $t/\tau^\delta={pulse_times_06[_index]:.2g}$",
         )
-    for _index, _color in zip(_rest_indices, _rest_colors):
+    for _index, _color, _style in zip(_rest_indices, _rest_colors, _rest_styles):
         _axes[1, 0].plot(
             _x_um,
-            gitt_result_06["rest_profiles"][_index],
+            gitt_result_06["rest_profiles"][_index][::-1],
             color=_color,
             lw=2.2,
-            ls="--",
-            label="OCV rest (dashed; light to dark = later)"
-            if _index == _rest_indices[0]
-            else "_nolegend_",
+            ls=_style,
+            label=rf"OCV $t_r/\tau^\delta={rest_times_06[_index]:.2g}$",
         )
     _axes[1, 0].set_title("GITT: concentration profiles")
     _axes[1, 0].set_xlabel("position x (micrometers)")
@@ -902,8 +1032,13 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""
+    **Figure takeaway.** PITT prescribes the surface composition and lets
+    current relax; GITT prescribes composition flux and lets electrode potential
+    evolve. During the following OCV rest, current is zero while the nonuniform
+    composition can continue to relax.
+
     **Reading the electrolyte-side edge.** When $t_e$ is large, the
-    electron-blocking face at $x=L$ requires a stronger concentration
+    electron-blocking face at $x=0$ requires a stronger concentration
     gradient. A steep but smooth bend near that face is therefore physical.
     """)
     return
@@ -994,27 +1129,27 @@ def _(
     _energy_scale = GAS_CONSTANT_J_PER_MOL_K * parameters_06["temperature_k"] / 1000.0
     _x_um = positions_06 * parameters_06["length_m"] * 1.0e6
     _fig, _axes = plt.subplots(1, 3, figsize=(15.0, 4.5), constrained_layout=True)
-    _axes[0].plot(_x_um, selected_potentials_06["profile"], color="#4F7881", lw=2.8)
+    _axes[0].plot(_x_um, selected_potentials_06["profile"][::-1], color="#4F7881", lw=2.8)
     _axes[0].set_title("Composition")
     _axes[0].set_ylabel("c / c0")
 
     _axes[1].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["mu_i"],
+        _energy_scale * selected_potentials_06["mu_i"][::-1],
         color="#5F8F8D",
         lw=2.2,
         label="$\\mu_i$",
     )
     _axes[1].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["electrical_i"],
+        _energy_scale * selected_potentials_06["electrical_i"][::-1],
         color="#C49345",
         lw=2.2,
         label="$+F\\phi$",
     )
     _axes[1].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["tilde_mu_i"],
+        _energy_scale * selected_potentials_06["tilde_mu_i"][::-1],
         color="#A65E5E",
         lw=2.8,
         label="$\\widetilde\\mu_i$",
@@ -1025,21 +1160,21 @@ def _(
 
     _axes[2].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["mu_e"],
+        _energy_scale * selected_potentials_06["mu_e"][::-1],
         color="#5F8F8D",
         lw=2.2,
         label="$\\mu_e$",
     )
     _axes[2].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["electrical_e"],
+        _energy_scale * selected_potentials_06["electrical_e"][::-1],
         color="#C49345",
         lw=2.2,
         label="$-F\\phi$",
     )
     _axes[2].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["tilde_mu_e"],
+        _energy_scale * selected_potentials_06["tilde_mu_e"][::-1],
         color="#A65E5E",
         lw=2.8,
         label="$\\widetilde\\mu_e$",
@@ -1061,8 +1196,8 @@ def _(
         [
             _fig,
             mo.md(
-                r"Move the **progress** slider or switch cases. The ochre curves show "
-                r"the electrostatic potential in molar-energy form, $+F\phi$ for the ion "
+                r"**Figure takeaway.** Move the **progress** slider or switch cases. "
+                r"The $+F\phi$ and $-F\phi$ lines show electrostatic potential in molar-energy form: $+F\phi$ for the ion "
                 r"and $-F\phi$ for the electron; divide by $F$ to express $\phi$ in volts. "
                 r"During OCV the electrical current is zero, but sloped electrochemical "
                 r"potentials can still drive equal ion and electron fluxes."
@@ -1075,7 +1210,7 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 4. Where the textbook approximations come from
+    ## 5. Where the textbook approximations come from
 
     To isolate the standard formulas, now take the **classical one-sided
     limit**: electronic transport in the MIEC is much faster than ionic
@@ -1116,7 +1251,7 @@ def _(mo):
     finite-slab diffusion-voltage response can be written
 
     $$
-    \Delta U(t)=\frac{2RT}{F}\frac{j_0L}{FD^\delta c_0}
+    \Delta E(t)=\frac{2RT}{F}\frac{j_0L}{FD^\delta c_0}
     \left[\frac{D^\delta t}{L^2}+\frac13-
     \frac{2}{\pi^2}\sum_{n=1}^{\infty}
     \frac{e^{-n^2\pi^2D^\delta t/L^2}}{n^2}\right].
@@ -1125,14 +1260,14 @@ def _(mo):
     At short time,
 
     $$
-    \Delta U(t)\simeq\frac{4RTj_0}{F^2c_0}
+    \Delta E(t)\simeq\frac{4RTj_0}{F^2c_0}
     \sqrt{\frac{t}{\pi D^\delta}},
     $$
 
     whereas the long-time expression is
 
     $$
-    \Delta U(t)\simeq\frac{2RT}{F}\frac{j_0L}{FD^\delta c_0}
+    \Delta E(t)\simeq\frac{2RT}{F}\frac{j_0L}{FD^\delta c_0}
     \left(\frac{D^\delta t}{L^2}+\frac13\right).
     $$
 
@@ -1212,7 +1347,7 @@ def _(
         label="long-time expression",
     )
     _axes[1].set_title("GITT voltage")
-    _axes[1].set_ylabel(r"$F^2D^\delta c_0\Delta U/(2RTj_0L)$")
+    _axes[1].set_ylabel(r"$F^2D^\delta c_0\Delta E/(2RTj_0L)$")
     for _axis in _axes:
         _axis.set_xlabel(r"Fourier time, $D^\delta t/L^2$")
         _axis.grid(which="both", alpha=0.22)
@@ -1239,6 +1374,10 @@ def _(mo):
     mo.md(r"""
     ### Reading the usual experimental plots
 
+    **Figure takeaway.** The short- and long-time formulas touch the same exact
+    finite-slab response only in their own asymptotic windows; they are not
+    interchangeable global fits.
+
     The asymptotes suggest simple diagnostics, provided the assumptions above
     have been tested. For PITT, the short-time plot of $I$ versus $t^{-1/2}$ is
     linear and
@@ -1249,20 +1388,16 @@ def _(mo):
     At long PITT times, a plot of $\ln|I|$ versus $t$ has slope
     $-\pi^2D^\delta/(4L^2)$.
 
-    For a short GITT pulse of duration $\tau$, let $\Delta U_t$ be the gradual
+    For a short GITT pulse of duration $\tau$, let $\Delta E_t$ be the gradual
     diffusion voltage during the pulse after removing the instantaneous Ohmic
-    jump, and let $\Delta U_s$ be the equilibrium OCV change caused by that
+    jump, and let $\Delta E_s$ be the equilibrium OCV change caused by that
     pulse. The planar small-signal result is
 
     $$
     D^\delta\simeq\frac{4L^2}{\pi\tau}
-    \left(\frac{\Delta U_s}{\Delta U_t}\right)^2,
+    \left(\frac{\Delta E_s}{\Delta E_t}\right)^2,
     \qquad \frac{D^\delta\tau}{L^2}\ll1.
     $$
-
-    Many articles write potential as $E$ rather than $U$; their
-    $\Delta E_t$ and $\Delta E_s$ are the same quantities as
-    $\Delta U_t$ and $\Delta U_s$ here. We retain $U$ to match Module 05.
 
     This familiar GITT formula is a **short-pulse result**, not a definition of
     diffusivity. The surface area, diffusion length, OCV slope, and removal of
@@ -1296,10 +1431,236 @@ def _(mo):
     return
 
 
+
+
+@app.cell
+def _(mo):
+    kinetics_profile_time_06 = mo.ui.slider(
+        -3.0, 0.0, value=-1.3, step=0.1,
+        label=r"profile time, $\log_{10}\theta$", show_value=True,
+    )
+    return (kinetics_profile_time_06,)
+
+
+@app.cell
+def _(
+    cumulative_trapezoid,
+    finite_pitt_fit_bias_06,
+    finite_pitt_kinetics_06,
+    finite_pitt_modes_06,
+    np,
+):
+    finite_biot_cases_06 = (np.inf, 100.0, 1.0, 0.01)
+    finite_theta_06 = np.geomspace(1.0e-4, 2.0, 340)
+    finite_position_06 = np.linspace(0.0, 1.0, 260)
+    finite_responses_06 = {
+        biot: finite_pitt_kinetics_06(
+            finite_theta_06, finite_position_06, biot, mode_count=120
+        ) for biot in finite_biot_cases_06
+    }
+    finite_mass_balance_error_06 = max(
+        np.max(np.abs(
+            finite_responses_06[biot]["mean_profile"][0]
+            - finite_responses_06[biot]["mean_profile"]
+            - cumulative_trapezoid(
+                finite_responses_06[biot]["current"], finite_theta_06, initial=0.0
+            )
+        ))
+        for biot in finite_biot_cases_06
+    )
+    fit_biot_grid_06 = np.geomspace(1.0e-3, 1.0e3, 76)
+    fitting_windows_06 = {
+        "transition window, 0.03–0.12": (0.03, 0.12),
+        "late window, 0.30–1.00": (0.30, 1.00),
+    }
+    fit_bias_06 = finite_pitt_fit_bias_06(
+        fit_biot_grid_06, fitting_windows_06, mode_count=70
+    )
+    _roots_fast, _ = finite_pitt_modes_06(1.0e6, 1)
+    _roots_slow, _ = finite_pitt_modes_06(1.0e-6, 1)
+    finite_fast_limit_error_06 = abs(_roots_fast[0] / (0.5 * np.pi) - 1.0)
+    finite_slow_limit_error_06 = abs(_roots_slow[0] ** 2 / 1.0e-6 - 1.0)
+    finite_bias_direction_pass_06 = bool(
+        fit_bias_06["late window, 0.30–1.00"][0] < 0.02
+        and fit_bias_06["late window, 0.30–1.00"][-1] > 0.94
+    )
+    return (
+        fit_bias_06,
+        fit_biot_grid_06,
+        finite_bias_direction_pass_06,
+        finite_biot_cases_06,
+        finite_mass_balance_error_06,
+        finite_fast_limit_error_06,
+        finite_position_06,
+        finite_responses_06,
+        finite_slow_limit_error_06,
+        finite_theta_06,
+        fitting_windows_06,
+    )
+
+
+@app.cell
+def _(
+    finite_biot_cases_06,
+    finite_pitt_kinetics_06,
+    finite_position_06,
+    kinetics_profile_time_06,
+    np,
+):
+    selected_finite_theta_06 = 10.0 ** kinetics_profile_time_06.value
+    selected_finite_profiles_06 = {
+        biot: finite_pitt_kinetics_06(
+            np.array([selected_finite_theta_06]),
+            finite_position_06,
+            biot,
+            mode_count=140,
+        )["profile"][0]
+        for biot in finite_biot_cases_06
+    }
+    finite_minimum_concentration_06 = min(
+        np.min(0.85 + 0.15 * profile)
+        for profile in selected_finite_profiles_06.values()
+    )
+    return (
+        finite_minimum_concentration_06,
+        selected_finite_profiles_06,
+        selected_finite_theta_06,
+    )
+
+
+@app.cell
+def _(
+    fit_bias_06,
+    fit_biot_grid_06,
+    finite_bias_direction_pass_06,
+    finite_biot_cases_06,
+    finite_mass_balance_error_06,
+    finite_fast_limit_error_06,
+    finite_minimum_concentration_06,
+    finite_position_06,
+    finite_responses_06,
+    finite_slow_limit_error_06,
+    finite_theta_06,
+    fitting_windows_06,
+    kinetics_profile_time_06,
+    mo,
+    np,
+    plt,
+    selected_finite_profiles_06,
+    selected_finite_theta_06,
+):
+    _colors = ("#4F7881", "#6B86A5", "#B8734A", "#7C6A91")
+    _styles = ("-", "--", "-.", ":")
+    _labels = (
+        r"$\mathrm{Bi}=\infty$", r"$\mathrm{Bi}=100$",
+        r"$\mathrm{Bi}=1$", r"$\mathrm{Bi}=0.01$",
+    )
+    _figure, _axes = plt.subplots(1, 3, figsize=(15.0, 4.8), constrained_layout=True)
+    for _biot, _color, _style, _label in zip(
+        finite_biot_cases_06, _colors, _styles, _labels
+    ):
+        _axes[0].loglog(
+            finite_theta_06, finite_responses_06[_biot]["current"],
+            color=_color, ls=_style, lw=2.7, label=_label,
+        )
+        _axes[1].plot(
+            finite_position_06,
+            0.85 + 0.15 * selected_finite_profiles_06[_biot],
+            color=_color, ls=_style, lw=2.7, label=_label,
+        )
+    _axes[0].set(
+        xlabel=r"diffusion time, $\theta=D^\delta t/L^2$",
+        ylabel="normalized PITT current",
+        title="Current separates diffusion and reaction control",
+    )
+    _axes[1].set(
+        xlabel=r"article coordinate, $x/L$",
+        ylabel=r"illustrative $c/c_0$",
+        title=rf"Profiles at $\theta={selected_finite_theta_06:.3g}$",
+    )
+    for _name, _color, _style in zip(
+        fitting_windows_06, ("#B8734A", "#4F7881"), ("--", "-")
+    ):
+        _axes[2].semilogx(
+            fit_biot_grid_06, fit_bias_06[_name], color=_color,
+            ls=_style, lw=2.7, label=_name,
+        )
+    _axes[2].axhline(1.0, color="#73808C", lw=1.2, ls=":")
+    _axes[2].set(
+        xlabel=r"surface Biot number, $\mathrm{Bi}$",
+        ylabel=r"$D^\delta_{\rm inferred}/D^\delta_{\rm true}$",
+        title="A diffusion-only fit can underestimate diffusivity",
+        ylim=(0.0, 1.35),
+    )
+    for _axis in _axes:
+        _axis.grid(alpha=0.22, which="both")
+        _axis.legend(fontsize=9.2, loc="best")
+    _checks_pass = (
+        finite_fast_limit_error_06 < 2.0e-6
+        and finite_slow_limit_error_06 < 2.0e-6
+        and finite_mass_balance_error_06 < 2.0e-4
+        and finite_minimum_concentration_06 > 0.0
+        and finite_bias_direction_pass_06
+    )
+    _content = mo.vstack([
+        mo.md(r"""
+        ### Advanced extension: finite surface kinetics
+
+        Ideal PITT fixes the surface chemical potential instantly. A finite
+        linearized surface reaction instead imposes
+
+        $$-D^\delta\left.\frac{\partial c}{\partial x}\right|_{0}
+        =k^\delta[c_s-c(0,t)],\qquad
+        \left.\frac{\partial c}{\partial x}\right|_{L}=0.$$
+
+        The competition is summarized by
+
+        $$\mathrm{Bi}=\frac{k^\delta L}{D^\delta}
+        =\frac{\tau_d}{\tau_{ct}},\qquad
+        \tau_d=\frac{L^2}{D^\delta},\quad
+        \tau_{ct}=\frac{L}{k^\delta}.$$
+
+        - $\mathrm{Bi}<0.1$: nearly uniform, reaction-limited response.
+        - $0.1\lesssim\mathrm{Bi}\lesssim10$: mixed control.
+        - $\mathrm{Bi}>10$: the diffusion-controlled limit is approached.
+
+        The finite-slab eigenvalues obey $\lambda\tan\lambda=\mathrm{Bi}$.
+        The curves are full transients, not patched limiting expressions.
+        """),
+        kinetics_profile_time_06,
+        _figure,
+        mo.md(rf"""
+        **Figure takeaway.** A straight line in
+        $\ln|I|$ versus $t$ does not prove diffusion control. Finite exchange
+        makes the slowest eigenvalue smaller than $\pi/2$; using the ideal PITT
+        slope then returns a diffusivity that is too small. The inferred value
+        also depends on the fitting window.
+
+        **GITT measurement decomposition.** Under a current step,
+
+        $$E_{{\rm meas}}(t)=E_{{\rm eq}}[c(0,t)]+\eta_{{ct}}(t)+I R_\Omega.$$
+
+        The instantaneous $IR_\Omega$ jump, gradual equilibrium-composition
+        term, and surface overpotential should not be assigned to one diffusion
+        formula. Constant $\eta_{{ct}}$ may leave a short-time $\sqrt t$ slope
+        unchanged; composition-dependent kinetics need not.
+
+        **Finite-kinetics checks: {'PASS' if _checks_pass else 'CHECK'}.** The
+        reaction- and diffusion-controlled eigenvalue limits agree; integrated
+        surface flux matches the composition change (maximum normalized error
+        {finite_mass_balance_error_06:.2e}); concentrations remain positive;
+        and the late-window fitting bias moves from severe underestimation at
+        small Bi toward unity at large Bi.
+        """),
+    ])
+    mo.accordion({"Advanced reader — surface kinetics and fitting bias": _content})
+    return
+
+
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 5. What can PITT and GITT determine?
+    ## 6. What can PITT and GITT determine?
 
     Under the assumptions of this notebook, the measurements separate two
     kinds of information:
@@ -1312,6 +1673,18 @@ def _(mo):
       length of the specimen.
     - **Carrier balance:** the immediate and gradual parts of the voltage
       response reveal how electronic and ionic transport share the drive.
+
+    **Assumptions checklist before extracting $D^\delta$**
+
+    - Is the step small enough that $D^\delta$ and $dE/d\delta$ are locally
+      constant?
+    - Is the active geometry one-dimensional, with known $L$ and $S$?
+    - Is the fitting window inside the short- or long-time regime used by the
+      formula?
+    - Are $IR_\Omega$, surface overpotential, and early capacitive response
+      separated from diffusion?
+    - Does the inferred value remain stable when pulse size, duration, and fit
+      window are changed?
 
     A fitted number is not automatically a material constant. The standard
     formulas assume a small step, a single phase, constant $D^\delta$, planar
@@ -1544,7 +1917,7 @@ def _(
         _status = "PASS" if _passed else "CHECK"
         _rows.append(f"| {_status} | {_name} | {_why} |")
     _table_lines = [
-        "## 6. Physical consistency checks",
+        "## 7. Physical consistency checks",
         "",
         "Each check protects a physical link between the imposed pulse, the "
         "composition profile, and the measured response.",
@@ -1552,14 +1925,15 @@ def _(
         "| status | check | why it matters |",
         "|---:|---|---|",
     ]
-    mo.md("\n".join(_table_lines + _rows))
+    _checks_table = mo.md("\n".join(_table_lines + _rows))
+    mo.accordion({"Physical consistency checks": _checks_table})
     return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 7. Take-home picture
+    ## 8. Three messages to keep
 
     $$
     \boxed{
@@ -1567,15 +1941,19 @@ def _(mo):
     \rightarrow \text{selective carrier fluxes}
     \rightarrow c(x,t)
     \rightarrow \mu_i,\mu_e,\phi
-    \rightarrow U(t)\text{ or }j(t)
+    \rightarrow E(t)\text{ or }j(t)
     }
     $$
 
-    PITT and GITT do not measure $D^\delta$ directly. They measure a transient,
-    and $D^\delta$ is inferred through a model with stated geometry, boundary
-    conditions, and thermodynamics. Short-time square-root behavior and
-    long-time exponential or linear behavior emerge from that model; they
-    should not be imposed outside their regimes.
+    1. **Titration separates state from rate.** Integrated charge gives
+       $\Delta\delta$, long-rest $E(\delta)$ gives thermodynamics, and the
+       transient carries kinetic information.
+    2. **PITT and GITT impose different boundaries.** PITT fixes a surface
+       chemical potential, GITT fixes a flux, and OCV sets terminal current to
+       zero while internal neutral diffusion may continue.
+    3. **$D^\delta$ is inferred through assumptions.** Finite surface kinetics,
+       ohmic drop, geometry, and fitting window can bias it; consistency tests
+       are part of the measurement.
 
     ### Sources and further reading
 
@@ -1617,6 +1995,15 @@ def _(plt):
         }
     )
     return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    **Continue:** [Module 07 — Impedance, Warburg Diffusion, and Transmission Lines](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/07-impedance-tlm/)
+    """)
+    return
+
 
 
 if __name__ == "__main__":

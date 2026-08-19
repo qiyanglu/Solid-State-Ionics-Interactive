@@ -65,6 +65,24 @@ def _(mo):
     **Guiding question.** How does an interface redistribute charged defects,
     and why does that redistribution change both capacitance and reaction rate?
 
+    **Learning goals**
+
+    1. Build a space-charge profile from electrochemical equilibrium and
+       Poisson's equation.
+    2. Distinguish the Gouy–Chapman and Mott–Schottky limiting pictures.
+    3. Follow one interfacial charge through GCS capacitance to the Frumkin
+       correction at the reaction plane.
+
+    > **Predict before exploring.** If the bulk defect concentration increases,
+    > should the space-charge layer extend farther into the crystal or become
+    > more compact? What must happen to its capacitance?
+
+    **Reader path and scope.** Sections 1–2 are the core space-charge lesson.
+    Sections 3–4 are the interface extension: capacitance and reaction-plane
+    kinetics. The geometry is planar and one-dimensional; $\phi_0$ is a boundary
+    condition supplied by the charged core. See the shared
+    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
+
     A surface, grain boundary, or phase boundary can have a different defect
     formation energy from the bulk. Defects may therefore segregate into a thin
     **core**. If that core acquires net charge, nearby mobile defects rearrange
@@ -784,6 +802,11 @@ def _(
         limiting guide, not the curve used in the calculation. The solid curve
         always uses the exact Gouy–Chapman solution.
 
+        **Figure takeaway.** Mobile co-ions and counter-ions redistribute
+        until their chemical and electrical energy changes cancel everywhere.
+        The Debye–Hückel exponential is only the low-potential guide; the plotted
+        nonlinear profile is the exact planar Gouy–Chapman result.
+
         **Continuum check.** The selected \(\lambda_D\) is
         {selected_debye_length_m * 1.0e9:.2f} nm. When a screening length becomes
         comparable to a lattice spacing (roughly below 1 nm), a continuum
@@ -913,6 +936,10 @@ def _(
         The **Mott–Schottky approximation** is reliable when this ratio is much
         smaller than one, so the frozen negative dopants dominate the charge
         inside the depletion layer.
+
+        **Figure takeaway.** Frozen charge produces a parabolic potential, but
+        the mobile positive-defect electrochemical potential still remains flat
+        at equilibrium.
         """
     )
     mo.vstack([ms_explanation, ms_figure])
@@ -1055,6 +1082,10 @@ def _(
 
             A higher bulk concentration shortens either layer because more
             charge is available per unit distance to screen the core.
+
+            **Figure takeaway.** Concentration and permittivity set the spatial
+            screening scale; only the Mott–Schottky depletion width also grows
+            explicitly with the imposed core potential.
             """),
             width_figure,
         ]
@@ -1115,7 +1146,7 @@ def _(mo):
 
 @app.cell
 def _(interface_controls, mo):
-    mo.vstack(
+    _gcs_intro = mo.vstack(
         [
             mo.md(r"""
             ## 3. From charge to capacitance: Gouy–Chapman–Stern
@@ -1166,6 +1197,7 @@ def _(interface_controls, mo):
             interface_controls,
         ]
     )
+    mo.accordion({"Advanced — Gouy–Chapman–Stern capacitance": _gcs_intro})
     return
 
 
@@ -1405,9 +1437,15 @@ def _(
         {pzc_diffuse_capacitance_f_per_m2 / stern_capacitance_f_per_m2:.2f}\).
         Only a ratio much larger than one makes the pZC total nearly equal to
         the Stern capacitance.
+
+        **Figure takeaway.** The Stern and diffuse layers carry the same charge
+        and add in series. Near the pZC, the total is close to $C_s$ only when
+        $C_{{d,\rm pZC}}\gg C_s$.
         """
     )
-    mo.vstack([gcs_figure, gcs_summary])
+    mo.accordion({
+        "Advanced — GCS figure and interpretation": mo.vstack([gcs_figure, gcs_summary])
+    })
     return (gcs_figure,)
 
 
@@ -1581,6 +1619,12 @@ def _(
         rf"""
         ## 4. The Frumkin effect: the reaction sees \(x=x_1\), not the bulk
 
+        **Butler–Volmer prerequisite and sign convention.** The plotted branch
+        is anodic: increasing $E-E^{{0\prime}}$ drives oxidation in the positive
+        current direction. The reactant charge $z_R$ is signed. At positive
+        $\phi_1$, a positive reactant is depleted and a negative reactant is
+        accumulated at the reaction plane.
+
         The **Butler-Volmer transfer coefficient** \(\alpha\) is a dimensionless
         kinetic parameter between 0 and 1. It describes how an interfacial
         overpotential changes the activation barriers of the two reaction
@@ -1602,10 +1646,10 @@ def _(
         - \(\alpha\) enters only the **charge-transfer kinetics**. It should not
           change the potential profile or capacitance.
 
-        The lower-right panel now isolates the \(\alpha\)-dependent potential
+        The lower-right panel isolates the \(\alpha\)-dependent potential
         contribution from the concentration contribution. Changing \(\alpha\)
-        therefore moves the orange and red curves, while the GCS panels remain
-        unchanged.
+        changes the kinetic potential factor and total Frumkin factor, while the
+        GCS potential and capacitance remain unchanged.
 
         The exchange current introduced in the lecture also uses reaction-plane
         concentrations,
@@ -1636,9 +1680,16 @@ def _(
         corrected anodic current is **{selected_current_ratio:.3g} times** the
         naive curve. Either enhancement or suppression is possible because the
         concentration and potential contributions can compete.
+
+        **Figure takeaway.** The reaction rate samples both local reactant
+        concentration and local potential at $x_1$; $\alpha$ changes kinetics
+        but does not change the equilibrium GCS capacitance.
         """
     )
-    mo.vstack([frumkin_text, kinetic_controls, frumkin_figure])
+    mo.accordion({
+        "Advanced — Butler–Volmer prerequisite and Frumkin correction":
+        mo.vstack([frumkin_text, kinetic_controls, frumkin_figure])
+    })
     return (frumkin_figure,)
 
 
@@ -1896,7 +1947,7 @@ def _(mo, module04_validation):
     def _status(passed):
         return "PASS" if passed else "CHECK"
 
-    mo.md(
+    _checks = mo.md(
         rf"""
         ## Physical consistency checks
 
@@ -1913,6 +1964,7 @@ def _(mo, module04_validation):
         capacitance, and the reaction-plane Frumkin effect.
         """
     )
+    mo.accordion({"Physical consistency checks": _checks})
     return
 
 
@@ -1921,26 +1973,18 @@ def _(mo):
     mo.md(r"""
     ## Take-home map
 
-    1. A different defect formation energy can charge an interface core.
-    2. A flat \(\widetilde\mu_i\) gives the Boltzmann concentration profile, and
-       Poisson's equation makes concentration, charge, and potential
-       self-consistent.
-    3. In Gouy–Chapman, all charged defects move. The exact nonlinear profile
-       reduces to an exponential only when \(|ze\phi_0|\ll k_BT\).
-    4. In Mott–Schottky, frozen dopants provide nearly constant depletion charge,
-       so the potential is parabolic over a finite width \(\lambda\).
-    5. \(\lambda_D\) is independent of core charge, whereas the
-       Mott–Schottky \(\lambda\) grows with \(\phi_0\) or \(Q_{\rm core}\).
-    6. Gauss's law gives \(Q_{\rm core}(\phi)\), and its derivative is the
-       differential capacitance.
-    7. The Stern and diffuse layers carry the same charge and act as two
-       capacitances in series. At the pZC, the total is close to \(C_s\) only
-       when \(C_{d,\rm pZC}\gg C_s\); at high field the ideal GCS total tends
-       toward \(C_s\).
-    8. A reaction at \(x=x_1\) experiences both the local concentration and the
-       local potential. Their combined change is the **Frumkin effect**.
-       The transfer coefficient \(\alpha\) belongs to this kinetic step, not to
-       the equilibrium capacitance.
+    1. **Equilibrium and Poisson must agree.** A flat $\widetilde\mu_i$ gives
+       Boltzmann redistribution, while Poisson's equation makes concentration,
+       charge, and potential self-consistent. Gouy–Chapman moves both signs;
+       Mott–Schottky freezes the majority dopants.
+    2. **Capacitance measures the charge response.** Gauss's law gives
+       $Q_{\rm core}(\phi)$ and differentiation gives $C_d$. Stern and diffuse
+       layers carry the same charge and add in series; near the pZC the total is
+       close to $C_s$ only when $C_{d,\rm pZC}\gg C_s$.
+    3. **A reaction experiences the reaction plane.** The Frumkin effect combines
+       the local concentration and local potential at $x=x_1$. The transfer
+       coefficient $\alpha$ belongs to this kinetic step, not to equilibrium GCS
+       capacitance.
 
     **Model boundary.** The geometry is planar and one-dimensional. The
     Gouy–Chapman section uses an ideal symmetric \(+ze/-ze\) mobile pair. The
@@ -1953,6 +1997,15 @@ def _(mo):
     theory are deliberately left for later modules.
     """)
     return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    **Continue:** [Module 05 — Stoichiometry Polarization](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/05-stoichiometry-polarization/)
+    """)
+    return
+
 
 
 if __name__ == "__main__":

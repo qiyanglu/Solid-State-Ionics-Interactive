@@ -68,6 +68,24 @@ def _(mo):
     **Question.** Why does a crystal contain defects at equilibrium even when
     creating each defect costs energy?
 
+    **Learning goals**
+
+    1. Connect multiplicity, configurational entropy, free energy, and the
+       equilibrium defect fraction.
+    2. Identify the same equilibrium from the minimum of $G$ and the zero of
+       the defect chemical potential $\mu_D$.
+    3. Distinguish exact finite-$N$, Stirling, and dilute results.
+
+    > **Predict before exploring.** If temperature increases while the
+    > formation enthalpy is unchanged, will the free-energy minimum move toward
+    > more defects or fewer defects? Which term in $G$ causes that motion?
+
+    **Model and notation scope.** Lowercase $\Delta g_f^0$, $\Delta h_f$, and
+    $\Delta s_f^0$ are quantities **per defect** and use eV and $k_B$.
+    Uppercase molar quantities would instead use J mol$^{-1}$ and $R$; they are
+    not mixed into this module. See the repository-wide
+    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
+
     This module follows one neutral defect species on \(N\) equivalent lattice
     sites. If \(n\) sites contain defects, the defect fraction is \(x=n/N\).
     There are no charged defects, gas pressures, Brouwer approximations, or
@@ -599,14 +617,14 @@ def _(lattice_figure):
 def _(finite_n_eq, mo, site_count):
     if finite_n_eq == 0:
         _lattice_note = (
-            f"For this {site_count}-site lattice, the most probable macrostate is the "
+            f"**Figure takeaway.** For this {site_count}-site lattice, the most probable macrostate is the "
             "perfect lattice. That does not mean the macroscopic equilibrium "
             "fraction is zero: the finite lattice cannot display less than one "
             f"defect, a fraction 1/N = {1.0 / site_count:.3e}."
         )
     else:
         _lattice_note = (
-            "The open squares are defects placed on a reproducibly randomized "
+            "**Figure takeaway.** The open squares are defects placed on a reproducibly randomized "
             "set of sites. Moving them among equivalent sites changes the "
             "configuration but not the formation-energy term."
         )
@@ -701,11 +719,12 @@ def _(entropy_figure):
 @app.cell
 def _(mo):
     mo.md(r"""
-    A perfect lattice has only one configuration, so \(\ln\Omega=0\) and
-    \(S_{\rm config}=0\). Adding defects initially creates many new choices.
-    Entropy is maximized near equal populations of occupied and defect sites.
-    The orange Stirling curve is continuous; the blue finite-\(N\) states are
-    the actual allowed compositions.
+    **Figure takeaway.** A perfect lattice has only one configuration, so
+    \(\ln\Omega=0\) and \(S_{\rm config}=0\). Adding defects initially
+    creates many new choices. Entropy is maximized near equal populations of
+    occupied and defect sites. The continuous Stirling line approaches the
+    marker-displayed finite-\(N\) states, whose allowed compositions remain
+    separated by $1/N$.
     """)
     return
 
@@ -849,9 +868,9 @@ def _(free_energy_figure):
 @app.cell
 def _(mo):
     mo.md(r"""
-    **Read the left panel first.** The red formation term penalizes defects.
-    The purple term is negative because configurations lower the free energy.
-    Their sum has a minimum at the gold point. Nothing in the calculation
+    **Figure takeaway.** Read the left panel first. The formation term
+    penalizes defects, while $-Ts_{\rm config}$ lowers the free energy. Their
+    solid-line sum has a marked minimum. Nothing in the calculation
     assumes that equilibrium concentration in advance.
 
     Differentiating that same Stirling-limit free energy gives
@@ -860,6 +879,11 @@ def _(mo):
     \mu_D(x)=\frac{1}{N}\frac{\partial G}{\partial x}
     =\Delta g_f^0+k_BT\ln\frac{x}{1-x}.
     \]
+
+    Here $\mu_D=0$ means equilibrium relative to the chosen perfect-lattice +
+    defect reference reaction. It is the stationarity condition for exchanging
+    one occupied site with one defect site, not an assertion that every
+    absolute chemical potential is zero.
 
     The right panel shows that the minimum and the zero of \(\mu_D\) are the
     same state. Solving \(\mu_D=0\) gives
@@ -982,8 +1006,16 @@ def _(
 
 
 @app.cell
-def _(approximation_figure):
-    approximation_figure
+def _(approximation_figure, mo):
+    mo.vstack([
+        approximation_figure,
+        mo.md(r"""
+        **Figure takeaway.** The dilute exponential converges to the exact
+        thermodynamic fraction only at low $x$. A finite lattice adds discrete
+        composition steps, and its most-probable macrostate can reach $n=0$ even
+        while the ensemble mean remains positive.
+        """),
+    ])
     return
 
 
@@ -1110,7 +1142,7 @@ def _(mo, validation):
     def _mark(passed):
         return "PASS" if passed else "CHECK"
 
-    mo.md(
+    _checks = mo.md(
         rf"""
         ## Physical consistency checks
 
@@ -1127,6 +1159,7 @@ def _(mo, validation):
         equilibrium. They are not additional assumptions in the model.
         """
     )
+    mo.accordion({"Physical consistency checks": _checks})
     return
 
 
@@ -1175,8 +1208,27 @@ def _(mo):
     \(\Delta s_f^0\) are independent of composition. Charged defects, coupled
     defect reactions, pressure, electroneutrality, non-ideal activities, and
     vibrational spectra are deliberately outside this first module.
+
+    ## Three messages to keep
+
+    1. **Multiplicity creates an entropic driving force.** Even an energetic
+       defect cost competes with the many ways defects can be arranged.
+    2. **One equilibrium, two views.** The minimum of $G(x)$ and the zero of
+       $\mu_D(x)$ identify the same thermodynamic composition.
+    3. **Approximations have domains.** Exact finite-$N$ counting becomes the
+       smooth Stirling result for large systems; the exponential form requires
+       the additional condition $x\ll1$.
     """)
     return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    **Continue:** [Module 02 — Brouwer Diagram Explorer](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/02-brouwer-sto/)
+    """)
+    return
+
 
 
 if __name__ == "__main__":

@@ -7,7 +7,8 @@
 This repository is a growing series of interactive [marimo](https://marimo.io/)
 notebooks for teaching the **Solid State Ionics** course at Westlake University.
 The notebooks complement the lectures and course materials collected on the
-[Solid State Ionics Lab teaching page](https://ssi-westlake.com/teaching/).
+[Solid State Ionics Lab teaching page](https://ssi-westlake.com/teaching/) and
+the growing [tutorial collection](https://ssi-westlake.com/tutorial/).
 
 The series helps students explore how defect formation, defect chemistry, ionic
 and electronic transport, electrochemical polarization, space charge, titration
@@ -15,7 +16,27 @@ transients, and impedance spectra emerge from governing equations. Each module f
 physics, interactive controls, and numerical checks over preassembled textbook
 curves.
 
-## Notebooks
+This is a permanent conceptual collection assembled from multiple course years,
+lecture decks, and independently audited tutorial articles—not a literal
+transcription of one year's slides. Symbols and sign conventions are connected
+in [NOTATION.md](NOTATION.md).
+
+## Learning pathways
+
+### Foundations (Modules 01–03)
+
+Build equilibrium defects, defect-chemistry regimes, and transport from atomic
+hopping to coupled chemical diffusion.
+
+### Interfaces and boundary conditions (Modules 04–05)
+
+See how interfacial charge and blocking electrodes reshape potential,
+capacitance, reaction rate, and stoichiometry.
+
+### Electrochemical methods (Modules 06–07)
+
+Connect time-domain titration to frequency-domain impedance, with boundary
+conditions and model assumptions kept visible.
 
 | Module | Topic | Interactive app |
 |---|---|---|
@@ -24,8 +45,8 @@ curves.
 | 03 | Defect Transport: From Atomic Hopping to Chemical Diffusion | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/03-defect-transport/) |
 | 04 | Space-Charge Layers and the Frumkin Effect | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/04-space-charge-frumkin/) |
 | 05 | Stoichiometry Polarization in a Mixed Conductor | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/05-stoichiometry-polarization/) |
-| 06 | PITT and GITT: Watching Chemical Diffusion | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/06-pitt-gitt/) |
-| 07 | Impedance Spectroscopy and Transmission Lines | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/07-impedance-tlm/) |
+| 06 | From Coulometric Titration to PITT and GITT | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/06-pitt-gitt/) |
+| 07 | Impedance Spectroscopy, Warburg Diffusion, and Transmission Lines | [Launch](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/07-impedance-tlm/) |
 
 ### Module 01: Defect Formation Thermodynamics
 
@@ -103,13 +124,17 @@ d(mu_tilde)/dx = 0 and zero flux.
 
 The final sections use the lecture notation for tracer diffusivity \(D^*\),
 conductivity-derived self-diffusivity \(D^q\), and Li chemical diffusivity
-\(D_{\rm Li}^{\delta}\). For the dilute reaction
+\(D_{\rm Li}^{\delta}\). Correlated motion is introduced through the Haven
+ratio \(D^*=H D^q\). A collapsed non-ideal bridge gives the dimensionally
+complete conductivity-thermodynamic-susceptibility expression before
+specializing to the dilute reaction
 \(Li \rightleftharpoons Li^+ + e^-\), local equilibrium and local charge
 neutrality require \(J_{\rm Li}=J_{\rm Li^+}=J_{e^-}\), giving
 
 ~~~text
 D_Li^delta = 2 D_Li+ D_e- / (D_Li+ + D_e-)
-tau^delta  ~ L^2 / D_Li^delta
+t_D        = L^2 / D_Li^delta
+tau^delta  = t_D / pi^2
 ~~~
 
 The internal field is solved from the equal-flux condition. Controls expose the
@@ -136,8 +161,9 @@ parabolic potential over the finite width lambda. Both cases display the
 chemical and electrical contributions cancelling to keep the mobile-defect
 electrochemical potential flat.
 
-The final sections turn the Gouy-Chapman charge-potential relation into the
-differential capacitance C_d, introduce a constant-capacitance Stern layer, and
+The advanced, initially collapsed sections turn the Gouy-Chapman
+charge-potential relation into the differential capacitance C_d, introduce a
+constant-capacitance Stern layer, and
 solve the Gouy-Chapman-Stern voltage split
 
 ~~~text
@@ -183,31 +209,36 @@ notebook therefore retains the factor 1/2 in the small-polarization boundary
 coefficient instead of importing a coefficient that belongs to a different
 chemical-potential model.
 
-Students can impose either constant current or constant potential. The
-conductivity ratio sigma_e/sigma_i controls the carrier bottleneck, while the
-total conductivity sets the initial Ohmic scale. Interactive figures show the
-full concentration history, voltage/current relaxation, and separate chemical,
-electrical, and electrochemical potentials of the ion and electron. The
-current- and voltage-controlled cases show how polarization and electrical
-response evolve together.
+Constant current is the core classroom path, with weak, moderate, strong,
+and reverse physical presets that report both beta and the corresponding
+current density. Constant potential remains available in a collapsed extension.
+The conductivity ratio sigma_e/sigma_i controls the carrier bottleneck, while
+the total conductivity sets the initial Ohmic scale. Interactive figures show
+the full concentration history, voltage/current relaxation, and separate
+chemical, electrical, and electrochemical potentials. A measurement panel
+separates imposed, measured, immediate Ohmic, evolving chemical-polarization,
+and late Nernstian contributions, then bridges total C_chem to the distributed
+c_chem used in Module 07.
 
 The defaults are T = 800 K, c0 = 10^20 cm^-3, L = 100 micrometers,
 sigma_i + sigma_e = 10^-3 S/cm, sigma_e/sigma_i = 100, and beta = 0.8.
 Electron-blocking, reversible, and Hebb-Wagner electrode cases are deliberately
 reserved for later extensions with their own boundary conditions.
 
-### Module 06: PITT and GITT
+### Module 06: From Coulometric Titration to PITT and GITT
 
-[06_pitt_gitt.py](06_pitt_gitt.py) extends the ideal one-dimensional pair model
-from Module 05 to complementary selective contacts:
+[06_pitt_gitt.py](06_pitt_gitt.py) begins with coulometric composition steps and
+an equilibrium $E(\delta)$ titration curve, then extends the ideal
+one-dimensional pair model from Module 05 to complementary selective contacts.
+The student-facing article coordinate is
 
 ~~~text
-current collector at x = 0:  J_i = 0
-ion electrolyte at x = L:    J_e = 0
+ion electrolyte at x = 0:    J_e = 0
+current collector at x = L:  J_i = 0
 ~~~
 
-Positive current and voltage extract the neutral pair
-`H <-> H+ + e-`. PITT fixes a small voltage step and solves for the current;
+Students may label the neutral pair as Li or H. PITT fixes a small electrode-
+potential step and solves for the current;
 GITT fixes a current step and calculates the voltage. In both cases, the full
 finite-slab chemical-diffusion equation generates the transient concentration,
 chemical-potential, electrical-potential, and electrochemical-potential
@@ -225,7 +256,14 @@ electronic-to-ionic conductivity ratio, pulse size, pulse duration, and rest
 duration. The defaults are T = 800 K, c0 = 10^20 cm^-3, L = 100 micrometers,
 D_delta = 10^-8 cm^2/s, and sigma_e/sigma_i = 100.
 
-### Module 07: Impedance Spectroscopy and Transmission Lines
+A collapsed advanced reader replaces the instantaneous PITT boundary with a
+finite surface-exchange condition. It compares Bi = infinity, 100, 1, and 0.01,
+shows current and concentration profiles, and quantifies the bias produced when
+finite-kinetics data are fitted with the ideal diffusion-only long-time slope.
+The same section separates the GITT measurement into equilibrium surface
+potential, charge-transfer overpotential, and Ohmic drop.
+
+### Module 07: Impedance Spectroscopy, Warburg Diffusion, and Transmission Lines
 
 [07_impedance_tlm.py](07_impedance_tlm.py) begins with the lecture convention
 
@@ -240,6 +278,9 @@ arcs. The diffusion section then solves the one-dimensional frequency-domain
 chemical-diffusion equation. Semi-infinite, fixed-composition finite-length,
 and zero-flux finite-length Warburg responses are kept distinct, and the
 controls show how L and D_delta set the laboratory diffusion frequency.
+A direct DC/AC comparison connects $\sqrt{D^\delta t}$ with
+$\sqrt{D^\delta/\omega}$, and every finite-length name is paired with its
+boundary equation. General and dilute resistance scales are stated separately.
 
 The final section incorporates the continuous dual-rail model from the
 [TLM teaching tool](https://qiyanglu.github.io/TLM-teaching-tool/):
@@ -253,6 +294,9 @@ Here u_e and u_i are voltage-equivalent electrochemical potentials. Three
 transparent ideal contact cases reveal how the same interior MIEC can look
 conducting, chemically polarized, or blocking. Interactive internal profiles
 show current transferring between rails while I_e + I_i remains conserved.
+The general anatomy labels all four contact impedances and distinguishes the
+interactive model from conceptual extensions involving dielectric capacitance,
+surface reaction resistance, and more general contacts.
 
 ## Run locally
 
@@ -317,9 +361,15 @@ fixed-current GITT control, zero terminal current and conserved mean composition
 during OCV, selective-contact fluxes and pulse mass balance, the Module 05 chemical-diffusivity identity,
 potential reconstruction of the measured voltage, the PITT/GITT limiting
 series, long-rest decay, and spatial-grid convergence.
+It additionally checks the finite-kinetics reaction- and diffusion-controlled
+eigenvalue limits, positive concentrations, and the direction of the
+diffusion-only fitting bias across Biot number.
+
 
 Module 07 checks the phasor sign convention, the ideal parallel-RC semicircle
-and apex, finite-length Warburg limits and passivity, TLM boundary residuals,
+and apex, DC/AC diffusion-length scaling, the general-to-dilute Warburg
+resistance reduction, finite-length Warburg limits and passivity, TLM boundary
+residuals, voltage-equivalent potential signs, distributed/total conversions,
 total-current conservation, the reversible-contact limit, passivity, and
 finiteness.
 
@@ -329,6 +379,9 @@ finiteness.
 The seven numbered Python files are the self-contained marimo modules. The
 `pages/` directory is also source: `pages/index.html` is the course landing page.
 The Pages workflow copies it before exporting the seven notebooks.
+`NOTATION.md` is the cross-module symbol contract; `AUDIT_PLAN.md` and
+`IMPLEMENTATION_REPORT.md` record the current comprehensive audit.
+
 
 Local `.venv/`, `__marimo__/`, `__pycache__/`, and `dist/` directories are
 generated working files. They are ignored by Git and may be removed whenever a

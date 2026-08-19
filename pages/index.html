@@ -66,6 +66,14 @@
       }
       a:hover, a:focus-visible { color: var(--accent-dark); }
       .modules { margin-top: clamp(4rem, 9vw, 7rem); }
+      .modules h2:not(:first-child) { margin-top: 3.5rem; }
+      .pathway-intro {
+        max-width: 760px;
+        margin: -0.6rem 0 1.4rem;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
       h2 {
         margin: 0 0 1.3rem;
         font-size: clamp(1.6rem, 3vw, 2.2rem);
@@ -123,17 +131,20 @@
         <p class="eyebrow">Interactive course materials</p>
         <h1>Solid State Ionics Interactive</h1>
         <p class="intro">
-          Seven self-contained marimo notebooks that connect defect thermodynamics,
-          defect chemistry, transport, interfacial space charge, stoichiometry polarization,
-          intermittent titration, and impedance spectroscopy in explorable classroom materials.
+          A permanent, source-audited collection of seven self-contained marimo
+          readers connecting defect thermodynamics, defect chemistry, transport,
+          interfaces, polarization, intermittent titration, and impedance spectroscopy.
         </p>
         <nav class="links" aria-label="Project links">
           <a href="https://ssi-westlake.com/teaching/">Course teaching page</a>
+          <a href="https://ssi-westlake.com/tutorial/">Tutorial collection</a>
+          <a href="https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md">Notation guide</a>
           <a href="https://github.com/qiyanglu/Solid-State-Ionics-Interactive">Source on GitHub</a>
         </nav>
       </header>
-      <section class="modules" aria-labelledby="modules-heading">
-        <h2 id="modules-heading">Modules</h2>
+      <section class="modules" aria-labelledby="foundations-heading">
+        <h2 id="foundations-heading">Foundations · Modules 01–03</h2>
+        <p class="pathway-intro">Build equilibrium defects, defect-chemistry regimes, and transport from atomic hopping to coupled chemical diffusion.</p>
         <div class="grid">
           <article class="card">
             <span class="module-number">Module 01</span>
@@ -165,6 +176,10 @@
             </p>
             <a class="launch" href="./03-defect-transport/">Launch module 03 &rarr;</a>
           </article>
+        </div>
+        <h2>Interfaces and boundary conditions · Modules 04–05</h2>
+        <p class="pathway-intro">See how interfacial charge and blocking electrodes reshape potential, capacitance, reaction rate, and stoichiometry.</p>
+        <div class="grid">
           <article class="card">
             <span class="module-number">Module 04</span>
             <h3>Space-Charge Layers and the Frumkin Effect</h3>
@@ -185,24 +200,27 @@
             </p>
             <a class="launch" href="./05-stoichiometry-polarization/">Launch module 05 &rarr;</a>
           </article>
+        </div>
+        <h2>Electrochemical methods · Modules 06–07</h2>
+        <p class="pathway-intro">Connect time-domain titration to frequency-domain impedance while keeping boundary conditions and assumptions visible.</p>
+        <div class="grid">
           <article class="card">
             <span class="module-number">Module 06</span>
-            <h3>PITT and GITT: Watching Chemical Diffusion</h3>
+            <h3>From Coulometric Titration to PITT and GITT</h3>
             <p>
-              Apply voltage and current pulses to a selectively contacted mixed
-              conductor, follow concentration and potential profiles through
-              OCV relaxation, and test the classical short- and long-time limits.
+              Map equilibrium composition, compare voltage and current pulses,
+              follow OCV relaxation, and see how finite surface kinetics and
+              fitting windows can bias a chemical diffusivity.
             </p>
             <a class="launch" href="./06-pitt-gitt/">Launch module 06 &rarr;</a>
           </article>
           <article class="card">
             <span class="module-number">Module 07</span>
-            <h3>Impedance Spectroscopy and Transmission Lines</h3>
+            <h3>Impedance Spectroscopy, Warburg Diffusion, and Transmission Lines</h3>
             <p>
-              Build EIS from sinusoidal small signals, derive finite-length
-              Warburg responses from chemical diffusion, and explore how ionic,
-              electronic, and chemical-storage pathways combine in a MIEC
-              transmission line.
+              Build EIS from sinusoidal small signals, connect DC and AC diffusion
+              lengths, derive finite-length Warburg boundaries, and explore how
+              ionic, electronic, chemical-storage, and contact pathways combine.
             </p>
             <a class="launch" href="./07-impedance-tlm/">Launch module 07 &rarr;</a>
           </article>

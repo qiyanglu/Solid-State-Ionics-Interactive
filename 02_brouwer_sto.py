@@ -67,6 +67,24 @@ def _(mo):
     thermodynamics and electroneutrality, without putting a power law into the
     calculation?
 
+    **Learning goals**
+
+    1. Solve mass action and charge neutrality together rather than choosing a
+       Brouwer regime in advance.
+    2. Recognize a Brouwer condition as a dominant-balance approximation made
+       **after** the exact concentrations are known.
+    3. Connect the oxygen-pressure axis to the oxygen chemical potential.
+
+    > **Predict before exploring.** Increase the fixed acceptor concentration
+    > $A$. Which concentration plateau must move, and which transition should
+    > shift along the $p_{O_2}$ axis?
+
+    **Model and notation scope.** Full Kröger–Vink symbols are introduced once
+    and then shortened to $V,n,p,A$. The course notation may write the same
+    constants as $K_O$ and $K_{el}$; here $K_{red}\equiv K_O$ and
+    $K_{eh}\equiv K_{el}$. See the shared
+    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
+
     We retain only oxygen vacancies $V=[V_O^{\bullet\bullet}]$, electrons
     $n=[e']$, holes $p=[h^\bullet]$, and a fixed concentration
     $A=[A_{Ti}']$ of fully ionized acceptors. Concentrations are in cm$^{-3}$,
@@ -95,6 +113,12 @@ def _(mo):
     with $k_B=8.617333262\times10^{-5}$ eV K$^{-1}$. Every plotted point comes
     from these two mass-action laws plus exact charge neutrality. Limiting
     Brouwer balances are used only afterward, as interpretation and checks.
+
+    Activities are approximated by the displayed concentrations. The activity
+    of regular oxygen sites is absorbed into $K_{red}$, and oxygen activity is
+    represented by $p_{O_2}$ in bar. At fixed $T$,
+    $\mu_{O_2}=\mu_{O_2}^\circ+RT\ln p_{O_2}$, so the horizontal axis is also a
+    linear chemical-potential coordinate.
     """)
     return
 
@@ -628,12 +652,13 @@ def _(figure):
 @app.cell
 def _(mo):
     mo.md(r"""
-    **How to read the shading.** The very light blue/red tint identifies the
-    majority carrier ($n>p$ or $p>n$); it is **not** a charge-compensation
-    approximation. The green band marks points that pass the strict
-    acceptor-compensation test $2V\approx A$. The vertical dotted line is the
-    derived crossover $n=p$. Short black dashed segments are reference slopes
-    added after solving; the colored curves are always exact numerical results.
+    **Figure takeaway.** Line labels identify the exact concentrations;
+    background tint only separates electron-rich ($n>p$) and hole-rich ($p>n$)
+    sides and is **not** a charge-compensation approximation. The plateau band
+    marks points that pass the strict acceptor-compensation test $2V\approx A$.
+    The vertical dotted line is the derived crossover $n=p$. Short black dashed
+    segments are post-solution reference slopes; every concentration line comes
+    from the full numerical equilibrium.
     """)
     return
 
@@ -667,7 +692,7 @@ def _(
     else:
         crossover_text = f"$p_{{O_2}}={10.0 ** crossover_log_pressure:.3e}$ bar"
 
-    mo.md(
+    _checks = mo.md(
         rf"""
         ## Physical consistency checks
 
@@ -709,6 +734,7 @@ def _(
         full-equilibrium curves, not imposed beforehand.
         """
     )
+    mo.accordion({"Physical consistency checks": _checks})
     return
 
 
@@ -738,15 +764,35 @@ def _(mo):
 
     **Assumptions.** Defects and carriers are treated as dilute ideal species;
     activities are represented by concentrations in the stated units; oxygen
-    activity is represented by pressure in bar; acceptors are fixed and fully
-    ionized. Cation defects, defect complexes, band-density limits, non-ideal
-    activities, and changes in site density are deliberately outside this first
-    teaching model.
+    site activity is absorbed in $K_{red}$; oxygen activity is represented by
+    pressure in bar; acceptors are fixed and fully ionized. Cation defects,
+    defect complexes, band-density limits, non-ideal activities, and changes in
+    site density are deliberately outside this first teaching model.
 
     At every pressure, both mass-action laws and exact electroneutrality are
     satisfied together. No limiting Brouwer balance is used to draw the curves.
+
+    ## Three messages to keep
+
+    1. **The concentration lines are the full equilibrium.** Two mass-action laws
+       and exact $2V+p=A+n$ determine every plotted point.
+    2. **A Brouwer condition is an interpretation.** Dominant charge-balance
+       terms explain plateaus and slopes only after the exact solution reveals
+       that the assumed terms really dominate.
+    3. **Pressure is a chemical-potential control.** Changing $p_{O_2}$ shifts
+       $\mu_{O_2}$ and smoothly changes which defects or carriers compensate
+       the fixed acceptors.
     """)
     return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    **Continue:** [Module 03 — Defect Transport](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/03-defect-transport/)
+    """)
+    return
+
 
 
 if __name__ == "__main__":
