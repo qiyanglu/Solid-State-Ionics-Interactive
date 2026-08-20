@@ -15,8 +15,8 @@ Source material reviewed for this audit:
   diffusion-controlled PITT/GITT limits, and OCV relaxation.
 - *PITT/GITT, Part II*: finite surface kinetics, the Biot number, mixed-control
   transients, and diffusion-fitting bias.
-- *Warburg impedance*: the DC/AC diffusion analogy, semi-infinite and two
-  finite-length boundary conditions, scaling, and the DRT caution.
+- *Warburg impedance*: the frequency-domain diffusion derivation, semi-infinite
+  and two finite-length boundary conditions, scaling, and the DRT caution.
 - *Transmission-line model*: the two-rail MIEC picture, chemical capacitance,
   contact impedances, and application-level simplifications.
 
@@ -33,7 +33,7 @@ Source material reviewed for this audit:
 | 07 | Build EIS, Warburg diffusion, and the MIEC TLM from governing equations | small-signal RC response, three Warburg boundaries, and a continuous reduced two-rail TLM |
 
 Signs and normalizations requiring explicit verification are the Module 02
-mass-action/charge residuals; Module 03 $D=a^2\Gamma_{\rm hop}/2$ and flux
+mass-action/charge residuals; Module 03 $D=a^2\Gamma/2$ and flux
 conventions; Module 04 Poisson/Gauss/GCS charge signs; Module 05
 $j=F(J_i-J_e)$ and $U$ reconstruction; Module 06 displayed-face flux signs,
 $\theta$ versus $s$, Robin-boundary mass balance, and Biot eigenvalues; and
@@ -52,9 +52,9 @@ TLM conversions.
    \(\mathrm{Bi}=k^\delta L/D^\delta\), retain the ideal limit, and show the
    bias produced by fitting finite-kinetics data with a diffusion-only model.
 3. Module 07 already contains the principal finite-length Warburg solutions,
-   but it needs a clearer DC/AC bridge, explicit boundary equations beside the
-   names, general and dilute resistance scales, frequency-direction cues, and
-   a more complete TLM anatomy/scope reader.
+   but it needs a clearer progression from physical frequency to the far-boundary
+   response, explicit boundary equations beside the names, general and dilute
+   resistance scales, and a more complete TLM anatomy/scope reader.
 4. The notebooks use several locally reasonable conventions that are not yet
    connected by a repository-wide notation contract. `NOTATION.md` will make
    those bridges explicit without forcing every module into one species model.
@@ -99,9 +99,9 @@ TLM conversions.
    fixed-flux boundary conditions, permanently define the two dimensionless
    clocks, and add finite-kinetics and fitting-bias demonstrations.
 4. Reframe Module 07 as *Impedance Spectroscopy, Warburg Diffusion, and
-   Transmission Lines*, add the DC/AC diffusion-length comparison, clarify
-   finite-length boundary names, strengthen scaling and direction cues, and
-   expand the TLM anatomy, contact presets, applications, and scope statement.
+   Transmission Lines*, compare series and parallel RC responses, make the
+   finite-length Warburg controls more exploratory, and closely adapt the TLM
+   teaching tool's schematic, spectra, profiles, and distributed controls.
 5. Reorganize README and the course landing page into three learning pathways:
    Foundations (01–03), Interfaces and Boundary Conditions (04–05), and
    Electrochemical Methods (06–07). Add teaching/tutorial/source links.

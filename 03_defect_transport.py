@@ -81,9 +81,9 @@ def _(mo):
     **Model scope.** All spatial pictures are one-dimensional. Particle-scale
     equations use $k_B,e$; molar equations use $R,F$. The electric field is
     $\mathcal E=-\partial\phi/\partial x$. See the shared
-    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
+    [notation guide](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
 
-    **Flux and current bridge.** Positive flux points toward $+x$:
+    **Flux and current conventions.** Positive flux points toward $+x$:
 
     \[
     J_N\;[\mathrm{particles\,m^{-2}\,s^{-1}}],\qquad
@@ -107,10 +107,10 @@ def _(mo):
 
     We begin with an ideal one-dimensional lattice, then add concentration and
     electrical driving forces, and finally couple \(\mathrm{Li^+}\) and
-    \(e^-\) under local electroneutrality. Every spatial equation and simulation
-    stays in one dimension, following the lecture derivations.
+    \(e^-\) under local electroneutrality. Keeping one spatial dimension makes
+    every step of that argument visible without changing notation midway.
 
-    Lecture-facing controls and results use **K, eV, nm, s, V/cm, and cm²/s**.
+    Controls and displayed results use **K, eV, nm, s, V/cm, and cm²/s**.
     Molar fluxes are reported in mol/(m² s), with \(R\) and \(F\) used for
     molar equations.
     """)
@@ -156,7 +156,7 @@ def _(np):
     ):
         """Return Gamma_+, Gamma_-, and zero-field Gamma in s^-1.
 
-        Gamma is the total zero-field hop frequency used in the lecture slides.
+        Gamma is the total zero-field hop frequency used throughout this notebook.
         At zero field, half of the hops go toward +x and half toward -x.
         """
         temperature = require_positive("temperature_k", temperature_k)
@@ -391,7 +391,7 @@ def _(np):
         electronic_concentration_mol_per_m3,
         temperature_k,
     ):
-        """Return the dilute-limit D_Li^delta expression used in Lecture 5."""
+        """Return D_Li^delta for the ideal dilute Li+/electron pair."""
         ionic_sigma = require_positive(
             "ionic_conductivity_s_per_m",
             ionic_conductivity_s_per_m,
@@ -537,7 +537,8 @@ def _(hopping_controls, mo):
             mo.md(r"""
             ## 1. One activated hop
 
-            Use the same notation as the lecture slides:
+            For equivalent sites separated by distance $a$, thermal activation
+            gives the total hop frequency
 
             \[
             \Gamma=\nu\exp\!\left(-\frac{\Delta H_{\rm mig}}{k_BT}\right),
@@ -545,21 +546,17 @@ def _(hopping_controls, mo):
             D=\frac{1}{2}a^2\Gamma \quad \text{(one dimension)}.
             \]
 
-            Here \(\Gamma\) is the total hop frequency and \(1/\Gamma\) is the
-            mean time between hops. Each hop goes either left or right with
-            equal probability when no electric field is present. Therefore
-
-            **Simulation convention.** The embedded random walk places one hop
-            in each fixed observation interval $1/\Gamma$. It is a transparent
-            demonstration of the spatial statistics, not a continuous-time
-            Poisson clock for the waiting times.
+            Here \(1/\Gamma\) is the mean interval between hops. With no field,
+            each hop is equally likely to go left or right, so many walkers obey
 
             \[
             \langle x^2\rangle=2Dt.
             \]
 
-            This module stays in one dimension throughout, matching the
-            derivation used in class.
+            **How to read the random-walk picture.** Each displayed walker makes
+            one hop per interval $1/\Gamma$. Real waiting times fluctuate, but
+            that extra timing randomness does not change the ensemble relation
+            \(\langle x^2\rangle=2Dt\) used here.
             """),
             hopping_controls,
         ]
@@ -799,7 +796,7 @@ def _(microscopic_figure, microscopic_summary, mo):
     mo.vstack(
         [
             microscopic_figure,
-            mo.md(f"**Current result.** {microscopic_summary}"),
+            mo.md(f"**At the selected settings.** {microscopic_summary}"),
             mo.md(r"""
             **Figure takeaway.** A single path is noisy and has no preferred direction. Diffusivity is
             an ensemble property: many random paths produce a linear mean-square
@@ -998,9 +995,9 @@ def _(
         **{master_mass_relative_error:.2e}** (relative), while the microscopic
         bond flux and discrete Fick flux differ by
         **{master_flux_relative_error:.2e}** (relative).
-        Because this teaching lattice is periodic, the concentration step also
-        wraps across the cell edge. That creates a second, oppositely directed
-        flux peak at the boundary.
+        The lattice is periodic, so its right edge joins its left edge. The
+        concentration step therefore repeats at that join and creates the
+        second, oppositely directed flux peak.
         """
     )
     mo.vstack([master_figure, master_summary])
@@ -1378,9 +1375,11 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 4. Three diffusivities used in the lectures
+    ## 4. Three diffusivities answer different questions
 
-    The symbol \(D\) does not always describe the same experiment.
+    Before changing the material composition, distinguish three quantities that
+    are all called diffusivity. The symbol \(D\) does not always describe the
+    same measurement.
 
     | notation | experiment | what moves? | composition changes? |
     |---|---|---|---|
@@ -1446,14 +1445,15 @@ def _(ambipolar_controls, mo):
             mo.md(r"""
             ## 5. Chemical diffusion: Li⁺ and electrons move together
 
-            Follow the Li example used in Lecture 5:
+            Now consider the simplest neutral-composition reaction:
 
             \[
             \mathrm{Li}\rightleftharpoons \mathrm{Li^+}+e^- .
             \]
 
-            In the bulk, local charge neutrality gives
-            \(c_{\mathrm{Li^+}}=c_{e^-}=c_{\mathrm{Li}}\). Local equilibrium gives
+            In the bulk, local electroneutrality gives
+            \(c_{\mathrm{Li^+}}=c_{e^-}=c_{\mathrm{Li}}\). Local equilibrium
+            connects the neutral and charged chemical potentials:
 
             \[
             \mu_{\mathrm{Li}}
@@ -1461,8 +1461,8 @@ def _(ambipolar_controls, mo):
             +\widetilde{\mu}_{e^-}.
             \]
 
-            During one-dimensional chemical diffusion, the steady fluxes are
-            equal:
+            Open-circuit composition transport carries no net current. For this
+            monovalent pair, the ion and electron therefore share one molar flux:
 
             \[
             J_{\mathrm{Li}}
@@ -1471,9 +1471,9 @@ def _(ambipolar_controls, mo):
             \]
 
             If electrons would diffuse faster on their own, a small internal
-            electric field slows them and speeds up \(\mathrm{Li^+}\). The bulk
-            remains charge neutral; the separated-charge sketch in the lecture
-            is only an exaggerated intermediate picture.
+            electric field slows them and speeds up \(\mathrm{Li^+}\). Only a
+            minute charge displacement is needed to establish this field; the
+            bulk remains locally electroneutral in the model.
             """),
             ambipolar_controls,
         ]
@@ -1648,7 +1648,7 @@ def _(
         color="#C49345",
         edgecolor="#40464D",
         zorder=5,
-        label="current state",
+        label="selected values",
     )
     ratio_axis.axhline(1.0, color="#858B90", lw=1.0, ls=":")
     ratio_axis.set(
@@ -1700,38 +1700,6 @@ def _(
 
 
 @app.cell
-def _(mo):
-    _general_chemical_diffusion = mo.md(r"""
-    For the monovalent pair used here, equal molar fluxes and local equilibrium
-    give
-
-    \[
-    J=-\frac{\sigma_i\sigma_e}{F^2(\sigma_i+\sigma_e)}
-    \frac{\partial\mu_{\rm Li}}{\partial x}
-    =-D_{\rm Li}^{\delta}\frac{\partial c}{\partial x},
-    \]
-
-    so the general composition-dependent result is
-
-    \[
-    \boxed{D_{\rm Li}^{\delta}=
-    \frac{\sigma_i\sigma_e}{F^2(\sigma_i+\sigma_e)}
-    \frac{\partial\mu_{\rm Li}}{\partial c}}.
-    \]
-
-    The transport prefactor contains the two conductivity pathways; the
-    derivative $\partial\mu_{\rm Li}/\partial c$ is the thermodynamic
-    susceptibility for molar $\mu_{\rm Li}$ (J mol$^{-1}$) and molar $c$
-    (mol m$^{-3}$). Together they give m$^2$ s$^{-1}$. For the ideal dilute
-    pair, $\mu_{\rm Li}=\mu_{\rm Li}^0+2RT\ln(c/c_0)$, so the expression
-    reduces to the Lecture 5 formula shown next. The compact harmonic-mean
-    result is therefore a special ideal limit, not a universal MIEC identity.
-    """)
-    mo.accordion({"General chemical diffusion (non-ideal bridge)": _general_chemical_diffusion})
-    return
-
-
-@app.cell
 def _(
     conductivity_form_diffusivity_m2_per_s,
     electronic_conductivity_s_per_m,
@@ -1743,17 +1711,38 @@ def _(
 ):
     mo.md(
         rf"""
-        ### The Lecture 5 result
+        ### Deriving the common chemical diffusivity
 
-        The flux law used in the slides is
+        For either carrier, the one-dimensional flux can be written in terms of
+        its electrochemical-potential gradient:
 
         \[
-        J_i=-\frac{{\sigma_i}}{{z_i^2F^2}}
-        \frac{{d\widetilde{{\mu}}_i}}{{dx}}.
+        J_s=-\frac{{\sigma_s}}{{z_s^2F^2}}
+        \frac{{d\widetilde{{\mu}}_s}}{{dx}}.
         \]
 
-        Combining local equilibrium with
-        \(J_{{\rm Li^+}}=J_{{e^-}}\) gives, in the dilute limit,
+        For the monovalent Li-ion/electron pair, both carrier fluxes equal the
+        common neutral-composition flux $J$. Differentiating the local-equilibrium
+        relation then gives
+
+        \[
+        \frac{{d\mu_{{\rm Li}}}}{{dx}}
+        =-F^2J\left(\frac{{1}}{{\sigma_{{\rm Li^+}}}}
+        +\frac{{1}}{{\sigma_{{e^-}}}}\right),
+        \]
+
+        or
+
+        \[
+        J=-\frac{{\sigma_{{\rm Li^+}}\sigma_{{e^-}}}}
+        {{F^2(\sigma_{{\rm Li^+}}+\sigma_{{e^-}})}}
+        \frac{{d\mu_{{\rm Li}}}}{{dx}}.
+        \]
+
+        The model now makes its ideal-dilute assumption explicit:
+        $c_{{\rm Li^+}}=c_{{e^-}}=c$ and
+        $\mu_{{\rm Li}}=\mu_{{\rm Li}}^0+2RT\ln(c/c_0)$. Identifying
+        $J=-D_{{\rm Li}}^\delta dc/dx$ gives
 
         \[
         D_{{\rm Li}}^\delta
@@ -1764,25 +1753,27 @@ def _(
         +\frac{{1}}{{c_{{\rm Li^+}}}}\right).
         \]
 
-        For \(c_{{e^-}}=c_{{\rm Li^+}}\), the Nernst-Einstein relation reduces
-        this to
+        Using the Nernst–Einstein relation for each carrier reduces this to
 
         \[
-        D_{{\rm Li}}^\delta
+        \boxed{{D_{{\rm Li}}^\delta
         =\frac{{2D_{{\rm Li^+}}D_{{e^-}}}}
-        {{D_{{\rm Li^+}}+D_{{e^-}}}}.
+        {{D_{{\rm Li^+}}+D_{{e^-}}}}}}.
         \]
 
-        Here \(D_{{\rm Li^+}}={ionic_diffusivity_cm2_per_s:.3e}\) cm²/s,
-        \(D_{{e^-}}={electronic_diffusivity_cm2_per_s:.3e}\) cm²/s,
-        \(\sigma_{{\rm Li^+}}={ionic_conductivity_s_per_m:.3e}\) S/m, and
-        \(\sigma_{{e^-}}={electronic_conductivity_s_per_m:.3e}\) S/m.
-        The conductivity expression gives
+        At the selected values,
+        $D_{{\rm Li^+}}={ionic_diffusivity_cm2_per_s:.3e}$ cm²/s and
+        $D_{{e^-}}={electronic_diffusivity_cm2_per_s:.3e}$ cm²/s, with
+        $\sigma_{{\rm Li^+}}={ionic_conductivity_s_per_m:.3e}$ S/m and
+        $\sigma_{{e^-}}={electronic_conductivity_s_per_m:.3e}$ S/m.
+        The conductivity form gives
         **{conductivity_form_diffusivity_m2_per_s * 1.0e4:.3e} cm²/s**, matching
-        \(D_{{\rm Li}}^\delta
-        ={lithium_chemical_diffusivity_cm2_per_s:.3e}\) cm²/s.
+        $D_{{\rm Li}}^\delta
+        ={lithium_chemical_diffusivity_cm2_per_s:.3e}$ cm²/s.
 
-        We stop at the dilute-limit Li expression developed in the slides.
+        The factor of two belongs to this ideal, dilute, locally neutral pair.
+        Outside that limit, the composition dependence of
+        $\mu_{{\rm Li}}$ must be supplied separately.
         """
     )
     return
@@ -1823,7 +1814,9 @@ def _(mo, relaxation_controls):
             mo.md(r"""
             ## 6. Chemical diffusivity sets the relaxation time
 
-            Two related clocks must not be given the same name:
+            Once ions and electrons share one chemical diffusivity, that same
+            coefficient determines how quickly a macroscopic composition profile
+            can relax. Two related clocks must not be given the same name:
 
             \[
             t_D=\frac{L^2}{D_{\rm Li}^{\delta}},\qquad
@@ -2152,8 +2145,8 @@ def _(mo):
     ## Take-home map
 
     1. **Hops become diffusion.** In one dimension,
-       $\Gamma_{\rm hop}=\nu e^{-\Delta H_{\rm mig}/k_BT}$ gives
-       $D=a^2\Gamma_{\rm hop}/2$, $\langle x^2\rangle=2Dt$, and the
+       $\Gamma=\nu e^{-\Delta H_{\rm mig}/k_BT}$ gives
+       $D=a^2\Gamma/2$, $\langle x^2\rangle=2Dt$, and the
        long-wavelength flux $J=-D\,dc/dx$.
     2. **Electrochemical potential unifies the driving forces.** A concentration
        gradient and $\mathcal E=-\partial\phi/\partial x$ enter through
@@ -2165,10 +2158,11 @@ def _(mo):
        universal formula for every defect reaction.
 
     **Model boundary.** Every spatial equation and simulation in this notebook
-    is one-dimensional. We use ideal, dilute concentrations for the Li chemical
-    diffusion derivation, exactly where the lecture obtains the compact
-    expression above. The Haven ratio introduces correlation without
-    calculating it here; interfaces are left for later treatment.
+    is one-dimensional. The Li derivation assumes local equilibrium, local
+    electroneutrality, and ideal dilute concentrations; its compact factor of two
+    does not extend automatically to other reactions or concentrated materials.
+    The Haven ratio introduces correlation without calculating it here;
+    interfaces are left for later treatment.
     """)
     return
 

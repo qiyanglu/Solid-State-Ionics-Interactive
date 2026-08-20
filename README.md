@@ -103,8 +103,8 @@ Controls span 700-1500 K and log10(A/cm^-3) from 13 to 21.
 
 ### Module 03: Defect Transport
 
-[03_defect_transport.py](03_defect_transport.py) follows the one-dimensional
-sequence used in Lectures 3–5, from a thermally activated jump to macroscopic
+[03_defect_transport.py](03_defect_transport.py) is a self-contained,
+one-dimensional article that connects a thermally activated jump to macroscopic
 composition relaxation:
 
 ~~~text
@@ -125,14 +125,13 @@ mu_tilde = mu + z F phi. An interactive equilibrium example shows nonzero
 chemical and electrical contributions cancelling to give
 d(mu_tilde)/dx = 0 and zero flux.
 
-The final sections use the lecture notation for tracer diffusivity \(D^*\),
+The final sections distinguish tracer diffusivity \(D^*\),
 conductivity-derived self-diffusivity \(D^q\), and Li chemical diffusivity
 \(D_{\rm Li}^{\delta}\). Correlated motion is introduced through the Haven
-ratio \(D^*=H D^q\). A collapsed non-ideal bridge gives the dimensionally
-complete conductivity-thermodynamic-susceptibility expression before
-specializing to the dilute reaction
-\(Li \rightleftharpoons Li^+ + e^-\), local equilibrium and local charge
-neutrality require \(J_{\rm Li}=J_{\rm Li^+}=J_{e^-}\), giving
+ratio \(D^*=H D^q\). The dilute reaction
+\(Li \rightleftharpoons Li^+ + e^-\) is then derived in one continuous
+sequence: local equilibrium and local electroneutrality require
+\(J_{\rm Li}=J_{\rm Li^+}=J_{e^-}\), and the ideal chemical-potential law gives
 
 ~~~text
 D_Li^delta = 2 D_Li+ D_e- / (D_Li+ + D_e-)
@@ -141,8 +140,9 @@ tau^delta  = t_D / pi^2
 ~~~
 
 The internal field is solved from the equal-flux condition. Controls expose the
-Li-ion/electron mobility contrast and sample length. The introductory module
-stays with the dilute Li derivation developed in the slides.
+Li-ion/electron mobility contrast and sample length. The model boundary is
+explicit: one dimension, local equilibrium, local electroneutrality, and an
+ideal dilute Li-ion/electron pair.
 
 ### Module 04: Space-Charge Layers and the Frumkin Effect
 
@@ -276,17 +276,18 @@ Nyquist axes: Z' versus -Z''.
 ~~~
 
 Students first connect voltage/current phase to complex impedance, then see
-the resistor and capacitor Nyquist signatures separately before combining them
-as one or two ideal parallel-RC relaxations. The diffusion reader next presents
-the semi-infinite concentration wave, Nyquist response, and Bode response as
-three views of the same solution before comparing finite far-boundary cases.
-The section solves the one-dimensional frequency-domain chemical-diffusion
-equation. Semi-infinite, fixed-composition finite-length,
+how physical frequency changes the waveform period in seconds. A series RC and
+a parallel RC then show why connection topology changes the Nyquist shape;
+one- and two-relaxation parallel-RC examples follow. The diffusion reader next
+presents the semi-infinite concentration wave, Nyquist response, and Bode
+response as three views of the same solution before comparing finite
+far-boundary cases. The section solves the one-dimensional frequency-domain
+chemical-diffusion equation. Semi-infinite, fixed-composition finite-length,
 and zero-flux finite-length Warburg responses are kept distinct, and the
-controls show how L and D_delta set the laboratory diffusion frequency.
-A direct DC/AC comparison connects $\sqrt{D^\delta t}$ with
-$\sqrt{D^\delta/\omega}$, and every finite-length name is paired with its
-boundary equation. General and dilute resistance scales are stated separately.
+controls let students vary the far boundary, frequency, snapshot phase,
+$D^\delta$, $L$, and physical impedance scale. Every finite-length name is
+paired with its boundary equation, while general and dilute resistance scales
+are stated separately.
 
 The final section incorporates the continuous dual-rail model from the
 [TLM teaching tool](https://qiyanglu.github.io/TLM-teaching-tool/):
@@ -298,9 +299,11 @@ du_i/dx = -r_i I_i                    dI_i/dx = +i omega c_chem (u_e - u_i)
 
 Here u_e and u_i are voltage-equivalent electrochemical potentials. Three
 transparent ideal contact cases reveal how the same interior MIEC can look
-conducting, chemically polarized, or blocking. Interactive internal profiles
-show current transferring between rails while I_e + I_i remains conserved.
-The general anatomy labels all four contact impedances and distinguishes the
+conducting, chemically polarized, or blocking. The schematic, distributed
+parameter controls, frequency-colored Nyquist/Bode views, and spatial profiles
+closely follow the original teaching tool. The profiles show chemical storage
+and current transfer between rails while I_e + I_i remains conserved. The
+general anatomy labels all four contact impedances and distinguishes the
 interactive model from conceptual extensions involving dielectric capacitance,
 surface reaction resistance, and more general contacts.
 
@@ -343,7 +346,7 @@ limit. Module 02 checks mass action, electroneutrality, positivity, regime
 coverage, and limiting slopes. Student-facing tables report the physical result
 and why it matters, while detailed numerical tolerances remain internal.
 
-Module 03 checks the lecture identity \(D=a^2\Gamma/2\), the fitted
+Module 03 checks the one-dimensional identity \(D=a^2\Gamma/2\), the fitted
 mean-square-displacement slope against \(\langle x^2\rangle=2Dt\), detailed
 balance, low-field Nernst-Einstein drift, and one-dimensional master-equation
 conservation, Fick flux, electrochemical cancellation,
@@ -374,8 +377,8 @@ diffusion-only fitting bias across Biot number.
 
 
 Module 07 checks the phasor sign convention, ideal resistor and capacitor
-limits, equal Nyquist scaling, the parallel-RC semicircle and apex, DC/AC
-diffusion-length scaling, the general-to-dilute Warburg
+limits, the waveform period in seconds, the series-RC identity, equal Nyquist
+scaling, the parallel-RC semicircle and apex, the general-to-dilute Warburg
 resistance reduction, finite-length Warburg limits and passivity, TLM boundary
 residuals, voltage-equivalent potential signs, distributed/total conversions,
 total-current conservation, the reversible-contact limit, passivity, and

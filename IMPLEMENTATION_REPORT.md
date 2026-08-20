@@ -56,6 +56,12 @@ The MSD is fitted through the physical origin and compared with
 \(\langle x^2\rangle=2Dt\). A separate panel compares the fitted diffusivity
 with the analytical one-dimensional result \(D=a^2\Gamma/2\).
 
+The prose now reads as one standalone article rather than a commentary on
+lecture slides. Lecture-dependent headings and the disconnected advanced aside were
+removed. The Li chemical diffusivity is derived in one sequence
+from equal carrier fluxes, through the neutral chemical-potential gradient, to
+the ideal dilute harmonic-mean result.
+
 Independent low, default, and high parameter checkpoints changed the displayed
 time span from \(3.77\times10^{-1}\) s to \(8.81\times10^{-11}\) s and the
 largest sampled displacement from 17.5 to 62.3 nm. The fitted diffusivities
@@ -67,12 +73,11 @@ agreed with the analytical values within 0.31--2.67%, with
 The teaching order is now:
 
 1. time-domain sinusoid and phasor convention;
-2. separate resistor and capacitor Nyquist signatures;
+2. series- and parallel-RC Nyquist signatures;
 3. one or two parallel-RC relaxations;
-4. DC/AC diffusion-length comparison;
-5. semi-infinite Warburg concentration, Nyquist, and Bode views;
-6. finite fixed-composition and zero-flux boundaries;
-7. transport-equation-to-circuit mapping for the continuous two-rail MIEC TLM.
+4. semi-infinite Warburg concentration, Nyquist, and Bode views;
+5. interactive finite fixed-composition and zero-flux boundaries;
+6. transport-equation-to-circuit mapping for the continuous two-rail MIEC TLM.
 
 The resistor and capacitor limits are calculated explicitly from
 \(Z_R=R\) and \(Z_C=1/(\mathrm{i}\omega C)\). The semi-infinite Warburg figure
@@ -89,7 +94,10 @@ semi-infinite limit, and low-frequency real parts \(1\) and \(1/3\).
 The TLM introduction now explains why a lumped circuit loses spatial current
 transfer information and maps each transport equation to its rail resistance,
 chemical storage element, or terminal boundary condition. The reduced model's
-included and excluded physics remain explicit.
+included and excluded physics remain explicit. Its schematic, distributed
+controls, frequency-colored Nyquist/Bode views, and chemical-storage/current
+profiles now closely follow the original TLM teaching tool, while the notebook
+retains three simple ideal contact presets for classroom use.
 
 ## Other module refinements
 
@@ -110,7 +118,7 @@ included and excluded physics remain explicit.
 
 ## Functional audit
 
-A read-only AST audit found 75 marimo controls across the seven notebooks and
+A read-only AST audit found 99 marimo controls across the seven notebooks and
 no disconnected widget variables. Default executed exports completed for every
 module. The revised Module 03 and Module 07 controls were additionally exercised
 at multiple parameter values and limiting cases.
@@ -123,10 +131,10 @@ at multiple parameter values and limiting cases.
 | Strict marimo checks | All seven pass marimo check --strict in an isolated marimo 0.24.0 environment. |
 | Executed static exports | All seven complete without cell exceptions; 33 figures were rendered and reviewed. |
 | Module 03 checks | The \(\Gamma\) convention, \(\langle x^2\rangle=2Dt\), fitted-versus-analytical \(D\), and existing transport checks pass. |
-| Module 07 checks | Resistor, capacitor, RC, Warburg, equal-Nyquist-axis, and existing TLM checks pass. |
+| Module 07 checks | Waveform period, series/parallel RC, finite Warburg profiles, equal-Nyquist-axis, and TLM boundary, passivity, unit, and conservation checks pass. |
 | WASM exports | All seven routes export in run mode with the Pages workflow options. |
 | Route assets | Every local route contains its index bundle and dynamically imported run-page module. |
-| Widget audit | 75 controls found; no disconnected controls. |
+| Widget audit | 99 controls found; no disconnected controls. |
 | Repository hygiene | Temporary QA helpers and generated files were removed; git diff --check passes. |
 
 ## Preserved limitations
