@@ -15,12 +15,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
-            "xtick.labelsize": 12,
-            "ytick.labelsize": 12,
-            "legend.fontsize": 11,
+            "font.size": 15,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -548,9 +548,9 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
 
     plt.rcParams.update(
         {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
+            "font.size": 15,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
             "legend.fontsize": 12,
         }
     )
@@ -573,7 +573,7 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
             marker="s",
             facecolor="white",
             edgecolor="#B8734A",
-            linewidth=2.2,
+            linewidth=1.7,
             label="defect",
             zorder=3,
         )
@@ -585,7 +585,7 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
             marker="s",
             facecolor="white",
             edgecolor="#B8734A",
-            linewidth=2.2,
+            linewidth=1.7,
             label="defect (none in this finite-N mode)",
         )
     _lattice_axis.set_aspect("equal")
@@ -666,12 +666,12 @@ def _(
         _entropy_x,
         site_count * _entropy_stirling,
         color="#B8734A",
-        lw=2.7,
+        lw=1.9,
         label="Stirling limit",
     )
     _multiplicity_axis.axvline(finite_x_eq, color="#40464D", ls=":", lw=1.2)
     _multiplicity_axis.set(
-        xlabel="defect fraction, x = n/N",
+        xlabel="Defect fraction, x = n/N",
         ylabel=r"$\ln\Omega$",
         title=f"Number of configurations (N = {site_count})",
         xlim=(0.0, 1.0),
@@ -692,13 +692,13 @@ def _(
         _entropy_x,
         _entropy_stirling,
         color="#B8734A",
-        lw=2.7,
+        lw=1.9,
         label="Stirling limit",
     )
     _entropy_axis.axvline(finite_x_eq, color="#40464D", ls=":", lw=1.2)
     _entropy_axis.set(
-        xlabel="defect fraction, x = n/N",
-        ylabel=r"configurational entropy per site, $s_{\rm config}/k_B$",
+        xlabel="Defect fraction, x = n/N",
+        ylabel=r"Configurational entropy per site, $s_{\rm config}/k_B$",
         title="Entropy is largest when mixing is greatest",
         xlim=(0.0, 1.0),
     )
@@ -759,21 +759,21 @@ def _(
             focus_x,
             _energy_scale * formation_term_ev,
             color="#B65C4A",
-            lw=2.2,
+            lw=1.7,
             label=r"formation: $x\Delta g_f^0$",
         )
         _free_energy_axis.plot(
             focus_x,
             _energy_scale * entropy_term_ev,
             color="#7C6A91",
-            lw=2.2,
+            lw=1.7,
             label=r"entropy: $-Ts_{\rm config}$",
         )
     _free_energy_axis.plot(
         focus_x,
         _energy_scale * total_free_energy_ev,
         color="#4C7C86",
-        lw=3.4,
+        lw=2.0,
         label=r"total: $G/N$",
         zorder=4,
     )
@@ -824,8 +824,8 @@ def _(
         _free_energy_axis.set_xscale("log")
         _mu_axis.set_xscale("log")
     _free_energy_axis.set_xlim(focus_x[0], focus_x[-1])
-    _free_energy_axis.set_xlabel("defect fraction, x")
-    _free_energy_axis.set_ylabel("free energy per site (meV/site)")
+    _free_energy_axis.set_xlabel("Defect fraction, x")
+    _free_energy_axis.set_ylabel("Free energy per site (meV/site)")
     _free_energy_axis.set_title(
         "Formation energy competes with configurational entropy"
     )
@@ -836,7 +836,7 @@ def _(
         focus_x,
         chemical_potential_values_ev,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
     )
     _mu_axis.axhline(0.0, color="#666D73", ls="--", lw=1.4)
     _mu_axis.axvline(equilibrium_x, color="#C49345", ls=":", lw=2.0)
@@ -849,8 +849,8 @@ def _(
         zorder=5,
     )
     _mu_axis.set_xlim(focus_x[0], focus_x[-1])
-    _mu_axis.set_xlabel("defect fraction, x")
-    _mu_axis.set_ylabel(r"chemical potential, $\mu_D$ (eV/defect)")
+    _mu_axis.set_xlabel("Defect fraction, x")
+    _mu_axis.set_ylabel(r"Chemical potential, $\mu_D$ (eV/defect)")
     _mu_axis.set_title(r"The same equilibrium is $\mu_D=0$")
     _mu_axis.grid(alpha=0.25)
     _energy_fig.tight_layout()
@@ -931,14 +931,14 @@ def _(
         _driving_force,
         _thermodynamic_fraction,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label="Stirling / thermodynamic limit",
     )
     _comparison_axis.semilogy(
         _driving_force,
         _dilute_fraction_curve,
         color="#B8734A",
-        lw=2.3,
+        lw=1.7,
         ls="--",
         label=r"dilute $\exp[-\Delta g_f^0/(k_BT)]$",
     )
@@ -980,8 +980,8 @@ def _(
     _comparison_axis.set(
         xlim=(0.0, 16.0),
         ylim=(1.0e-7, 1.2),
-        xlabel=r"formation driving force, $\Delta g_f^0/(k_BT)$",
-        ylabel="defect fraction",
+        xlabel=r"Formation driving force, $\Delta g_f^0/(k_BT)$",
+        ylabel="Defect fraction",
         title="Finite-N mode, thermodynamic mean, and dilute limit",
     )
     _comparison_axis.grid(which="both", alpha=0.25)

@@ -13,12 +13,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
-            "xtick.labelsize": 12,
-            "ytick.labelsize": 12,
-            "legend.fontsize": 11,
+            "font.size": 15,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -864,14 +864,14 @@ def _(
         ratio_sweep,
         ionic_fraction_sweep,
         color="#B65C4A",
-        lw=3.0,
+        lw=1.9,
         label=r"ionic $t_i$",
     )
     ratio_axes[0].semilogx(
         ratio_sweep,
         electronic_fraction_sweep,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"electronic $t_e$",
     )
     ratio_axes[0].axvline(
@@ -882,8 +882,8 @@ def _(
         label="selected ratio",
     )
     ratio_axes[0].set(
-        xlabel=r"conductivity ratio, $\sigma_e/\sigma_i$",
-        ylabel="conductivity fraction",
+        xlabel=r"Conductivity ratio, $\sigma_e/\sigma_i$",
+        ylabel="Conductivity fraction",
         title="The conductivity ratio partitions the current",
         ylim=(-0.03, 1.03),
     )
@@ -894,7 +894,7 @@ def _(
         ratio_sweep,
         chemical_diffusivity_sweep_cm2,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"$D^\delta$",
     )
     ratio_time_axis = ratio_axes[1].twinx()
@@ -902,7 +902,7 @@ def _(
         ratio_sweep,
         tau_sweep_s,
         color="#B65C4A",
-        lw=2.6,
+        lw=1.8,
         ls="--",
         label=r"$\tau^\delta$",
     )
@@ -913,7 +913,7 @@ def _(
         ls="--",
     )
     ratio_axes[1].set(
-        xlabel=r"conductivity ratio, $\sigma_e/\sigma_i$",
+        xlabel=r"Conductivity ratio, $\sigma_e/\sigma_i$",
         ylabel=r"$D^\delta$ (cm$^2$ s$^{-1}$)",
         title="The slower carrier sets the polarization time",
     )
@@ -974,15 +974,15 @@ def _(
         polarization_positions,
         polarization_solution["concentration_ratio"][selected_time_index],
         color="#B65C4A",
-        lw=3.5,
+        lw=2.0,
         ls="--",
         label=rf"selected {selected_time_ratio:.2g}",
     )
     transient_axes[0].axhline(1.0, color="#858B90", lw=1.0, ls=":")
     transient_axes[0].set(
-        xlabel=r"position, $x/L$",
-        ylabel=r"stoichiometry ratio, $c/c_0$",
-        title="Ions redistribute but cannot leave",
+        xlabel=r"Position, $x/L$",
+        ylabel=r"Stoichiometry ratio, $c/c_0$",
+        title="Ions redistribute\nbut cannot leave",
     )
     transient_axes[0].grid(alpha=0.22)
     transient_axes[0].legend(
@@ -1009,9 +1009,9 @@ def _(
         ls="--",
     )
     transient_axes[1].set(
-        xlabel=r"position, $x/L$",
+        xlabel=r"Position, $x/L$",
         ylabel=r"$\log_{10}(t/\tau^\delta)$",
-        title="Stoichiometry polarization develops in time",
+        title="Stoichiometry polarization\ndevelops in time",
     )
     transient_figure.colorbar(
         transient_heatmap,
@@ -1030,7 +1030,7 @@ def _(
         np.maximum(physical_time_s, physical_time_s[1] * 0.2),
         response_voltage_mv,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label="voltage U",
     )[0]
     response_current_axis = transient_axes[2].twinx()
@@ -1038,7 +1038,7 @@ def _(
         np.maximum(physical_time_s, physical_time_s[1] * 0.2),
         response_current_ma_per_cm2,
         color="#B65C4A",
-        lw=2.7,
+        lw=1.9,
         ls="--",
         label="current density j",
     )[0]
@@ -1053,16 +1053,16 @@ def _(
         ls=":",
     )
     transient_axes[2].set(
-        xlabel="time (s)",
-        ylabel="voltage U (mV)",
+        xlabel="Time (s)",
+        ylabel="Voltage U (mV)",
         title=(
-            "Voltage grows under constant current"
+            "Voltage grows under\nconstant current"
             if selected_drive_mode == "current"
-            else "Current relaxes under constant potential"
+            else "Current relaxes under\nconstant potential"
         ),
     )
     response_current_axis.set_ylabel(
-        r"current density $j$ (mA cm$^{-2}$)",
+        r"Current density $j$ (mA cm$^{-2}$)",
         color="#B65C4A",
     )
     transient_axes[2].grid(alpha=0.22)
@@ -1117,13 +1117,13 @@ def _(
         polarization_positions,
         selected_potential_profiles["concentration_ratio"],
         color="#B65C4A",
-        lw=3.2,
+        lw=2.0,
     )
     potential_axes[0].axhline(1.0, color="#858B90", lw=1.0, ls=":")
     potential_axes[0].set(
-        xlabel=r"position, $x/L$",
+        xlabel=r"Position, $x/L$",
         ylabel=r"$c/c_0$",
-        title=rf"Stoichiometry at $t/\tau^\delta={selected_time_ratio:.2g}$",
+        title=("Stoichiometry profile\n" + rf"at $t/\tau^\delta={selected_time_ratio:.2g}$"),
     )
     potential_axes[0].grid(alpha=0.22)
 
@@ -1131,28 +1131,28 @@ def _(
         polarization_positions,
         selected_potential_profiles["mu_i_j_per_mol"] / 1.0e3,
         color="#B65C4A",
-        lw=2.8,
+        lw=1.9,
         label=r"chemical $\mu_i$",
     )
     potential_axes[1].plot(
         polarization_positions,
         selected_potential_profiles["electrical_i_j_per_mol"] / 1.0e3,
         color="#4C7C86",
-        lw=2.8,
+        lw=1.9,
         label=r"electrical $+F\phi$",
     )
     potential_axes[1].plot(
         polarization_positions,
         selected_potential_profiles["tilde_mu_i_j_per_mol"] / 1.0e3,
         color="#40464D",
-        lw=3.0,
+        lw=1.9,
         ls="--",
         label=r"sum $\widetilde\mu_i$",
     )
     potential_axes[1].set(
-        xlabel=r"position, $x/L$",
-        ylabel="molar energy relative to reference (kJ/mol)",
-        title="Ion: chemical and electrical forces compete",
+        xlabel=r"Position, $x/L$",
+        ylabel="Molar energy relative to reference (kJ/mol)",
+        title="Ion potential balance",
     )
     potential_axes[1].grid(alpha=0.22)
     potential_axes[1].legend(frameon=False, fontsize=10)
@@ -1161,28 +1161,28 @@ def _(
         polarization_positions,
         selected_potential_profiles["mu_e_j_per_mol"] / 1.0e3,
         color="#B65C4A",
-        lw=2.8,
+        lw=1.9,
         label=r"chemical $\mu_e$",
     )
     potential_axes[2].plot(
         polarization_positions,
         selected_potential_profiles["electrical_e_j_per_mol"] / 1.0e3,
         color="#4C7C86",
-        lw=2.8,
+        lw=1.9,
         label=r"electrical $-F\phi$",
     )
     potential_axes[2].plot(
         polarization_positions,
         selected_potential_profiles["tilde_mu_e_j_per_mol"] / 1.0e3,
         color="#40464D",
-        lw=3.0,
+        lw=1.9,
         ls="--",
         label=r"sum $\widetilde\mu_e$",
     )
     potential_axes[2].set(
-        xlabel=r"position, $x/L$",
-        ylabel="molar energy relative to reference (kJ/mol)",
-        title="Electron electrochemical drop gives U",
+        xlabel=r"Position, $x/L$",
+        ylabel="Molar energy relative to reference (kJ/mol)",
+        title=r"Electron potential balance gives $U$",
     )
     potential_axes[2].grid(alpha=0.22)
     potential_axes[2].legend(frameon=False, fontsize=10)

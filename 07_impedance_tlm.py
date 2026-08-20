@@ -12,12 +12,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
-            "xtick.labelsize": 12,
-            "ytick.labelsize": 12,
-            "legend.fontsize": 11,
+            "font.size": 15,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -137,6 +137,26 @@ def _(np):
             capacitance = _positive_07("capacitance_f", capacitance_f)
             impedance += resistance / (1.0 + 1j * omega * resistance * capacitance)
         return impedance
+
+    def resistor_impedance_07(frequency_hz, resistance_ohm):
+        """Return the frequency-independent impedance of an ideal resistor."""
+        frequencies = np.asarray(frequency_hz, dtype=float)
+        resistance = _positive_07("resistance_ohm", resistance_ohm)
+        return np.full(frequencies.shape, complex(resistance), dtype=complex)
+
+    def capacitor_impedance_07(frequency_hz, capacitance_f):
+        """Return 1/(i omega C) for the exp(i omega t) convention."""
+        frequencies = np.asarray(frequency_hz, dtype=float)
+        if np.any(frequencies <= 0.0):
+            raise ValueError("frequency_hz must be positive")
+        capacitance = _positive_07("capacitance_f", capacitance_f)
+        return 1.0 / (1j * 2.0 * np.pi * frequencies * capacitance)
+
+    def format_nyquist_axis_07(axis):
+        """Apply the shared Nyquist convention and equal data scaling."""
+        axis.set_aspect("equal", adjustable="box")
+        axis.grid(True, alpha=0.24)
+        return axis
 
     def _stable_tanh_positive_real_07(value):
         """Evaluate tanh without overflow when the real part is large and positive."""
@@ -389,7 +409,10 @@ def _(np):
         }
 
     return (
+        capacitor_impedance_07,
+        format_nyquist_axis_07,
         rc_impedance_07,
+        resistor_impedance_07,
         tlm_parameters_07,
         tlm_profile_07,
         tlm_solution_07,
@@ -450,10 +473,10 @@ def _(mo, np, plt, waveform_result_07):
     _figure, (_axis_wave, _axis_phasor) = plt.subplots(
         1, 2, figsize=(12.5, 4.4), constrained_layout=True
     )
-    _axis_wave.plot(_time_cycles, _voltage, lw=2.7, color="#4C7C86", label=r"$\Delta V/V_a$")
-    _axis_wave.plot(_time_cycles, _current, lw=2.7, color="#B8734A", label=r"$\Delta I/I_a$")
+    _axis_wave.plot(_time_cycles, _voltage, lw=1.9, color="#4C7C86", label=r"$\Delta V/V_a$")
+    _axis_wave.plot(_time_cycles, _current, lw=1.9, color="#B8734A", label=r"$\Delta I/I_a$")
     _axis_wave.axhline(0.0, color="#73808C", lw=0.9)
-    _axis_wave.set(xlabel="time / period", ylabel="normalized signal", title="The current leads the voltage")
+    _axis_wave.set(xlabel="Time / period", ylabel="Normalized signal", title="The current leads the voltage")
     _axis_wave.grid(True)
     _axis_wave.legend(loc="upper right")
 
@@ -485,8 +508,8 @@ def _(mo, np, plt, waveform_result_07):
         color="#526173",
     )
     _axis_phasor.set(xlim=(-0.15, 1.25), ylim=(-0.15, 1.05), aspect="equal", title="Phasors rotate together")
-    _axis_phasor.set_xlabel("real component")
-    _axis_phasor.set_ylabel("imaginary component")
+    _axis_phasor.set_xlabel("Real component")
+    _axis_phasor.set_ylabel("Imaginary component")
     _axis_phasor.grid(True)
     mo.vstack([
         _figure,
@@ -516,6 +539,71 @@ def _(mo):
     obvious $R/C$ symbol slip in the lecture graphic while preserving its
     intended convention.
     """)
+    return
+
+
+@app.cell
+def _(capacitor_impedance_07, format_nyquist_axis_07, mo, np, plt, resistor_impedance_07):
+    _frequency_hz = np.logspace(np.log10(30.0), np.log10(3000.0), 240)
+    _resistance_ohm = 500.0
+    _capacitance_f = 10.0e-6
+    _z_resistor = resistor_impedance_07(_frequency_hz, _resistance_ohm)
+    _z_capacitor = capacitor_impedance_07(_frequency_hz, _capacitance_f)
+
+    _figure, (_axis_resistor, _axis_capacitor) = plt.subplots(
+        1, 2, figsize=(12.8, 5.2), constrained_layout=True
+    )
+    _axis_resistor.scatter(
+        [_z_resistor.real[0]], [-_z_resistor.imag[0]],
+        s=120, marker="X", color="#4C7C86", edgecolor="white", zorder=4,
+    )
+    _axis_resistor.set(
+        xlim=(0.0, 600.0), ylim=(0.0, 600.0),
+        xlabel=r"Real impedance, $Z'$ ($\Omega$)",
+        ylabel=r"Negative imaginary impedance, $-Z''$ ($\Omega$)",
+        title=r"Resistor: $Z=R$ at every frequency",
+    )
+    _axis_resistor.annotate(
+        "All frequencies coincide", xy=(500.0, 0.0), xytext=(270.0, 160.0),
+        arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
+    )
+    format_nyquist_axis_07(_axis_resistor)
+
+    _axis_capacitor.plot(
+        _z_capacitor.real, -_z_capacitor.imag,
+        color="#B8734A", lw=1.9, marker="o", markevery=[0, -1], ms=6,
+    )
+    _axis_capacitor.set(
+        xlim=(0.0, 550.0), ylim=(0.0, 550.0),
+        xlabel=r"Real impedance, $Z'$ ($\Omega$)",
+        ylabel=r"Negative imaginary impedance, $-Z''$ ($\Omega$)",
+        title=r"Capacitor: $-Z''=1/(\omega C)$",
+    )
+    _axis_capacitor.annotate(
+        "Lower frequency", xy=(0.0, -_z_capacitor.imag[0]), xytext=(150.0, 430.0),
+        arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
+    )
+    _axis_capacitor.annotate(
+        "Higher frequency", xy=(0.0, -_z_capacitor.imag[-1]), xytext=(150.0, 90.0),
+        arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
+    )
+    format_nyquist_axis_07(_axis_capacitor)
+    plt.close(_figure)
+
+    mo.vstack([
+        mo.md(r"""
+        **Predict first.** Which element should move along the Nyquist plane as
+        frequency changes? Remember that an ideal resistor has no phase lag,
+        while an ideal capacitor has a \(-90^\circ\) impedance phase.
+        """),
+        _figure,
+        mo.md(r"""
+        **Figure takeaway.** Frequency leaves an ideal resistor at one real-axis
+        point, but moves an ideal capacitor along the negative-imaginary axis.
+        Putting them in parallel bends these two limiting responses into the
+        semicircle explored next.
+        """),
+    ])
     return
 
 
@@ -592,6 +680,7 @@ def _(
 
 @app.cell
 def _(
+    format_nyquist_axis_07,
     mo,
     np,
     plt,
@@ -606,7 +695,7 @@ def _(
     _figure, (_axis_nyquist, _axis_bode) = plt.subplots(
         1, 2, figsize=(13.2, 5.0), constrained_layout=True
     )
-    _axis_nyquist.plot(rc_spectrum_07.real, -rc_spectrum_07.imag, lw=2.8, color="#4C7C86")
+    _axis_nyquist.plot(rc_spectrum_07.real, -rc_spectrum_07.imag, lw=1.9, color="#4C7C86")
     _frequency_markers = np.array([1.0 / (2.0 * np.pi * rc_tau_1_07)])
     if rc_show_second_07.value:
         _frequency_markers = np.append(_frequency_markers, 1.0 / (2.0 * np.pi * rc_tau_2_07))
@@ -625,36 +714,26 @@ def _(
         ylabel=r"$-Z''$ ($\Omega$)",
         title="Nyquist: time-scale separation makes arcs visible",
     )
-    _axis_nyquist.set_aspect("equal", adjustable="datalim")
-    _axis_nyquist.grid(True)
+    format_nyquist_axis_07(_axis_nyquist)
     _axis_nyquist.legend(loc="best")
-    _axis_nyquist.annotate(
-        "lower frequency", xy=(rc_spectrum_07.real[0], -rc_spectrum_07.imag[0]),
-        xytext=(16, 20), textcoords="offset points",
-        arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
-    )
-    _axis_nyquist.annotate(
-        "higher frequency", xy=(rc_spectrum_07.real[-1], -rc_spectrum_07.imag[-1]),
-        xytext=(-104, 22), textcoords="offset points",
-        arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
-    )
 
-    _axis_bode.semilogx(rc_frequency_07, np.abs(rc_spectrum_07), lw=2.7, color="#4C7C86")
+    _axis_bode.semilogx(rc_frequency_07, np.abs(rc_spectrum_07), lw=1.9, color="#4C7C86")
     _axis_bode_phase = _axis_bode.twinx()
     _axis_bode_phase.semilogx(
-        rc_frequency_07, np.angle(rc_spectrum_07, deg=True), lw=2.3, color="#B8734A"
+        rc_frequency_07, np.angle(rc_spectrum_07, deg=True), lw=1.7, color="#B8734A"
     )
-    _axis_bode.set(xlabel="frequency (Hz)", ylabel=r"$|Z|$ ($\Omega$)", title="Bode: magnitude and phase retain frequency")
-    _axis_bode_phase.set_ylabel(r"phase of $Z$ (degrees)", color="#B8734A")
+    _axis_bode.set(xlabel="Frequency (Hz)", ylabel=r"$|Z|$ ($\Omega$)", title="Bode: magnitude and phase retain frequency")
+    _axis_bode_phase.set_ylabel(r"Phase of $Z$ (degrees)", color="#B8734A")
     _axis_bode_phase.tick_params(axis="y", colors="#B8734A")
     _axis_bode.grid(True)
     _axis_bode.text(
         0.03,
-        0.05,
+        0.10,
         rf"$C_1={1e6 * rc_capacitance_1_07:.1f}\ \mu$F"
-        + (rf"\n$C_2={1e6 * rc_capacitance_2_07:.1f}\ \mu$F" if rc_show_second_07.value else ""),
+        + (("\n" + rf"$C_2={1e6 * rc_capacitance_2_07:.1f}\ \mu$F") if rc_show_second_07.value else ""),
         transform=_axis_bode.transAxes,
         color="#526173",
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.82},
     )
     mo.vstack([
         _figure,
@@ -705,7 +784,7 @@ def _(mo):
 
     $$
     Z_W=\frac{W}{\sqrt{\mathrm{i}\omega}}
-       =\frac{W(1-i)}{\sqrt{2\omega}},
+       =\frac{W(1-\mathrm{i})}{\sqrt{2\omega}},
     $$
 
     so $Z'=-Z''$: the $45^\circ$ line follows from diffusion rather than being
@@ -736,6 +815,17 @@ def _(mo):
     **Open boundary does not mean electrical open circuit.** It means a
     composition reservoir is maintained at the far face. The blocked case is
     also called finite-space Warburg (FSW).
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    **Predict before moving the controls.** At high frequency the concentration
+    wave should penetrate only a short distance and should not feel the far
+    boundary. At low frequency, decide whether a fixed-composition reservoir or
+    a zero-flux wall should produce the larger accumulation.
     """)
     return
 
@@ -836,18 +926,18 @@ def _(
         xlim=(0.0, 1.43),
         yticks=[0.0, 1.0],
         yticklabels=[r"ac: $\sqrt{D^\delta/\omega}$", r"dc: $\sqrt{D^\delta t}$"],
-        xlabel=r"penetration length / specimen thickness, $\ell_D/L$",
+        xlabel=r"Penetration length / specimen thickness, $\ell_D/L$",
         title="DC time and AC frequency ask how far composition can respond",
     )
     _axis.grid(axis="x", alpha=0.22)
     mo.vstack([
+        _figure,
         mo.md(r"""
         **Figure takeaway.** Longer dc time and lower ac
         frequency both let the composition disturbance travel farther. The far
         boundary can affect the response only when $\ell_D$ becomes comparable
         with $L$.
         """),
-        _figure,
     ])
     return
 
@@ -895,6 +985,99 @@ def _(
 
 @app.cell
 def _(
+    format_nyquist_axis_07,
+    np,
+    plt,
+    warburg_phases_07,
+    warburg_position_07,
+    warburg_reduced_omega_07,
+    warburg_selected_omega_07,
+    warburg_spectra_07,
+    warburg_profile_07,
+):
+    _semi_profile = warburg_profile_07(
+        warburg_selected_omega_07, warburg_position_07, "semi-infinite"
+    )
+    _semi_impedance = warburg_spectra_07["semi-infinite"]
+    _figure, _axes = plt.subplots(
+        1, 3, figsize=(15.0, 4.8), constrained_layout=True
+    )
+    _profile_axis, _nyquist_axis, _bode_axis = _axes
+
+    _profile_styles = ("-", "--", "-.", ":")
+    _profile_colors = ("#4C7C86", "#B8734A", "#7C6A91", "#5F8A6B")
+    for _phase, _style, _color in zip(
+        warburg_phases_07, _profile_styles, _profile_colors
+    ):
+        _profile_axis.plot(
+            warburg_position_07,
+            np.real(_semi_profile * np.exp(1j * _phase)),
+            color=_color,
+            ls=_style,
+            lw=1.8,
+            label=rf"$\omega t={_phase / np.pi:.1f}\pi$",
+        )
+    _profile_axis.axhline(0.0, color="#73808C", lw=0.9, ls=":")
+    _profile_axis.set(
+        xlabel=r"Normalized position, $x/L$ (dimensionless)",
+        ylabel=r"Normalized concentration, $\Delta c/|\widehat{\Delta c}(0)|$",
+        title="Concentration wave decays into the solid",
+    )
+    _profile_axis.grid(alpha=0.24)
+    _profile_axis.legend(frameon=False, fontsize=10.5, ncols=2)
+
+    _nyquist_axis.plot(
+        _semi_impedance.real,
+        -_semi_impedance.imag,
+        color="#4C7C86",
+        lw=1.9,
+        marker="o",
+        markevery=55,
+        ms=4,
+    )
+    _nyquist_axis.set(
+        xlim=(-0.02, 2.2),
+        ylim=(-0.02, 2.2),
+        xlabel=r"Normalized real impedance, $\widetilde Z'$",
+        ylabel=r"Normalized negative imaginary impedance, $-\widetilde Z''$",
+        title=r"Diffusion gives $Z'=-Z''$",
+    )
+    format_nyquist_axis_07(_nyquist_axis)
+
+    _bode_axis.loglog(
+        warburg_reduced_omega_07,
+        np.abs(_semi_impedance),
+        color="#4C7C86",
+        lw=1.9,
+        label=r"$|\widetilde Z|$",
+    )
+    _phase_axis = _bode_axis.twinx()
+    _phase_axis.semilogx(
+        warburg_reduced_omega_07,
+        np.angle(_semi_impedance, deg=True),
+        color="#B8734A",
+        ls="--",
+        lw=1.7,
+    )
+    _bode_axis.set(
+        xlabel=r"Reduced angular frequency, $\widetilde\omega$ (dimensionless)",
+        ylabel=r"Magnitude, $|\widetilde Z|$ (dimensionless)",
+        title=r"Magnitude falls as $\widetilde\omega^{-1/2}$",
+    )
+    _phase_axis.set_ylabel(
+        r"Phase of $\widetilde Z$ (degrees)", color="#B8734A"
+    )
+    _phase_axis.set_ylim(-55.0, -35.0)
+    _phase_axis.tick_params(axis="y", colors="#B8734A")
+    _bode_axis.grid(alpha=0.24, which="both")
+    plt.close(_figure)
+    _figure
+    return
+
+
+@app.cell
+def _(
+    format_nyquist_axis_07,
     np,
     plt,
     warburg_boundary_07,
@@ -919,12 +1102,14 @@ def _(
         "open": "finite, fixed composition",
         "blocked": "finite, zero flux",
     }
-    for _boundary, _impedance in warburg_spectra_07.items():
+    for _boundary in ("open", "blocked"):
+        _impedance = warburg_spectra_07[_boundary]
         _plot_mask = (-_impedance.imag <= 4.0) & (_impedance.real <= 2.2)
         _axis_warburg.plot(
             _impedance.real[_plot_mask],
             -_impedance.imag[_plot_mask],
-            lw=2.6,
+            lw=1.8,
+            ls="-" if _boundary == "open" else "--",
             color=_colors[_boundary],
             label=_labels[_boundary],
         )
@@ -942,31 +1127,14 @@ def _(
         zorder=5,
         label="selected frequency",
     )
-    _axis_warburg.plot([0.0, 1.2], [0.0, 1.2], ls="--", lw=1.3, color="#9AA3AB")
-    _axis_warburg.annotate("45° semi-infinite limit", xy=(0.65, 0.65), xytext=(0.92, 0.28), arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173")
-    _axis_warburg.annotate(
-        "higher frequency",
-        xy=(0.13, 0.13),
-        xytext=(0.36, 0.50),
-        arrowprops={"arrowstyle": "->", "color": "#6B86A5"},
-        color="#526173",
-    )
-    _axis_warburg.annotate(
-        "lower frequency\n(far boundary appears)",
-        xy=(1.02, 1.02),
-        xytext=(0.58, 1.55),
-        arrowprops={"arrowstyle": "->", "color": "#B8734A"},
-        color="#526173",
-        ha="center",
-    )
     _axis_warburg.set(
         xlim=(-0.04, 1.55),
         ylim=(-0.04, 2.0),
         xlabel=r"$\widetilde Z'$",
         ylabel=r"$-\widetilde Z''$",
-        title="The far boundary changes only the low-frequency end",
+        title="Finite boundaries separate at low frequency",
     )
-    _axis_warburg.grid(True)
+    format_nyquist_axis_07(_axis_warburg)
     _axis_warburg.legend(loc="upper left")
 
     _profile_colors = ["#4C7C86", "#B8734A", "#7C6A91", "#5F8A6B"]
@@ -975,13 +1143,13 @@ def _(
         _axis_profile.plot(
             warburg_position_07,
             _snapshot,
-            lw=2.4,
+            lw=1.8,
             color=_color,
             label=rf"$\omega t={_phase / np.pi:.1f}\pi$",
         )
     _axis_profile.axhline(0.0, color="#73808C", lw=0.9)
     _axis_profile.set(
-        xlabel=r"position $x/L$",
+        xlabel=r"Position $x/L$",
         ylabel=r"$\Delta c(x,t)/|\widehat{\Delta c}(0)|$",
         title=f"Concentration wave: {warburg_boundary_07.value} far boundary",
     )
@@ -1013,9 +1181,9 @@ def _(mo):
     $$
     \begin{aligned}
     \widetilde Z_{\rm open}&\longrightarrow 1-
-      \frac{i\widetilde\omega}{3},\\[2mm]
+      \frac{\mathrm{i}\widetilde\omega}{3},\\[2mm]
     \widetilde Z_{\rm blocked}&\longrightarrow
-      \frac{1}{3}+\frac{1}{i\widetilde\omega},
+      \frac{1}{3}+\frac{1}{\mathrm{i}\widetilde\omega},
     \end{aligned}
     \qquad \widetilde\omega\ll1.
     $$
@@ -1061,6 +1229,11 @@ def _(mo):
     ## 3. Why a mixed conductor needs a transmission line
 
 
+    A single lumped resistor or capacitor can reproduce a spectral shape,
+    but it cannot show **where** ionic and electronic current flow, where current
+    transfers between carriers, or how selective contacts change that transfer.
+    A transmission line keeps this spatial information.
+
     A homogeneous MIEC has two conducting pathways. The electronic rail carries
     $I_e$ with resistance per length $r_e=1/(\sigma_e S)$; the ionic rail
     carries $I_i$ with $r_i=1/(\sigma_i S)$. Local stoichiometry can change when
@@ -1095,6 +1268,15 @@ def _(mo):
     composition chemical potential. They also keep conventional electronic and
     ionic currents in the same circuit-current orientation.
 
+    The equation-to-circuit map is direct:
+
+    | transport statement | circuit representation |
+    |---|---|
+    | $du_e/dx=-r_e I_e$ | electronic rail resistance $r_e\,dx$ |
+    | $du_i/dx=-r_i I_i$ | ionic rail resistance $r_i\,dx$ |
+    | $\mathrm{i}\omega c_{\rm chem}(u_e-u_i)$ | local chemical storage $c_{\rm chem}\,dx$ between rails |
+    | terminal carrier fluxes | contact impedances or ideal passing/blocking conditions |
+
     The general TLM places four contact impedances at its ends:
     $Z_A$ and $Z_B$ connect the left electrode to the electronic and ionic
     rails; $Z_C$ and $Z_D$ do the same on the right. Changing these impedances
@@ -1125,8 +1307,8 @@ def _(mo, np, plt):
     _figure, _axis = plt.subplots(figsize=(12.6, 3.2), constrained_layout=True)
     _x_nodes = np.linspace(0.12, 0.88, 6)
     _y_e, _y_i = 0.72, 0.25
-    _axis.plot([0.05, 0.95], [_y_e, _y_e], color="#B8734A", lw=4.0)
-    _axis.plot([0.05, 0.95], [_y_i, _y_i], color="#4C7C86", lw=4.0)
+    _axis.plot([0.05, 0.95], [_y_e, _y_e], color="#B8734A", lw=2.0)
+    _axis.plot([0.05, 0.95], [_y_i, _y_i], color="#4C7C86", lw=2.0)
     for _node in _x_nodes:
         _axis.plot([_node, _node], [_y_i + 0.06, _y_e - 0.06], color="#7C6A91", lw=1.8)
         _axis.plot([_node - 0.018, _node + 0.018], [0.50, 0.50], color="#7C6A91", lw=2.0)
@@ -1134,8 +1316,14 @@ def _(mo, np, plt):
     _axis.text(0.50, 0.82, r"electronic rail: $r_e\,dx$", ha="center", color="#8F5638", fontsize=15)
     _axis.text(0.50, 0.10, r"ionic rail: $r_i\,dx$", ha="center", color="#3D6972", fontsize=15)
     _axis.text(0.50, 0.53, r"distributed $c_{\rm chem}\,dx$", ha="center", color="#665777", fontsize=14)
-    _axis.text(0.02, 0.48, "left contacts", ha="left", va="center", color="#526173")
-    _axis.text(0.98, 0.48, "right contacts", ha="right", va="center", color="#526173")
+    _axis.text(
+        0.015, 0.48, "Left contacts", ha="center", va="center",
+        rotation=90, color="#526173",
+    )
+    _axis.text(
+        0.985, 0.48, "Right contacts", ha="center", va="center",
+        rotation=90, color="#526173",
+    )
     _axis.set(xlim=(0.0, 1.0), ylim=(0.0, 1.0), title="A continuous two-rail transmission line")
     _axis.text(0.06, 0.78, r"$Z_A$", color="#8F5638", weight="bold")
     _axis.text(0.06, 0.18, r"$Z_B$", color="#3D6972", weight="bold")
@@ -1315,7 +1503,7 @@ def _(
     _axis_nyquist.plot(
         _normalized_impedance.real[_visible],
         _minus_imaginary[_visible],
-        lw=2.8,
+        lw=1.9,
         color="#4C7C86",
     )
     if _visible[_selected_index]:
@@ -1329,15 +1517,6 @@ def _(
             zorder=5,
             label="selected frequency",
         )
-    if np.any(~_visible & (_minus_imaginary > _nyquist_cap)):
-        _axis_nyquist.annotate(
-            "low-frequency branch continues upward",
-            xy=(float(_normalized_impedance.real[_visible][0]), _nyquist_cap * 0.96),
-            xytext=(0.44, 0.72),
-            textcoords="axes fraction",
-            arrowprops={"arrowstyle": "->", "color": "#73808C"},
-            color="#526173",
-        )
     _axis_nyquist.set(
         ylim=(-0.03 * _nyquist_cap, _nyquist_cap),
         xlabel=r"$Z'/R_\parallel$",
@@ -1345,37 +1524,20 @@ def _(
         title=tlm_contact_case_07.value.capitalize()
         + "\nNyquist response selected by the contacts",
     )
-    _axis_nyquist.grid(True)
+    format_nyquist_axis_07(_axis_nyquist)
     if _visible[_selected_index]:
         _axis_nyquist.legend(loc="best")
-    _visible_indices = np.flatnonzero(_visible)
-    if _visible_indices.size:
-        _low_index = int(_visible_indices[0])
-        _high_index = int(_visible_indices[-1])
-        _axis_nyquist.annotate(
-            "lower frequency",
-            xy=(_normalized_impedance.real[_low_index], _minus_imaginary[_low_index]),
-            xytext=(14, 18), textcoords="offset points",
-            arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
-        )
-        _axis_nyquist.annotate(
-            "higher frequency",
-            xy=(_normalized_impedance.real[_high_index], _minus_imaginary[_high_index]),
-            xytext=(-104, 18), textcoords="offset points",
-            arrowprops={"arrowstyle": "->", "color": "#73808C"}, color="#526173",
-        )
-
     _axis_bode.loglog(
         tlm_frequency_ratio_07,
         np.abs(_normalized_impedance),
-        lw=2.7,
+        lw=1.9,
         color="#4C7C86",
     )
     _axis_phase = _axis_bode.twinx()
     _axis_phase.semilogx(
         tlm_frequency_ratio_07,
         np.angle(_normalized_impedance, deg=True),
-        lw=2.3,
+        lw=1.7,
         color="#B8734A",
     )
     _axis_bode.axvline(1.0, color="#9AA3AB", lw=1.2, ls="--")
@@ -1384,7 +1546,7 @@ def _(
         ylabel=r"$|Z|/R_\parallel$",
         title="Frequency keeps the time-scale information",
     )
-    _axis_phase.set_ylabel(r"phase of $Z$ (degrees)", color="#B8734A")
+    _axis_phase.set_ylabel(r"Phase of $Z$ (degrees)", color="#B8734A")
     _axis_phase.tick_params(axis="y", colors="#B8734A")
     _axis_bode.grid(True, which="both")
     _axis_bode.text(
@@ -1432,8 +1594,8 @@ def _(
     _figure, (_axis_potential, _axis_current) = plt.subplots(
         1, 2, figsize=(13.4, 4.9), constrained_layout=True
     )
-    _axis_potential.plot(tlm_position_07, _u_e_snapshot, lw=2.8, color="#B8734A", label=r"$u_e$")
-    _axis_potential.plot(tlm_position_07, _u_i_snapshot, lw=2.8, color="#4C7C86", label=r"$u_i$")
+    _axis_potential.plot(tlm_position_07, _u_e_snapshot, lw=1.9, color="#B8734A", label=r"$u_e$")
+    _axis_potential.plot(tlm_position_07, _u_i_snapshot, lw=1.9, color="#4C7C86", label=r"$u_i$")
     _axis_potential.plot(
         tlm_position_07,
         _chemical_snapshot,
@@ -1444,27 +1606,27 @@ def _(
     )
     _axis_potential.axhline(0.0, color="#73808C", lw=0.9)
     _axis_potential.set(
-        xlabel=r"position $x/L$",
-        ylabel="instantaneous voltage-equivalent potential (V)",
+        xlabel=r"Position $x/L$",
+        ylabel="Instantaneous voltage-equivalent potential (V)",
         title="Potentials show where chemical storage is driven",
     )
     _axis_potential.grid(True)
     _axis_potential.legend(loc="best")
 
-    _axis_current.plot(tlm_position_07, _i_e_snapshot, lw=2.8, color="#B8734A", label=r"$I_e$")
-    _axis_current.plot(tlm_position_07, _i_i_snapshot, lw=2.8, color="#4C7C86", label=r"$I_i$")
+    _axis_current.plot(tlm_position_07, _i_e_snapshot, lw=1.9, color="#B8734A", label=r"$I_e$")
+    _axis_current.plot(tlm_position_07, _i_i_snapshot, lw=1.9, color="#4C7C86", label=r"$I_i$")
     _axis_current.plot(
         tlm_position_07,
         _i_total_snapshot,
-        lw=2.1,
+        lw=1.7,
         ls="--",
         color="#5F8A6B",
         label=r"$I_e+I_i$",
     )
     _axis_current.axhline(0.0, color="#73808C", lw=0.9)
     _axis_current.set(
-        xlabel=r"position $x/L$",
-        ylabel="instantaneous current / common scale",
+        xlabel=r"Position $x/L$",
+        ylabel="Instantaneous current / common scale",
         title="Carrier currents exchange, but their sum stays constant",
     )
     _axis_current.grid(True)
@@ -1555,8 +1717,12 @@ def _(mo):
 
 @app.cell
 def _(
+    capacitor_impedance_07,
+    format_nyquist_axis_07,
     np,
+    plt,
     rc_impedance_07,
+    resistor_impedance_07,
     tlm_parameters_07,
     tlm_profile_07,
     tlm_solution_07,
@@ -1566,6 +1732,24 @@ def _(
     waveform_data_07,
 ):
     _check_frequency = np.logspace(-5.0, 5.0, 800)
+    _check_resistor = resistor_impedance_07(_check_frequency, 37.0)
+    resistor_limit_error_07 = max(
+        np.max(np.abs(_check_resistor.real - 37.0)),
+        np.max(np.abs(_check_resistor.imag)),
+    )
+    _check_capacitor = capacitor_impedance_07(_check_frequency, 2.5e-6)
+    capacitor_limit_error_07 = max(
+        np.max(np.abs(_check_capacitor.real)),
+        np.max(np.abs(
+            (-_check_capacitor.imag)
+            * (2.0 * np.pi * _check_frequency * 2.5e-6)
+            - 1.0
+        )),
+    )
+    _nyquist_test_figure, _nyquist_test_axis = plt.subplots()
+    format_nyquist_axis_07(_nyquist_test_axis)
+    nyquist_equal_axis_error_07 = abs(float(_nyquist_test_axis.get_aspect()) - 1.0)
+    plt.close(_nyquist_test_figure)
     _check_rc = rc_impedance_07(_check_frequency, 0.0, [(1.0, 1.0)])
     rc_circle_error_07 = np.max(
         np.abs((_check_rc.real - 0.5) ** 2 + _check_rc.imag**2 - 0.25)
@@ -1657,7 +1841,10 @@ def _(
         - 1.0
     )
     return (
+        capacitor_limit_error_07,
         dc_ac_length_error_07,
+        nyquist_equal_axis_error_07,
+        resistor_limit_error_07,
         phasor_sign_error_07,
         rc_circle_error_07,
         rc_peak_error_07,
@@ -1677,8 +1864,11 @@ def _(
 
 @app.cell
 def _(
+    capacitor_limit_error_07,
     dc_ac_length_error_07,
     mo,
+    nyquist_equal_axis_error_07,
+    resistor_limit_error_07,
     phasor_sign_error_07,
     rc_circle_error_07,
     rc_peak_error_07,
@@ -1695,6 +1885,16 @@ def _(
     warburg_resistance_scale_error_07,
 ):
     _checks = [
+        (
+            "Ideal resistor and capacitor limits",
+            max(resistor_limit_error_07, capacitor_limit_error_07) < 1.0e-12,
+            r"The resistor point and capacitive line must follow directly from $Z_R=R$ and $Z_C=1/(\mathrm{i}\omega C)$.",
+        ),
+        (
+            "Equal Nyquist scaling",
+            nyquist_equal_axis_error_07 < 1.0e-14,
+            "Equal data scale keeps angles, semicircles, and diffusion slopes geometrically honest.",
+        ),
         (
             "Phasor sign convention",
             phasor_sign_error_07 < 1.0e-12,

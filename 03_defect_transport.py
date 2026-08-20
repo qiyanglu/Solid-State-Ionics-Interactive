@@ -12,12 +12,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
-            "xtick.labelsize": 12,
-            "ytick.labelsize": 12,
-            "legend.fontsize": 11,
+            "font.size": 15,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -210,7 +210,7 @@ def _(np):
     def simulate_zero_field_walks(
         jump_distance_m,
         hop_frequency_hz,
-        walker_count=2000,
+        walker_count=6000,
         step_count=320,
         seed=2026,
     ):
@@ -591,29 +591,30 @@ def _(
         jump_distance_m,
         hop_frequency_hz,
     )
+    _walk_seed = int(round(
+        17.0 * temperature_k
+        + 100003.0 * migration_enthalpy_ev
+        + 1009.0 * float(log_attempt_frequency.value)
+        + 1000003.0 * float(jump_distance.value)
+    )) % (2**32 - 1)
     walk_times_s, walk_positions_m, walk_msd_m2 = simulate_zero_field_walks(
         jump_distance_m,
         hop_frequency_hz,
+        walker_count=6000,
+        step_count=320,
+        seed=_walk_seed,
     )
     fit_start = walk_times_s.size // 5
-    msd_slope, msd_intercept = np.polyfit(
-        walk_times_s[fit_start:],
-        walk_msd_m2[fit_start:],
-        1,
-    )
+    _fit_times = walk_times_s[fit_start:]
+    _fit_msd = walk_msd_m2[fit_start:]
+    msd_slope = float(np.dot(_fit_times, _fit_msd) / np.dot(_fit_times, _fit_times))
     extracted_diffusivity_m2_per_s = msd_slope / 2.0
-    fitted_msd_m2 = msd_slope * walk_times_s + msd_intercept
+    fitted_msd_m2 = msd_slope * walk_times_s
     residual_sum_squares = float(
-        np.sum((walk_msd_m2[fit_start:] - fitted_msd_m2[fit_start:]) ** 2)
+        np.sum((_fit_msd - fitted_msd_m2[fit_start:]) ** 2)
     )
     total_sum_squares = float(
-        np.sum(
-            (
-                walk_msd_m2[fit_start:]
-                - np.mean(walk_msd_m2[fit_start:])
-            )
-            ** 2
-        )
+        np.sum((_fit_msd - np.mean(_fit_msd)) ** 2)
     )
     msd_fit_r_squared = 1.0 - residual_sum_squares / total_sum_squares
     return (
@@ -633,10 +634,22 @@ def _(
 
 
 @app.cell
+def _(mo):
+    mo.md(r"""
+    **Predict before moving the controls.** Raising \(T\), lowering
+    \(\Delta H_{\rm mig}\), or raising \(\nu\) should make the same number of
+    hops occur in less physical time. Increasing \(a\) should enlarge every
+    spatial step and increase \(D\) as \(a^2\).
+    """)
+    return
+
+
+@app.cell
 def _(
     defect_diffusivity_m2_per_s,
     extracted_diffusivity_m2_per_s,
-    jump_distance_m,
+    fitted_msd_m2,
+    hop_frequency_hz,
     migration_enthalpy_ev,
     msd_fit_r_squared,
     np,
@@ -645,16 +658,7 @@ def _(
     walk_msd_m2,
     walk_positions_m,
     walk_times_s,
-    hop_frequency_hz,
 ):
-    plt.rcParams.update(
-        {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
-            "legend.fontsize": 11,
-        }
-    )
     display_time, time_unit = scaled_time_axis(walk_times_s)
     reaction_coordinate = np.linspace(0.0, 2.0, 500)
     barrier_energy_ev = 0.5 * migration_enthalpy_ev * (
@@ -662,17 +666,11 @@ def _(
     )
 
     microscopic_figure, microscopic_axes = plt.subplots(
-        1,
-        3,
-        figsize=(15.0, 4.8),
-        dpi=120,
+        2, 2, figsize=(13.8, 9.0), dpi=120, constrained_layout=True
     )
-    barrier_axis, trajectory_axis, msd_axis = microscopic_axes
+    barrier_axis, trajectory_axis, msd_axis, comparison_axis = microscopic_axes.flat
     barrier_axis.plot(
-        reaction_coordinate,
-        barrier_energy_ev,
-        color="#4C7C86",
-        lw=3.0,
+        reaction_coordinate, barrier_energy_ev, color="#4C7C86", lw=1.9
     )
     barrier_axis.scatter(
         [0.0, 1.0, 2.0],
@@ -680,8 +678,9 @@ def _(
         s=80,
         color="#C49345",
         edgecolor="#40464D",
+        marker="o",
         zorder=4,
-        label="equivalent sites",
+        label="Equivalent sites",
     )
     barrier_axis.annotate(
         "",
@@ -690,15 +689,12 @@ def _(
         arrowprops={"arrowstyle": "<->", "color": "#B65C4A", "lw": 1.8},
     )
     barrier_axis.text(
-        0.55,
-        0.52 * migration_enthalpy_ev,
-        r"$H_{\rm mig}$",
-        color="#B65C4A",
+        0.55, 0.52 * migration_enthalpy_ev, r"$\Delta H_{\rm mig}$", color="#B65C4A"
     )
     barrier_axis.set(
-        xlabel="position / a",
-        ylabel="energy (eV)",
-        title="Thermally activated hops",
+        xlabel=r"Reaction coordinate, $x/a$ (dimensionless)",
+        ylabel="Energy (eV)",
+        title="1. Thermal activation enables a hop",
         ylim=(-0.04 * migration_enthalpy_ev, 1.15 * migration_enthalpy_ev),
     )
     barrier_axis.legend(frameon=False, loc="upper right")
@@ -707,48 +703,93 @@ def _(
     for trajectory_index in range(8):
         trajectory_axis.step(
             display_time,
-            walk_positions_m[trajectory_index] / jump_distance_m,
+            walk_positions_m[trajectory_index] * 1.0e9,
             where="post",
             lw=1.2,
-            alpha=0.75,
+            alpha=0.72,
+            label="Individual paths" if trajectory_index == 0 else None,
         )
+    trajectory_axis.axhline(0.0, color="#73808C", lw=0.9, ls=":")
     trajectory_axis.set(
-        xlabel=f"time ({time_unit})",
-        ylabel="position / a",
-        title="Unbiased paths wander",
+        xlabel=f"Physical time ({time_unit})",
+        ylabel=r"Position, $x$ (nm)",
+        title="2. Unbiased paths wander differently",
     )
     trajectory_axis.grid(alpha=0.22)
+    trajectory_axis.legend(frameon=False, loc="best")
 
     msd_axis.plot(
         display_time,
         walk_msd_m2 * 1.0e18,
         color="#4C7C86",
-        lw=2.8,
-        label="deterministic-seed simulation",
+        lw=1.9,
+        marker="o",
+        markevery=28,
+        ms=4,
+        label="Random-walk ensemble",
+    )
+    msd_axis.plot(
+        display_time,
+        fitted_msd_m2 * 1.0e18,
+        color="#7C6A91",
+        lw=1.7,
+        ls="-.",
+        label="Fitted slope",
     )
     msd_axis.plot(
         display_time,
         2.0 * defect_diffusivity_m2_per_s * walk_times_s * 1.0e18,
         color="#B8734A",
-        lw=2.0,
+        lw=1.8,
         ls="--",
-        label=r"$2Dt$",
+        label=r"Prediction, $2Dt$",
     )
     msd_axis.set(
-        xlabel=f"time ({time_unit})",
-        ylabel=r"$\langle x^2\rangle$ (nm$^2$)",
-        title="The ensemble reveals D",
+        xlabel=f"Physical time ({time_unit})",
+        ylabel=r"Mean-square displacement, $\langle x^2\rangle$ (nm$^2$)",
+        title=r"3. The ensemble slope gives $2D$",
     )
     msd_axis.grid(alpha=0.22)
     msd_axis.legend(frameon=False)
-    microscopic_figure.tight_layout()
+
+    _diffusivities_cm2_s = 1.0e4 * np.array(
+        [defect_diffusivity_m2_per_s, extracted_diffusivity_m2_per_s]
+    )
+    _bars = comparison_axis.bar(
+        ["From hopping", "From MSD fit"],
+        _diffusivities_cm2_s,
+        color=["#6F9299", "#B98A5A"],
+        edgecolor="#526173",
+        hatch=["", "//"],
+        width=0.62,
+    )
+    comparison_axis.bar_label(_bars, fmt="%.2e", padding=4, fontsize=11)
+    comparison_axis.set(
+        ylabel=r"Diffusivity, $D$ (cm$^2$ s$^{-1}$)",
+        title="4. Microscopic and statistical routes agree",
+        ylim=(0.0, 1.24 * float(np.max(_diffusivities_cm2_s))),
+    )
+    comparison_axis.grid(axis="y", alpha=0.22)
+    _relative_difference = abs(
+        extracted_diffusivity_m2_per_s / defect_diffusivity_m2_per_s - 1.0
+    )
+    comparison_axis.set_xlabel(
+        rf"Relative difference = {_relative_difference:.2%}",
+        color="#526173",
+    )
+    microscopic_figure.suptitle(
+        "Activated hop → random walk → MSD slope → diffusivity",
+        fontsize=18,
+        weight="bold",
+    )
     plt.close(microscopic_figure)
 
     microscopic_summary = (
-        f"Gamma = {hop_frequency_hz:.3e} s^-1; "
-        f"D = a^2 Gamma / 2 = {defect_diffusivity_m2_per_s * 1.0e4:.3e} cm^2/s; "
-        f"MSD fit gives {extracted_diffusivity_m2_per_s * 1.0e4:.3e} cm^2/s "
-        f"(R^2 = {msd_fit_r_squared:.5f})."
+        rf"$\Gamma={hop_frequency_hz:.3e}\ \mathrm{{s^{{-1}}}}$; "
+        rf"$D=a^2\Gamma/2={defect_diffusivity_m2_per_s * 1.0e4:.3e}\ "
+        rf"\mathrm{{cm^2\,s^{{-1}}}}$; the MSD fit gives "
+        rf"$" rf"{extracted_diffusivity_m2_per_s * 1.0e4:.3e}\ "
+        rf"\mathrm{{cm^2\,s^{{-1}}}}$ ($R^2={msd_fit_r_squared:.5f}$)."
     )
     return microscopic_figure, microscopic_summary
 
@@ -762,7 +803,7 @@ def _(microscopic_figure, microscopic_summary, mo):
             mo.md(r"""
             **Figure takeaway.** A single path is noisy and has no preferred direction. Diffusivity is
             an ensemble property: many random paths produce a linear mean-square
-            displacement. Raising \(T\) or lowering \(H_{\rm mig}\) increases
+            displacement. Raising \(T\), lowering \(\Delta H_{\rm mig}\), or raising \(\nu\) increases
             \(\Gamma\), so the same number of lattice steps occurs in less time.
             """),
         ]
@@ -921,12 +962,12 @@ def _(
         master_position,
         evolved_master_occupancy,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label="master-equation solution",
     )
     profile_axis.set(
-        xlabel="position / periodic cell length",
-        ylabel="site occupancy",
+        xlabel="Position / periodic cell length",
+        ylabel="Site occupancy",
         title="Random hopping smooths a concentration step",
         ylim=(0.0, 1.0),
     )
@@ -938,12 +979,12 @@ def _(
         master_position,
         microscopic_bond_flux_per_s / flux_scale,
         color="#B8734A",
-        lw=2.5,
+        lw=1.8,
     )
     _flux_axis.axhline(0.0, color="#666D73", lw=1.0)
     _flux_axis.set(
-        xlabel="bond position / periodic cell length",
-        ylabel="net bond flux / max |flux|",
+        xlabel="Bond position / periodic cell length",
+        ylabel="Net bond flux / max |flux|",
         title="Opposing random exchanges leave a net flux",
     )
     _flux_axis.grid(alpha=0.22)
@@ -1220,7 +1261,7 @@ def _(
         figsize=(15.2, 4.9),
         dpi=120,
     )
-    tilt_axis.plot(field_coordinate, tilted_energy_ev, color="#4C7C86", lw=3.0)
+    tilt_axis.plot(field_coordinate, tilted_energy_ev, color="#4C7C86", lw=1.9)
     tilt_axis.scatter(
         [0.0, 1.0, 2.0],
         [
@@ -1234,8 +1275,8 @@ def _(
         zorder=4,
     )
     tilt_axis.set(
-        xlabel="position / a",
-        ylabel="energy (eV)",
+        xlabel="Position / a",
+        ylabel="Energy (eV)",
         title="The field tilts the hopping landscape",
     )
     tilt_axis.grid(alpha=0.22)
@@ -1254,7 +1295,7 @@ def _(
     )
     gradient_axis.axhline(0.0, color="#333333", lw=1.0)
     gradient_axis.set(
-        ylabel="potential change (J/mol per µm)",
+        ylabel="Potential change (J/mol per µm)",
         title=r"$d\widetilde{\mu}/dx=d\mu/dx+zF\,d\phi/dx$",
     )
     gradient_axis.tick_params(axis="x", rotation=18)
@@ -1274,7 +1315,7 @@ def _(
     )
     _flux_axis.axhline(0.0, color="#333333", lw=1.0)
     _flux_axis.set(
-        ylabel=r"molar flux (mol m$^{-2}$ s$^{-1}$)",
+        ylabel=r"Molar flux (mol m$^{-2}$ s$^{-1}$)",
         title="Nonzero parts can cancel exactly",
     )
     _flux_axis.tick_params(axis="x", rotation=18)
@@ -1593,7 +1634,7 @@ def _(
         ratio_curve,
         chemical_to_ionic_ratio_curve,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"$2r/(1+r)$",
     )
     ratio_axis.scatter(
@@ -1611,7 +1652,7 @@ def _(
     )
     ratio_axis.axhline(1.0, color="#858B90", lw=1.0, ls=":")
     ratio_axis.set(
-        xlabel=r"mobility contrast, $r=D_{e^-}/D_{\rm Li^+}$",
+        xlabel=r"Mobility contrast, $r=D_{e^-}/D_{\rm Li^+}$",
         ylabel=r"$D_{\rm Li}^{\delta}/D_{\rm Li^+}$",
         title="The slower carrier limits chemical diffusion",
         xlim=(1.0e-4, 1.0e4),
@@ -1861,14 +1902,14 @@ def _(
         length_curve_m,
         relaxation_curve_s,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"scaling time $t_D=L^2/D_{\rm Li}^{\delta}$",
     )
     time_axis.loglog(
         length_curve_m,
         relaxation_curve_s / np.pi**2,
         color="#B8734A",
-        lw=2.5,
+        lw=1.8,
         ls="--",
         label=r"first mode $\tau^\delta=t_D/\pi^2$",
     )
@@ -1882,8 +1923,8 @@ def _(
         label="selected $t_D$",
     )
     time_axis.set(
-        xlabel="sample length, L (m)",
-        ylabel="characteristic time (s)",
+        xlabel="Sample length, L (m)",
+        ylabel="Characteristic time (s)",
         title="Diffusion time grows as length squared",
     )
     time_axis.grid(which="both", alpha=0.22)
@@ -1893,11 +1934,11 @@ def _(
         slab_position,
         selected_slab_profile,
         color="#B65C4A",
-        lw=3.0,
+        lw=1.9,
     )
     relaxation_profile_axis.set(
-        xlabel="position, x / L",
-        ylabel="remaining normalized composition change",
+        xlabel="Position, x / L",
+        ylabel="Remaining normalized composition change",
         title="One-dimensional slab relaxation",
         ylim=(-0.03, 1.03),
     )
@@ -2051,7 +2092,7 @@ def _(
         "msd_diffusivity_error": msd_diffusivity_error,
         "msd_r_squared": msd_fit_r_squared,
         "msd_pass": (
-            msd_diffusivity_error < 0.08
+            msd_diffusivity_error < 0.05
             and msd_fit_r_squared > 0.995
         ),
         "detailed_balance_error": detailed_balance_error,

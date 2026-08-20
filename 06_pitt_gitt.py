@@ -13,12 +13,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
-            "xtick.labelsize": 12,
-            "ytick.labelsize": 12,
-            "legend.fontsize": 11,
+            "font.size": 15,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -130,7 +130,7 @@ def _(mo, np, plt, species_label_06):
     _selected = np.array([0.18, 0.36, 0.58, 0.78])
     _selected_potential = -np.log(_selected / (1.0 - _selected))
     _figure, _axis = plt.subplots(figsize=(11.8, 4.1), constrained_layout=True)
-    _axis.plot(_delta, _reduced_potential, color="#4F7881", lw=3.0)
+    _axis.plot(_delta, _reduced_potential, color="#4F7881", lw=1.9)
     _axis.scatter(
         _selected, _selected_potential, marker="D", s=65, color="#B8734A",
         edgecolor="white", zorder=4, label="successive long-rest states",
@@ -143,7 +143,7 @@ def _(mo, np, plt, species_label_06):
         )
     _axis.set(
         xlabel=rf"neutral {species_label_06.value} stoichiometry, $\delta$",
-        ylabel=r"illustrative $F(E-E^0)/(RT)$",
+        ylabel=r"Illustrative $F(E-E^0)/(RT)$",
         title="Coulometry locates composition; long-rest potential locates equilibrium",
     )
     _axis.grid(alpha=0.22)
@@ -945,7 +945,7 @@ def _(
             pitt_result_06["pulse_profiles"][_index][::-1],
             color=_color,
             ls=_style,
-            lw=2.3,
+            lw=1.7,
             label=rf"pulse $t/\tau^\delta={pulse_times_06[_index]:.2g}$",
         )
     for _index, _color, _style in zip(_rest_indices, _rest_colors, _rest_styles):
@@ -953,30 +953,30 @@ def _(
             _x_um,
             pitt_result_06["rest_profiles"][_index][::-1],
             color=_color,
-            lw=2.2,
+            lw=1.7,
             ls=_style,
             label=rf"OCV $t_r/\tau^\delta={rest_times_06[_index]:.2g}$",
         )
     _axes[0, 0].set_title("PITT: concentration profiles")
-    _axes[0, 0].set_xlabel("position x (micrometers)")
+    _axes[0, 0].set_xlabel("Position x (micrometers)")
     _axes[0, 0].set_ylabel("c / c0")
-    _axes[0, 0].legend(fontsize=9.5, loc="best")
+    _axes[0, 0].legend(fontsize=10.5, loc="best")
 
     _pitt_voltage_mv = 1000.0 * voltage_scale_v_06 * pitt_result_06["pulse_u"]
     _pitt_rest_voltage_mv = 1000.0 * voltage_scale_v_06 * pitt_result_06["rest_u"]
     _pitt_current_milliamp_cm2 = 0.1 * current_scale_a_per_m2_06 * pitt_result_06["pulse_q"]
     _pitt_current_rest = 0.1 * current_scale_a_per_m2_06 * pitt_result_06["rest_q"]
-    _axes[0, 1].plot(_pulse_seconds, _pitt_voltage_mv, color="#A65E5E", lw=2.5)
-    _axes[0, 1].plot(_rest_seconds, _pitt_rest_voltage_mv, color="#A65E5E", lw=2.5)
+    _axes[0, 1].plot(_pulse_seconds, _pitt_voltage_mv, color="#A65E5E", lw=1.8)
+    _axes[0, 1].plot(_rest_seconds, _pitt_rest_voltage_mv, color="#A65E5E", lw=1.8)
     _axes[0, 1].axvline(_pulse_seconds[-1], color="0.45", ls=":", lw=1.7)
     _axes[0, 1].set_title("PITT response: fixed voltage, relaxing current")
-    _axes[0, 1].set_xlabel("time (s)")
-    _axes[0, 1].set_ylabel("voltage change (mV)", color="#A65E5E")
+    _axes[0, 1].set_xlabel("Time (s)")
+    _axes[0, 1].set_ylabel("Voltage change (mV)", color="#A65E5E")
     _axes[0, 1].tick_params(axis="y", labelcolor="#A65E5E")
     _current_axis = _axes[0, 1].twinx()
-    _current_axis.plot(_pulse_seconds, _pitt_current_milliamp_cm2, color="#4F7881", lw=2.3)
-    _current_axis.plot(_rest_seconds, _pitt_current_rest, color="#4F7881", lw=2.3)
-    _current_axis.set_ylabel("current density (mA cm$^{-2}$)", color="#4F7881")
+    _current_axis.plot(_pulse_seconds, _pitt_current_milliamp_cm2, color="#4F7881", lw=1.7)
+    _current_axis.plot(_rest_seconds, _pitt_current_rest, color="#4F7881", lw=1.7)
+    _current_axis.set_ylabel("Current density (mA cm$^{-2}$)", color="#4F7881")
     _current_axis.tick_params(axis="y", labelcolor="#4F7881")
 
     for _index, _color, _style in zip(_pulse_indices, _colors, _styles):
@@ -985,7 +985,7 @@ def _(
             gitt_result_06["pulse_profiles"][_index][::-1],
             color=_color,
             ls=_style,
-            lw=2.3,
+            lw=1.7,
             label=rf"pulse $t/\tau^\delta={pulse_times_06[_index]:.2g}$",
         )
     for _index, _color, _style in zip(_rest_indices, _rest_colors, _rest_styles):
@@ -993,29 +993,29 @@ def _(
             _x_um,
             gitt_result_06["rest_profiles"][_index][::-1],
             color=_color,
-            lw=2.2,
+            lw=1.7,
             ls=_style,
             label=rf"OCV $t_r/\tau^\delta={rest_times_06[_index]:.2g}$",
         )
     _axes[1, 0].set_title("GITT: concentration profiles")
-    _axes[1, 0].set_xlabel("position x (micrometers)")
+    _axes[1, 0].set_xlabel("Position x (micrometers)")
     _axes[1, 0].set_ylabel("c / c0")
-    _axes[1, 0].legend(fontsize=9.5, loc="best")
+    _axes[1, 0].legend(fontsize=10.5, loc="best")
 
     _gitt_voltage_mv = 1000.0 * voltage_scale_v_06 * gitt_result_06["pulse_u"]
     _gitt_rest_voltage_mv = 1000.0 * voltage_scale_v_06 * gitt_result_06["rest_u"]
     _gitt_current_milliamp_cm2 = 0.1 * current_scale_a_per_m2_06 * gitt_result_06["pulse_q"]
-    _axes[1, 1].plot(_pulse_seconds, _gitt_voltage_mv, color="#A65E5E", lw=2.5)
-    _axes[1, 1].plot(_rest_seconds, _gitt_rest_voltage_mv, color="#A65E5E", lw=2.5)
+    _axes[1, 1].plot(_pulse_seconds, _gitt_voltage_mv, color="#A65E5E", lw=1.8)
+    _axes[1, 1].plot(_rest_seconds, _gitt_rest_voltage_mv, color="#A65E5E", lw=1.8)
     _axes[1, 1].axvline(_pulse_seconds[-1], color="0.45", ls=":", lw=1.7)
     _axes[1, 1].set_title("GITT response: fixed current, relaxing voltage")
-    _axes[1, 1].set_xlabel("time (s)")
-    _axes[1, 1].set_ylabel("voltage change (mV)", color="#A65E5E")
+    _axes[1, 1].set_xlabel("Time (s)")
+    _axes[1, 1].set_ylabel("Voltage change (mV)", color="#A65E5E")
     _axes[1, 1].tick_params(axis="y", labelcolor="#A65E5E")
     _gitt_current_axis = _axes[1, 1].twinx()
-    _gitt_current_axis.plot(_pulse_seconds, _gitt_current_milliamp_cm2, color="#4F7881", lw=2.3)
-    _gitt_current_axis.plot(_rest_seconds, np.zeros_like(_rest_seconds), color="#4F7881", lw=2.3)
-    _gitt_current_axis.set_ylabel("current density (mA cm$^{-2}$)", color="#4F7881")
+    _gitt_current_axis.plot(_pulse_seconds, _gitt_current_milliamp_cm2, color="#4F7881", lw=1.7)
+    _gitt_current_axis.plot(_rest_seconds, np.zeros_like(_rest_seconds), color="#4F7881", lw=1.7)
+    _gitt_current_axis.set_ylabel("Current density (mA cm$^{-2}$)", color="#4F7881")
     _gitt_current_axis.tick_params(axis="y", labelcolor="#4F7881")
 
     for _axis in _axes.flat:
@@ -1129,7 +1129,7 @@ def _(
     _energy_scale = GAS_CONSTANT_J_PER_MOL_K * parameters_06["temperature_k"] / 1000.0
     _x_um = positions_06 * parameters_06["length_m"] * 1.0e6
     _fig, _axes = plt.subplots(1, 3, figsize=(15.0, 4.5), constrained_layout=True)
-    _axes[0].plot(_x_um, selected_potentials_06["profile"][::-1], color="#4F7881", lw=2.8)
+    _axes[0].plot(_x_um, selected_potentials_06["profile"][::-1], color="#4F7881", lw=1.9)
     _axes[0].set_title("Composition")
     _axes[0].set_ylabel("c / c0")
 
@@ -1137,53 +1137,53 @@ def _(
         _x_um,
         _energy_scale * selected_potentials_06["mu_i"][::-1],
         color="#5F8F8D",
-        lw=2.2,
+        lw=1.7,
         label="$\\mu_i$",
     )
     _axes[1].plot(
         _x_um,
         _energy_scale * selected_potentials_06["electrical_i"][::-1],
         color="#C49345",
-        lw=2.2,
+        lw=1.7,
         label="$+F\\phi$",
     )
     _axes[1].plot(
         _x_um,
         _energy_scale * selected_potentials_06["tilde_mu_i"][::-1],
         color="#A65E5E",
-        lw=2.8,
+        lw=1.9,
         label="$\\widetilde\\mu_i$",
     )
     _axes[1].set_title("Ion: chemical + electrical")
-    _axes[1].set_ylabel("change (kJ mol$^{-1}$)")
+    _axes[1].set_ylabel("Change (kJ mol$^{-1}$)")
     _axes[1].legend(fontsize=10)
 
     _axes[2].plot(
         _x_um,
         _energy_scale * selected_potentials_06["mu_e"][::-1],
         color="#5F8F8D",
-        lw=2.2,
+        lw=1.7,
         label="$\\mu_e$",
     )
     _axes[2].plot(
         _x_um,
         _energy_scale * selected_potentials_06["electrical_e"][::-1],
         color="#C49345",
-        lw=2.2,
+        lw=1.7,
         label="$-F\\phi$",
     )
     _axes[2].plot(
         _x_um,
         _energy_scale * selected_potentials_06["tilde_mu_e"][::-1],
         color="#A65E5E",
-        lw=2.8,
+        lw=1.9,
         label="$\\widetilde\\mu_e$",
     )
     _axes[2].set_title("Electron: chemical + electrical")
-    _axes[2].set_ylabel("change (kJ mol$^{-1}$)")
+    _axes[2].set_ylabel("Change (kJ mol$^{-1}$)")
     _axes[2].legend(fontsize=10)
     for _axis in _axes:
-        _axis.set_xlabel("position x (micrometers)")
+        _axis.set_xlabel("Position x (micrometers)")
         _axis.grid(alpha=0.22)
     _fig.suptitle(
         f"{potential_case_06.value} | {selected_stage_06}, "
@@ -1301,7 +1301,7 @@ def _(
         approximation_fourier_time_06,
         pitt_series_06 / classical_concentration_step_06,
         color="#4F7881",
-        lw=3.0,
+        lw=1.9,
         label="finite-slab solution",
     )
     _axes[0].loglog(
@@ -1309,7 +1309,7 @@ def _(
         pitt_short_06 / classical_concentration_step_06,
         "--",
         color="#C49345",
-        lw=2.2,
+        lw=1.7,
         label="short-time expression",
     )
     _axes[0].loglog(
@@ -1317,7 +1317,7 @@ def _(
         pitt_long_06 / classical_concentration_step_06,
         ":",
         color="#A65E5E",
-        lw=2.5,
+        lw=1.8,
         label="long-time expression",
     )
     _axes[0].set_title("PITT current")
@@ -1327,7 +1327,7 @@ def _(
         approximation_fourier_time_06,
         gitt_series_06 / gitt_current_06.value,
         color="#4F7881",
-        lw=3.0,
+        lw=1.9,
         label="finite-slab solution",
     )
     _axes[1].loglog(
@@ -1335,7 +1335,7 @@ def _(
         gitt_short_06 / gitt_current_06.value,
         "--",
         color="#C49345",
-        lw=2.2,
+        lw=1.7,
         label="short-time expression",
     )
     _axes[1].loglog(
@@ -1343,7 +1343,7 @@ def _(
         gitt_long_06 / gitt_current_06.value,
         ":",
         color="#A65E5E",
-        lw=2.5,
+        lw=1.8,
         label="long-time expression",
     )
     _axes[1].set_title("GITT voltage")
@@ -1561,21 +1561,21 @@ def _(
     ):
         _axes[0].loglog(
             finite_theta_06, finite_responses_06[_biot]["current"],
-            color=_color, ls=_style, lw=2.7, label=_label,
+            color=_color, ls=_style, lw=1.9, label=_label,
         )
         _axes[1].plot(
             finite_position_06,
             0.85 + 0.15 * selected_finite_profiles_06[_biot],
-            color=_color, ls=_style, lw=2.7, label=_label,
+            color=_color, ls=_style, lw=1.9, label=_label,
         )
     _axes[0].set(
-        xlabel=r"diffusion time, $\theta=D^\delta t/L^2$",
-        ylabel="normalized PITT current",
+        xlabel=r"Diffusion time, $\theta=D^\delta t/L^2$",
+        ylabel="Normalized PITT current",
         title="Current separates diffusion and reaction control",
     )
     _axes[1].set(
-        xlabel=r"article coordinate, $x/L$",
-        ylabel=r"illustrative $c/c_0$",
+        xlabel=r"Article coordinate, $x/L$",
+        ylabel=r"Illustrative $c/c_0$",
         title=rf"Profiles at $\theta={selected_finite_theta_06:.3g}$",
     )
     for _name, _color, _style in zip(
@@ -1583,18 +1583,18 @@ def _(
     ):
         _axes[2].semilogx(
             fit_biot_grid_06, fit_bias_06[_name], color=_color,
-            ls=_style, lw=2.7, label=_name,
+            ls=_style, lw=1.9, label=_name,
         )
     _axes[2].axhline(1.0, color="#73808C", lw=1.2, ls=":")
     _axes[2].set(
-        xlabel=r"surface Biot number, $\mathrm{Bi}$",
+        xlabel=r"Surface Biot number, $\mathrm{Bi}$",
         ylabel=r"$D^\delta_{\rm inferred}/D^\delta_{\rm true}$",
         title="A diffusion-only fit can underestimate diffusivity",
         ylim=(0.0, 1.35),
     )
     for _axis in _axes:
         _axis.grid(alpha=0.22, which="both")
-        _axis.legend(fontsize=9.2, loc="best")
+        _axis.legend(fontsize=10.5, loc="best")
     _checks_pass = (
         finite_fast_limit_error_06 < 2.0e-6
         and finite_slow_limit_error_06 < 2.0e-6
@@ -1986,10 +1986,10 @@ def _(mo):
 def _(plt):
     plt.rcParams.update(
         {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
-            "legend.fontsize": 11,
+            "font.size": 15,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
+            "legend.fontsize": 12,
             "lines.solid_capstyle": "round",
             "figure.dpi": 115,
         }

@@ -116,7 +116,10 @@ J = -D dc/dx
 
 Here Gamma is the total hop frequency and 1/Gamma is the mean time between
 hops. A discrete master equation recovers Fick's law using the same Gamma
-throughout. A symmetric electric-field bias then produces
+throughout. The microscopic figure uses physical position and time, regenerates
+its random-walk realization when any hopping control changes, fits the
+mean-square-displacement slope, and compares the extracted diffusivity directly
+with \(a^2\Gamma/2\). A symmetric electric-field bias then produces
 detailed balance, low-field Nernst-Einstein drift, and
 mu_tilde = mu + z F phi. An interactive equilibrium example shows nonzero
 chemical and electrical contributions cancelling to give
@@ -272,10 +275,13 @@ exp(i omega t),   Z = V_hat / I_hat = Z' + i Z'',
 Nyquist axes: Z' versus -Z''.
 ~~~
 
-Students first connect voltage/current phase to complex impedance and explore
-how one or two ideal parallel-RC relaxations produce separated or overlapping
-arcs. The diffusion section then solves the one-dimensional frequency-domain
-chemical-diffusion equation. Semi-infinite, fixed-composition finite-length,
+Students first connect voltage/current phase to complex impedance, then see
+the resistor and capacitor Nyquist signatures separately before combining them
+as one or two ideal parallel-RC relaxations. The diffusion reader next presents
+the semi-infinite concentration wave, Nyquist response, and Bode response as
+three views of the same solution before comparing finite far-boundary cases.
+The section solves the one-dimensional frequency-domain chemical-diffusion
+equation. Semi-infinite, fixed-composition finite-length,
 and zero-flux finite-length Warburg responses are kept distinct, and the
 controls show how L and D_delta set the laboratory diffusion frequency.
 A direct DC/AC comparison connects $\sqrt{D^\delta t}$ with
@@ -337,9 +343,10 @@ limit. Module 02 checks mass action, electroneutrality, positivity, regime
 coverage, and limiting slopes. Student-facing tables report the physical result
 and why it matters, while detailed numerical tolerances remain internal.
 
-Module 03 checks the lecture identity \(D=a^2\Gamma/2\), the stochastic MSD
-fit, detailed balance, low-field Nernst-Einstein drift, one-dimensional
-master-equation conservation, Fick flux, electrochemical cancellation,
+Module 03 checks the lecture identity \(D=a^2\Gamma/2\), the fitted
+mean-square-displacement slope against \(\langle x^2\rangle=2Dt\), detailed
+balance, low-field Nernst-Einstein drift, and one-dimensional master-equation
+conservation, Fick flux, electrochemical cancellation,
 equal Li-ion/electron flux, zero current, and the agreement between the
 conductivity and diffusivity forms of \(D_{\rm Li}^{\delta}\).
 
@@ -366,8 +373,9 @@ eigenvalue limits, positive concentrations, and the direction of the
 diffusion-only fitting bias across Biot number.
 
 
-Module 07 checks the phasor sign convention, the ideal parallel-RC semicircle
-and apex, DC/AC diffusion-length scaling, the general-to-dilute Warburg
+Module 07 checks the phasor sign convention, ideal resistor and capacitor
+limits, equal Nyquist scaling, the parallel-RC semicircle and apex, DC/AC
+diffusion-length scaling, the general-to-dilute Warburg
 resistance reduction, finite-length Warburg limits and passivity, TLM boundary
 residuals, voltage-equivalent potential signs, distributed/total conversions,
 total-current conservation, the reversible-contact limit, passivity, and
@@ -379,8 +387,11 @@ finiteness.
 The seven numbered Python files are the self-contained marimo modules. The
 `pages/` directory is also source: `pages/index.html` is the course landing page.
 The Pages workflow copies it before exporting the seven notebooks.
-`NOTATION.md` is the cross-module symbol contract; `AUDIT_PLAN.md` and
-`IMPLEMENTATION_REPORT.md` record the current comprehensive audit.
+[NOTATION.md](NOTATION.md) is the cross-module symbol contract.
+[AUDIT_PLAN.md](AUDIT_PLAN.md) and
+[IMPLEMENTATION_REPORT.md](IMPLEMENTATION_REPORT.md) record the current audit.
+[PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) records the stable teaching
+philosophy, architecture, limitations, and roadmap.
 
 
 Local `.venv/`, `__marimo__/`, `__pycache__/`, and `dist/` directories are

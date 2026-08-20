@@ -106,6 +106,19 @@ self-contained notebooks over framework-building.
 
 - Do not create a separate physics package until multiple modules need shared
   kernels.
+- Update `PROJECT_CONTEXT.md` only when scientific scope, repository
+  architecture, shared notation, or the module roadmap changes. Routine visual
+  polish and numerical bug fixes do not require a context rewrite.
+
+## Visualization
+
+- Use projector-readable typography, low-saturation colors, and approximately
+  1.5--2.0 pt data lines. Pair color with line style, markers, or direct labels
+  where curves must remain distinguishable without color.
+- Capitalize plot labels and titles consistently. Typeset scientific quantities
+  with math text, and state units or an explicit dimensionless normalization on
+  every axis.
+- Use equal horizontal and vertical scale for every Nyquist diagram.
 
 ## Verification
 
@@ -119,8 +132,9 @@ Before handing off a change:
 4. For Module 02, check mass-action residuals, scaled electroneutrality
    residuals, positivity, and limiting slopes where the selected window samples
    them.
-5. For Module 03, check the Gamma convention, MSD, detailed balance,
-   low-field drift, one-dimensional number conservation, Fick flux,
+5. For Module 03, check the Gamma convention, the fitted MSD slope against
+   <x^2> = 2 D t and the analytical diffusivity, detailed balance, low-field
+   drift, one-dimensional number conservation, Fick flux,
    electrochemical-potential cancellation, equal Li-ion/electron flux,
    zero current, conductivity-form equivalence, positivity, and finiteness.
 6. For Module 04, check the Boltzmann and electrochemical-potential identities,
@@ -140,9 +154,10 @@ Before handing off a change:
    PITT/GITT short- and long-time limits, long-time OCV decay, finite-kinetics
    eigenvalue limits, positivity and conservation, and the direction and
    fitting-window dependence of diffusion-only bias versus Biot number.
-9. For Module 07, check the phasor convention, ideal parallel-RC semicircle and
-   apex, DC/AC diffusion-length scaling, general-to-dilute Warburg resistance
-   mapping, finite-length Warburg limits and passivity, TLM boundary residuals,
+9. For Module 07, check the phasor convention, resistor, capacitor, and ideal
+   parallel-RC limits, the RC semicircle and apex, equal Nyquist scaling,
+   DC/AC diffusion-length scaling, general-to-dilute Warburg resistance mapping,
+   finite-length Warburg limits and passivity, TLM boundary residuals,
    voltage-equivalent-potential signs, distributed/total conversions,
    total-current conservation, reversible-contact limit, passivity, and
    finiteness.

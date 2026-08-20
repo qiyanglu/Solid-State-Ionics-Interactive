@@ -12,12 +12,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
-            "xtick.labelsize": 12,
-            "ytick.labelsize": 12,
-            "legend.fontsize": 11,
+            "font.size": 15,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -694,7 +694,7 @@ def _(
         gc_distance_nm,
         gc_profile["potential_v"],
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label="exact Gouy-Chapman",
     )
     if bool(show_linear_control.value):
@@ -702,7 +702,7 @@ def _(
             gc_distance_nm,
             gc_profile["linear_potential_v"],
             color="#C49345",
-            lw=2.2,
+            lw=1.7,
             ls="--",
             label="small-potential limit",
         )
@@ -714,8 +714,8 @@ def _(
         label=r"$\lambda_D$",
     )
     gc_axes[0].set(
-        xlabel="distance from core, x (nm)",
-        ylabel=r"electrostatic potential, $\phi$ (V)",
+        xlabel="Distance from core, x (nm)",
+        ylabel=r"Electrostatic potential, $\phi$ (V)",
         title="Potential is screened into the bulk",
     )
     gc_axes[0].grid(alpha=0.22)
@@ -725,20 +725,20 @@ def _(
         gc_distance_nm,
         gc_profile["positive_ratio"],
         color="#B65C4A",
-        lw=3.0,
+        lw=1.9,
         label=r"$c_+/c_{i,\infty}$",
     )
     gc_axes[1].semilogy(
         gc_distance_nm,
         gc_profile["negative_ratio"],
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"$c_-/c_{i,\infty}$",
     )
     gc_axes[1].axhline(1.0, color="#858B90", lw=1.0, ls=":")
     gc_axes[1].set(
-        xlabel="distance from core, x (nm)",
-        ylabel="concentration / bulk concentration",
+        xlabel="Distance from core, x (nm)",
+        ylabel="Concentration / bulk concentration",
         title="Co-ions deplete; counter-ions accumulate",
     )
     gc_axes[1].grid(which="both", alpha=0.22)
@@ -748,14 +748,14 @@ def _(
         gc_distance_nm,
         1.0e3 * gc_profile["chemical_positive_ev"],
         color="#B65C4A",
-        lw=3.0,
+        lw=1.9,
         label=r"chemical: $\Delta\mu_+$",
     )
     gc_axes[2].plot(
         gc_distance_nm,
         1.0e3 * gc_profile["electrical_positive_ev"],
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"electrical: $+ze\phi$",
     )
     gc_axes[2].plot(
@@ -767,8 +767,8 @@ def _(
         label=r"sum: $\Delta\widetilde\mu_+$",
     )
     gc_axes[2].set(
-        xlabel="distance from core, x (nm)",
-        ylabel="energy change (meV per defect)",
+        xlabel="Distance from core, x (nm)",
+        ylabel="Energy change (meV per defect)",
         title="Electrochemical potential stays flat",
     )
     gc_axes[2].grid(alpha=0.22)
@@ -802,18 +802,22 @@ def _(
         limiting guide, not the curve used in the calculation. The solid curve
         always uses the exact Gouy–Chapman solution.
 
-        **Figure takeaway.** Mobile co-ions and counter-ions redistribute
-        until their chemical and electrical energy changes cancel everywhere.
-        The Debye–Hückel exponential is only the low-potential guide; the plotted
-        nonlinear profile is the exact planar Gouy–Chapman result.
-
         **Continuum check.** The selected \(\lambda_D\) is
         {selected_debye_length_m * 1.0e9:.2f} nm. When a screening length becomes
         comparable to a lattice spacing (roughly below 1 nm), a continuum
         profile should be treated as qualitative and atomistic structure matters.
         """
     )
-    mo.vstack([gc_explanation, gc_figure])
+    mo.vstack([
+        gc_explanation,
+        gc_figure,
+        mo.md(r"""
+        **Figure takeaway.** Mobile co-ions and counter-ions redistribute
+        until their chemical and electrical energy changes cancel everywhere.
+        The Debye–Hückel exponential is only the low-potential guide; the plotted
+        nonlinear profile is the exact planar Gouy–Chapman result.
+        """),
+    ])
     return (gc_figure,)
 
 
@@ -834,7 +838,7 @@ def _(
         ms_distance_nm,
         ms_profile["potential_v"],
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
     )
     ms_axes[0].axvline(
         selected_ms_width_m * 1.0e9,
@@ -844,8 +848,8 @@ def _(
         label=r"depletion width $\lambda$",
     )
     ms_axes[0].set(
-        xlabel="distance from core, x (nm)",
-        ylabel=r"electrostatic potential, $\phi$ (V)",
+        xlabel="Distance from core, x (nm)",
+        ylabel=r"Electrostatic potential, $\phi$ (V)",
         title="Frozen charge gives a parabola",
     )
     ms_axes[0].grid(alpha=0.22)
@@ -855,20 +859,20 @@ def _(
         ms_distance_nm,
         ms_profile["positive_ratio"],
         color="#B65C4A",
-        lw=3.0,
+        lw=1.9,
         label=r"mobile $c_+/c_{i,\infty}$",
     )
     ms_axes[1].semilogy(
         ms_distance_nm,
         ms_profile["negative_ratio"],
         color="#4C7C86",
-        lw=2.5,
+        lw=1.8,
         ls="--",
         label=r"frozen $c_-/c_{i,\infty}$",
     )
     ms_axes[1].set(
-        xlabel="distance from core, x (nm)",
-        ylabel="concentration / bulk concentration",
+        xlabel="Distance from core, x (nm)",
+        ylabel="Concentration / bulk concentration",
         title="Mobile positive defects are depleted",
     )
     ms_axes[1].grid(which="both", alpha=0.22)
@@ -878,14 +882,14 @@ def _(
         ms_distance_nm,
         1.0e3 * ms_profile["chemical_positive_ev"],
         color="#B65C4A",
-        lw=3.0,
+        lw=1.9,
         label=r"chemical: $\Delta\mu_+$",
     )
     ms_axes[2].plot(
         ms_distance_nm,
         1.0e3 * ms_profile["electrical_positive_ev"],
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"electrical: $+ze\phi$",
     )
     ms_axes[2].plot(
@@ -897,8 +901,8 @@ def _(
         label=r"sum: $\Delta\widetilde\mu_+$",
     )
     ms_axes[2].set(
-        xlabel="distance from core, x (nm)",
-        ylabel="energy change (meV per defect)",
+        xlabel="Distance from core, x (nm)",
+        ylabel="Energy change (meV per defect)",
         title="The same equilibrium cancellation remains",
     )
     ms_axes[2].grid(alpha=0.22)
@@ -937,12 +941,17 @@ def _(
         smaller than one, so the frozen negative dopants dominate the charge
         inside the depletion layer.
 
+        """
+    )
+    mo.vstack([
+        ms_explanation,
+        ms_figure,
+        mo.md(r"""
         **Figure takeaway.** Frozen charge produces a parabolic potential, but
         the mobile positive-defect electrochemical potential still remains flat
         at equilibrium.
-        """
-    )
-    mo.vstack([ms_explanation, ms_figure])
+        """),
+    ])
     return (ms_figure,)
 
 
@@ -1011,14 +1020,14 @@ def _(
         concentration_sweep_cm3,
         debye_sweep_nm,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"Gouy-Chapman $\lambda_D$",
     )
     width_axes[0].loglog(
         concentration_sweep_cm3,
         ms_sweep_nm,
         color="#B65C4A",
-        lw=3.0,
+        lw=1.9,
         label=r"Mott-Schottky $\lambda$",
     )
     width_axes[0].axvline(
@@ -1029,8 +1038,8 @@ def _(
         label="selected bulk concentration",
     )
     width_axes[0].set(
-        xlabel=r"bulk concentration, $c_{i,\infty}$ (cm$^{-3}$)",
-        ylabel="space-charge length (nm)",
+        xlabel=r"Bulk concentration, $c_{i,\infty}$ (cm$^{-3}$)",
+        ylabel="Space-charge length (nm)",
         title="More defects screen over a shorter distance",
     )
     width_axes[0].grid(which="both", alpha=0.22)
@@ -1040,14 +1049,14 @@ def _(
         epsilon_sweep,
         debye_epsilon_nm,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"Gouy-Chapman $\lambda_D$",
     )
     width_axes[1].loglog(
         epsilon_sweep,
         ms_epsilon_nm,
         color="#B65C4A",
-        lw=3.0,
+        lw=1.9,
         label=r"Mott-Schottky $\lambda$",
     )
     width_axes[1].axvline(
@@ -1058,8 +1067,8 @@ def _(
         label="selected permittivity",
     )
     width_axes[1].set(
-        xlabel=r"relative permittivity, $\epsilon_r$",
-        ylabel="space-charge length (nm)",
+        xlabel=r"Relative permittivity, $\epsilon_r$",
+        ylabel="Space-charge length (nm)",
         title="Larger permittivity broadens the layer",
     )
     width_axes[1].grid(which="both", alpha=0.22)
@@ -1083,11 +1092,16 @@ def _(
             A higher bulk concentration shortens either layer because more
             charge is available per unit distance to screen the core.
 
-            **Figure takeaway.** Concentration and permittivity set the spatial
+            **Prediction.** Concentration and permittivity set the spatial
             screening scale; only the Mott–Schottky depletion width also grows
             explicitly with the imposed core potential.
             """),
             width_figure,
+            mo.md(r"""
+            **Figure takeaway.** Raising the bulk concentration shortens both
+            screening lengths, while raising permittivity broadens them. Only
+            the Mott–Schottky width also grows with the imposed core potential.
+            """),
         ]
     )
     return (width_figure,)
@@ -1334,14 +1348,14 @@ def _(
         stern_distance_m * 1.0e9,
         stern_potential_v,
         color="#C49345",
-        lw=3.2,
+        lw=2.0,
         label="Stern layer",
     )
     gcs_axes[0].plot(
         (stern_thickness_m + gcs_diffuse_distance_m) * 1.0e9,
         gcs_diffuse_profile["potential_v"],
         color="#4C7C86",
-        lw=3.2,
+        lw=2.0,
         label="diffuse layer",
     )
     gcs_axes[0].axvline(
@@ -1360,8 +1374,8 @@ def _(
         zorder=5,
     )
     gcs_axes[0].set(
-        xlabel="distance from core, x (nm)",
-        ylabel=r"electrostatic potential, $\phi$ (V)",
+        xlabel="Distance from core, x (nm)",
+        ylabel=r"Electrostatic potential, $\phi$ (V)",
         title=r"The total drop splits into $\phi_0-\phi_1$ and $\phi_1$",
     )
     gcs_axes[0].grid(alpha=0.22)
@@ -1371,7 +1385,7 @@ def _(
         gcs_potential_sweep_v,
         gcs_diffuse_capacitance_sweep / 0.01,
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"diffuse $C_d(\phi_1)$",
     )
     gcs_axes[1].scatter(
@@ -1385,7 +1399,7 @@ def _(
     gcs_axes[1].axhline(
         stern_capacitance_f_per_m2 / 0.01,
         color="#C49345",
-        lw=2.5,
+        lw=1.8,
         ls="--",
         label=r"Stern $C_s$",
     )
@@ -1393,7 +1407,7 @@ def _(
         gcs_potential_sweep_v,
         gcs_total_capacitance_sweep / 0.01,
         color="#B65C4A",
-        lw=3.2,
+        lw=2.0,
         label=r"series total $C_{\rm tot}$",
     )
     gcs_axes[1].scatter(
@@ -1407,8 +1421,8 @@ def _(
     )
     gcs_axes[1].axvline(surface_potential_v, color="#666D73", lw=1.2, ls=":")
     gcs_axes[1].set(
-        xlabel=r"core potential relative to pZC, $\phi_0$ (V)",
-        ylabel=r"differential capacitance ($\mu$F cm$^{-2}$)",
+        xlabel=r"Core potential relative to pZC, $\phi_0$ (V)",
+        ylabel=r"Differential capacitance ($\mu$F cm$^{-2}$)",
         title="The Stern layer limits the high-field capacitance",
     )
     gcs_axes[1].grid(alpha=0.22)
@@ -1516,14 +1530,14 @@ def _(
         frumkin_potential_sweep_v,
         frumkin_sweep["phi1_v"],
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
         label=r"diffuse drop $\phi_1$",
     )
     frumkin_axes[0, 0].plot(
         frumkin_potential_sweep_v,
         frumkin_sweep["stern_drop_v"],
         color="#C49345",
-        lw=3.0,
+        lw=1.9,
         label=r"Stern drop $\phi_0-\phi_1$",
     )
     frumkin_axes[0, 0].plot(
@@ -1535,8 +1549,8 @@ def _(
         label=r"total $\phi_0$",
     )
     frumkin_axes[0, 0].set(
-        xlabel=r"driving potential, $\phi_0=E-E^{0\prime}$ (V)",
-        ylabel="potential contribution (V)",
+        xlabel=r"Driving potential, $\phi_0=E-E^{0\prime}$ (V)",
+        ylabel="Potential contribution (V)",
         title="GCS divides the applied potential",
     )
     frumkin_axes[0, 0].grid(alpha=0.22)
@@ -1546,11 +1560,11 @@ def _(
         frumkin_potential_sweep_v,
         frumkin_sweep["log10_local_ratio"],
         color="#4C7C86",
-        lw=3.0,
+        lw=1.9,
     )
     frumkin_axes[0, 1].axhline(0.0, color="#858B90", lw=1.0, ls=":")
     frumkin_axes[0, 1].set(
-        xlabel=r"driving potential, $\phi_0=E-E^{0\prime}$ (V)",
+        xlabel=r"Driving potential, $\phi_0=E-E^{0\prime}$ (V)",
         ylabel=r"$\log_{10}([R]_{x_1}/[R]_{\infty})$",
         title="The reaction-plane concentration changes",
     )
@@ -1560,7 +1574,7 @@ def _(
         frumkin_potential_sweep_v,
         frumkin_sweep["log10_naive_current"],
         color="#858B90",
-        lw=2.2,
+        lw=1.7,
         ls="--",
         label="bulk concentration + total potential",
     )
@@ -1568,11 +1582,11 @@ def _(
         frumkin_potential_sweep_v,
         frumkin_sweep["log10_corrected_current"],
         color="#B65C4A",
-        lw=3.2,
+        lw=2.0,
         label="Frumkin-corrected",
     )
     frumkin_axes[1, 0].set(
-        xlabel=r"driving potential, $\phi_0=E-E^{0\prime}$ (V)",
+        xlabel=r"Driving potential, $\phi_0=E-E^{0\prime}$ (V)",
         ylabel=r"$\log_{10}$ normalized anodic current",
         title="Current at the reaction plane",
     )
@@ -1583,27 +1597,27 @@ def _(
         frumkin_potential_sweep_v,
         frumkin_sweep["log10_potential_factor"],
         color="#C49345",
-        lw=2.8,
+        lw=1.9,
         label=rf"potential part, $1-\alpha={1.0 - transfer_coefficient:.2f}$",
     )
     frumkin_axes[1, 1].plot(
         frumkin_potential_sweep_v,
         frumkin_sweep["log10_concentration_factor"],
         color="#4C7C86",
-        lw=2.8,
+        lw=1.9,
         label=rf"concentration part, $z_R={reactant_charge_number:+.0f}$",
     )
     frumkin_axes[1, 1].plot(
         frumkin_potential_sweep_v,
         frumkin_sweep["log10_total_frumkin_factor"],
         color="#B65C4A",
-        lw=3.2,
+        lw=2.0,
         label="sum: Frumkin factor",
     )
     frumkin_axes[1, 1].axhline(0.0, color="#858B90", lw=1.0, ls=":")
     frumkin_axes[1, 1].set(
-        xlabel=r"driving potential, $\phi_0=E-E^{0\prime}$ (V)",
-        ylabel=r"contribution to $\log_{10}(I/I_{\rm naive})$",
+        xlabel=r"Driving potential, $\phi_0=E-E^{0\prime}$ (V)",
+        ylabel=r"Contribution to $\log_{10}(I/I_{\rm naive})$",
         title=r"What $\alpha$ changes—and what it does not",
     )
     frumkin_axes[1, 1].grid(alpha=0.22)

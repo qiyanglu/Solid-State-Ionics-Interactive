@@ -13,12 +13,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
-            "xtick.labelsize": 12,
-            "ytick.labelsize": 12,
-            "legend.fontsize": 11,
+            "font.size": 15,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -478,9 +478,9 @@ def _(
 ):
     plt.rcParams.update(
         {
-            "font.size": 14,
-            "axes.titlesize": 16,
-            "axes.labelsize": 14,
+            "font.size": 15,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
             "legend.fontsize": 12,
             "lines.linewidth": 2.8,
         }
@@ -538,7 +538,7 @@ def _(
         np.log10(concentrations["A"]),
         color="#666D73",
         ls="--",
-        lw=2.2,
+        lw=1.7,
         label=r"fixed $A_{Ti}'$ ($A$)",
     )
 
