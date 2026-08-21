@@ -6,6 +6,10 @@ This repository contains interactive teaching modules for a Solid State Ionics
 course. Favor physical transparency, projector readability, and short
 self-contained notebooks over framework-building.
 
+Before editing a notebook, read PROJECT_CONTEXT.md, NOTATION.md, and
+STYLE_GUIDE.md. Use STUDENT_FIRST_AUDIT.md as the current editorial map and
+record browser-level evidence in VISUAL_QA.md.
+
 ## Scientific invariants
 
 - State canonical units at every model boundary.
@@ -96,13 +100,26 @@ self-contained notebooks over framework-building.
 - Keep plotting and prose downstream of the solved data.
 - Use only marimo, NumPy, SciPy, and matplotlib unless a new dependency is
   clearly justified and compatible with browser/WASM execution.
-- Begin every module with a guiding question, two or three learning goals, a
-  notation/model-scope box, and a prediction before the main controls.
-- Organize the core classroom path as prediction -> controls -> figure ->
-  takeaway. Put extended derivations, implementation detail, advanced
-  interpretation, and detailed checks in collapsed sections where practical.
-- End every module with exactly three primary messages and cross-link the next
-  relevant module or the shared notation guide.
+- Write each notebook as a continuous student-facing reader, not as a checklist
+  of repeated headings. Introduce definitions and notation when they are first
+  needed.
+- The first visible screen should normally contain one guiding physical
+  question, a short explanation of why it matters, a simple schematic or first
+  interactive figure, and no more than one essential equation. Learning goals,
+  notation tables, prediction prompts, and model-scope boxes are optional tools,
+  not mandatory boilerplate.
+- Organize material in three layers:
+  1. **Core reader**, visible by default and completable in about 10--20 minutes;
+  2. **Explore further**, collapsed by default for derivations, alternative
+     models, parameter sweeps, and advanced interpretation; and
+  3. **Numerical and physical checks**, collapsed at the end.
+- A visible section should answer one physical question with one clear
+  interaction and one clear figure. Explain the observation naturally below
+  the figure; do not require the phrase "Figure takeaway".
+- Numerical residuals, tolerances, implementation details, and long validation
+  tables must not interrupt the core reader.
+- End with only the number of messages needed for a clear synthesis and
+  cross-link the next relevant module or the shared notation guide.
 
 - Do not create a separate physics package until multiple modules need shared
   kernels.
@@ -112,12 +129,20 @@ self-contained notebooks over framework-building.
 
 ## Visualization
 
-- Use projector-readable typography, low-saturation colors, and approximately
-  1.5--2.0 pt data lines. Pair color with line style, markers, or direct labels
+- Use projector-readable typography, low-saturation colors, and the hierarchy
+  in STYLE_GUIDE.md. Pair color with line style, markers, or direct labels
   where curves must remain distinguishable without color.
 - Capitalize plot labels and titles consistently. Typeset scientific quantities
   with math text, and state units or an explicit dimensionless normalization on
   every axis.
+- Limit a core figure to at most two panels. Three panels are allowed only in
+  an advanced section when all are necessary; four-panel core figures are
+  prohibited.
+- Do not use twin y-axes in the core reader. Do not place paragraphs or
+  implementation notes inside axes.
+- Show no more than three controls for one core figure. Put secondary controls
+  in a collapsed section, and remove or redesign controls whose consequences
+  are not visibly interpretable.
 - Use equal horizontal and vertical scale for every Nyquist diagram.
 
 ## Verification
@@ -161,7 +186,16 @@ Before handing off a change:
    voltage-equivalent-potential signs, distributed/total conversions,
    total-current conservation, reversible-contact limit, passivity, and
    finiteness.
-10. Run git diff --check and review all rendered figures at projector scale.
+10. Run git diff --check and review all rendered figures in a real browser at
+    mobile, laptop, and projector sizes. For each core interaction, capture a
+    default, low/contrasting, and high/contrasting state. A static matplotlib
+    contact sheet is supplementary evidence, not browser visual QA.
+
+Browser screenshots are mandatory before a notebook commit. Record their paths
+and findings in VISUAL_QA.md. User-reported overlap, clipping, dead controls,
+or distorted Nyquist geometry is a release-blocking defect. A lightweight
+bounding-box warning check may help find problems, but it never replaces visual
+inspection.
 
 Do not weaken numerical tolerances simply to silence a failed physics check;
 identify whether the model, regime test, or implementation is responsible.

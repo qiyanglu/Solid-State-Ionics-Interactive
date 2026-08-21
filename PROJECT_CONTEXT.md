@@ -10,13 +10,21 @@ interactive prediction, and a measurable consequence.
 
 ## Teaching philosophy
 
-- Lead with a physical question and a prediction, then reveal the calculation.
+- Treat each notebook as a short, continuous reader for a student who has not
+  seen the source code or the lecture slides.
+- Lead with one physical question, explain why it matters, and show the physical
+  picture before front-loading notation or derivations.
 - Derive curves from the stated model; do not assemble them from expected
   limiting slopes or asymptotes.
 - Prefer one-dimensional models, explicit boundary conditions, and a short
   causal narrative over general software abstractions.
-- Keep numerical implementation details out of the classroom path unless they
-  explain a physical limitation. Put detailed checks in collapsed sections.
+- Use three layers: a 10--20 minute visible core reader, collapsed
+  Explore further material, and collapsed numerical/physical checks at the end.
+- Each visible section should answer one physical question with one clear
+  interaction and one clear figure. More equations, controls, panels, or
+  validation output are not automatically improvements.
+- Keep numerical implementation details and residuals out of the classroom
+  path unless they explain a physical limitation.
 - Use checks to explain what physical relationship is protected, not merely to
   report numerical residuals.
 
@@ -54,17 +62,22 @@ interactive prediction, and a measurable consequence.
 
 ## Visualization conventions
 
-- Figures must remain legible on a classroom projector and a laptop: large
-  text, low-saturation colors, and uncluttered legends.
-- Use line widths of about 1.5–2.0 pt. Combine color with line style, markers,
-  or direct labels when curves must be distinguished.
-- Capitalize plot labels and titles consistently; typeset scientific symbols
-  with matplotlib math text.
+- STYLE_GUIDE.md is the visual contract for notebooks and the landing page.
+- Figures must remain legible on a phone, laptop, and classroom projector, with
+  restrained typography, low-saturation colors, and uncluttered legends.
+- Core figures contain at most two panels and avoid twin y-axes. One figure
+  should answer one question.
+- Use line widths of about 1.2--1.8 pt according to visual priority. Combine
+  color with line style, markers, or direct labels when curves must be
+  distinguished.
+- Use sentence case for titles and labels; typeset scientific symbols with
+  matplotlib math text.
 - Every axis states a quantity and units, or explicitly identifies a
   dimensionless normalization.
 - Every Nyquist plot uses equal horizontal and vertical scale.
-- Place a prediction before an important interactive figure and a concise
-  physical takeaway after it. Avoid placing prose over plotted data.
+- Put explanatory prose immediately below a figure rather than over the data.
+- Validate every core control at default and contrasting settings in a real
+  browser. Autoscaling must not hide the physical consequence of a control.
 
 ## Architecture and deployment
 
@@ -92,7 +105,10 @@ and verifies each dynamic marimo entry module after deployment.
 
 ## Roadmap
 
-Near-term work should improve classroom clarity, accessibility, and verified
-browser behavior without broadening the scientific scope. New modules or
-extensions should be added only when they serve a specific lecture objective
-and can preserve the same physics-first, self-contained structure.
+The current redesign changes the emphasis from checklist-driven technical
+completeness to student-first layered readers. Near-term work should simplify
+the visible lessons, move derivations and diagnostics into progressive
+disclosure, and verify browser behavior at mobile, laptop, and projector sizes
+without broadening the scientific scope. New modules or extensions should be
+added only when they serve a specific course objective and preserve the same
+physics-first, self-contained structure.
