@@ -1,3 +1,12 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "marimo>=0.23.14",
+#     "matplotlib>=3.8",
+#     "numpy>=1.26",
+#     "scipy>=1.12",
+# ]
+# ///
 import marimo
 
 __generated_with = "0.23.14"
@@ -13,12 +22,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 15,
-            "axes.titlesize": 17,
-            "axes.labelsize": 15,
-            "xtick.labelsize": 13,
-            "ytick.labelsize": 13,
-            "legend.fontsize": 12,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 13,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
+            "legend.fontsize": 10.5,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -60,7 +69,7 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    mo.md(r"""
+    model_details = mo.md(r"""
     # Brouwer diagram explorer: weakly acceptor-doped SrTiO$_3$
 
     **Question.** Can Brouwer regimes and slopes emerge from equilibrium
@@ -120,6 +129,29 @@ def _(mo):
     $\mu_{O_2}=\mu_{O_2}^\circ+RT\ln p_{O_2}$, so the horizontal axis is also a
     linear chemical-potential coordinate.
     """)
+    mo.vstack([
+        mo.md(r"""
+        # Brouwer diagram explorer: acceptor-doped SrTiO$_3$
+
+        **Can the familiar Brouwer slopes emerge without putting any power law
+        into the calculation?**
+
+        We keep only oxygen vacancies (V=[V_O^{\bullet\bullet}]), electrons
+        (n=[e']), holes (p=[h^\bullet]), and fixed ionized acceptors
+        (A=[A_{Ti}']). At every oxygen pressure the notebook solves
+
+        $$K_{red}=Vn^2p_{O_2}^{1/2},\qquad K_{eh}=np,$$
+
+        together with exact electroneutrality
+
+        $$\boxed{2V+p=A+n}.$$
+
+        The plotted curves are the full equilibrium solution. Limiting balances
+        and slopes are added only afterward to explain what the solution does.
+        Concentrations use cm$^{-3}$, (p_{O_2}) uses bar, and (T) uses K.
+        """),
+        mo.accordion({"Model details — reactions, constants, notation, and assumptions": model_details}),
+    ])
     return
 
 
@@ -225,11 +257,11 @@ def _(mo):
         stop=21.0,
         step=0.1,
         value=18.0,
-        label=r"log$_{10}$(A / cm$^{-3}$)",
+        label="Acceptor concentration, log10(A / cm-3)",
         show_value=True,
     )
     show_guides = mo.ui.checkbox(
-        value=True,
+        value=False,
         label="Show post-solution limiting-slope guides",
     )
     controls = mo.hstack(
@@ -300,7 +332,7 @@ def _(
 
 @app.cell
 def _(acceptor, mo, temperature, thermodynamic_state):
-    mo.md(
+    state_details = mo.md(
         rf"""
         ### Current thermodynamic state
 
@@ -316,6 +348,7 @@ def _(acceptor, mo, temperature, thermodynamic_state):
         $n=p$; it is a derived scale, not a condition imposed in advance.
         """
     )
+    mo.accordion({"Model details — selected equilibrium constants": state_details})
     return
 
 
@@ -478,42 +511,14 @@ def _(
 ):
     plt.rcParams.update(
         {
-            "font.size": 15,
-            "axes.titlesize": 17,
-            "axes.labelsize": 15,
-            "legend.fontsize": 12,
-            "lines.linewidth": 2.8,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 13,
+            "legend.fontsize": 10.5,
+            "lines.linewidth": 1.9,
         }
     )
     figure, axis = plt.subplots(figsize=(12.0, 7.0), dpi=120)
-
-    if crossover_log_pressure is not None:
-        axis.axvspan(
-            log_pressure[0],
-            crossover_log_pressure,
-            color="#6B86A5",
-            alpha=0.035,
-        )
-        axis.axvspan(
-            crossover_log_pressure,
-            log_pressure[-1],
-            color="#B77A82",
-            alpha=0.035,
-        )
-    elif concentrations["n"][0] > concentrations["p"][0]:
-        axis.axvspan(log_pressure[0], log_pressure[-1], color="#6B86A5", alpha=0.035)
-    else:
-        axis.axvspan(log_pressure[0], log_pressure[-1], color="#B77A82", alpha=0.035)
-
-    acceptor_indices = np.flatnonzero(regime_masks["acceptor"])
-    if acceptor_indices.size:
-        axis.axvspan(
-            log_pressure[acceptor_indices[0]],
-            log_pressure[acceptor_indices[-1]],
-            color="#5F8A6B",
-            alpha=0.075,
-            label=r"strict $2V\approx A$ window",
-        )
 
     axis.plot(
         log_pressure,
@@ -555,25 +560,7 @@ def _(
             fontsize=12,
             color="#666D73",
         )
-        axis.text(
-            0.02,
-            0.96,
-            "electron-rich (reducing) side",
-            transform=axis.transAxes,
-            color="#5D7594",
-            va="top",
-            fontsize=12,
-        )
-        axis.text(
-            0.98,
-            0.96,
-            "hole-rich (oxidizing) side",
-            transform=axis.transAxes,
-            color="#9A5B6A",
-            ha="right",
-            va="top",
-            fontsize=12,
-        )
+
 
     if show_guides.value:
         add_slope_guide(
@@ -637,7 +624,7 @@ def _(
     axis.xaxis.set_minor_locator(plt.MultipleLocator(1.0))
     axis.grid(which="major", color="#B0B0B0", alpha=0.40)
     axis.grid(which="minor", color="#D0D0D0", alpha=0.18)
-    axis.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), frameon=False)
+    axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.14), ncols=4, frameon=False)
     figure.tight_layout()
     plt.close(figure)
     return (figure,)
@@ -652,13 +639,10 @@ def _(figure):
 @app.cell
 def _(mo):
     mo.md(r"""
-    **Figure takeaway.** Line labels identify the exact concentrations;
-    background tint only separates electron-rich ($n>p$) and hole-rich ($p>n$)
-    sides and is **not** a charge-compensation approximation. The plateau band
-    marks points that pass the strict acceptor-compensation test $2V\approx A$.
-    The vertical dotted line is the derived crossover $n=p$. Short black dashed
-    segments are post-solution reference slopes; every concentration line comes
-    from the full numerical equilibrium.
+    Every colored line comes from the full equilibrium equations. The dotted
+    vertical line is the derived crossover $n=p$, not an imposed regime
+    boundary. Turn on the optional dashed guides to compare local numerical
+    slopes with limiting Brouwer predictions.
     """)
     return
 
@@ -772,7 +756,7 @@ def _(mo):
     At every pressure, both mass-action laws and exact electroneutrality are
     satisfied together. No limiting Brouwer balance is used to draw the curves.
 
-    ## Three messages to keep
+    ## What to carry forward
 
     1. **The concentration lines are the full equilibrium.** Two mass-action laws
        and exact $2V+p=A+n$ determine every plotted point.
