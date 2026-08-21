@@ -1,3 +1,12 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "marimo>=0.23.14",
+#     "matplotlib>=3.8",
+#     "numpy>=1.26",
+#     "scipy>=1.12",
+# ]
+# ///
 import marimo
 
 __generated_with = "0.24.0"
@@ -15,12 +24,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 15,
-            "axes.titlesize": 17,
-            "axes.labelsize": 15,
-            "xtick.labelsize": 13,
-            "ytick.labelsize": 13,
-            "legend.fontsize": 12,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 13,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
+            "legend.fontsize": 10.5,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -41,7 +50,6 @@ def _():
             ),
         }
     )
-
     return math, mo, np, optimize, plt, special
 
 
@@ -65,75 +73,19 @@ def _(mo):
     mo.md(r"""
     # Defect formation thermodynamics
 
-    **Question.** Why does a crystal contain defects at equilibrium even when
-    creating each defect costs energy?
+    **Why do defects exist at equilibrium when each one costs energy?**
 
-    **Learning goals**
-
-    1. Connect multiplicity, configurational entropy, free energy, and the
-       equilibrium defect fraction.
-    2. Identify the same equilibrium from the minimum of $G$ and the zero of
-       the defect chemical potential $\mu_D$.
-    3. Distinguish exact finite-$N$, Stirling, and dilute results.
-
-    > **Predict before exploring.** If temperature increases while the
-    > formation enthalpy is unchanged, will the free-energy minimum move toward
-    > more defects or fewer defects? Which term in $G$ causes that motion?
-
-    **Model and notation scope.** Lowercase $\Delta g_f^0$, $\Delta h_f$, and
-    $\Delta s_f^0$ are quantities **per defect** and use eV and $k_B$.
-    Uppercase molar quantities would instead use J mol$^{-1}$ and $R$; they are
-    not mixed into this module. See the repository-wide
-    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
-
-    This module follows one neutral defect species on \(N\) equivalent lattice
-    sites. If \(n\) sites contain defects, the defect fraction is \(x=n/N\).
-    There are no charged defects, gas pressures, Brouwer approximations, or
-    electroneutrality conditions here.
-
-    The argument is a chain:
-
-    \[
-    \text{number of configurations}
-    \;\rightarrow\; S_{\rm config}
-    \;\rightarrow\; G(x)
-    \;\rightarrow\; \mu_D(x)
-    \;\rightarrow\; x_{\rm eq}.
-    \]
-
-    For a finite lattice, the number of distinct arrangements is exactly
-
-    \[
-    \Omega(N,n)=\binom{N}{n}, \qquad
-    S_{\rm config}=k_B\ln\Omega.
-    \]
-
-    In the thermodynamic (Stirling) limit, the configurational entropy per site is
-
-    \[
-    s_{\rm config}(x)
-    =-k_B\left[x\ln x+(1-x)\ln(1-x)\right].
-    \]
-
-    We write the non-configurational formation free energy of one defect as
-
-    \[
-    \Delta g_f^0(T)=\Delta h_f-T\Delta s_f^0,
-    \]
-
-    where \(\Delta s_f^0\) is the **non-configurational formation entropy**.
-    In the lecture notation, this is the role played, for example, by the
-    vibrational formation entropy. It is separate from the configurational
-    entropy that counts how many ways the defects can be arranged.
-
-    The finite-system free energy is then
+    A perfect crystal has low formation energy, but a crystal containing defects
+    can be arranged in many more ways. Equilibrium is the compromise between
+    those two tendencies:
 
     \[
     G(n)=n\Delta g_f^0-T S_{\rm config}(n).
     \]
 
-    Canonical units in this notebook are K, eV per defect,
-    \(k_B\) per defect for \(\Delta s_f^0\), and dimensionless defect fraction.
+    Use the lattice picture first. Then we will count its configurations and see
+    the same equilibrium appear as both a minimum of \(G\) and a zero of the
+    defect chemical potential.
     """)
     return
 
@@ -307,7 +259,7 @@ def _(mo):
         stop=2.50,
         step=0.05,
         value=0.45,
-        label=r"Formation enthalpy, Delta h_f (eV/defect)",
+        label="Formation enthalpy (eV per defect)",
         show_value=True,
     )
     formation_entropy = mo.ui.slider(
@@ -315,7 +267,7 @@ def _(mo):
         stop=10.0,
         step=0.25,
         value=3.0,
-        label=r"Non-configurational entropy (e.g. vibrational), Delta s_f^0 (k_B/defect)",
+        label="Formation entropy (kB per defect)",
         show_value=True,
     )
     lattice_sites = mo.ui.slider(
@@ -328,27 +280,29 @@ def _(mo):
     )
     show_components = mo.ui.checkbox(
         value=True,
-        label="Show formation and entropy contributions to G",
+        label="Show energetic and entropic contributions",
     )
     show_exact_points = mo.ui.checkbox(
         value=True,
-        label="Overlay exact finite-N free-energy states",
+        label="Show exact finite-lattice states",
     )
     controls = mo.hstack(
-        [
-            temperature,
-            formation_enthalpy,
-            formation_entropy,
-            lattice_sites,
-            show_components,
-            show_exact_points,
-        ],
+        [temperature, formation_enthalpy, formation_entropy],
         justify="start",
         align="center",
         wrap=True,
         gap=1.5,
     )
+    advanced_controls = mo.accordion(
+        {
+            "Explore finite-size and display options": mo.vstack(
+                [lattice_sites, show_components, show_exact_points],
+                gap=0.7,
+            )
+        }
+    )
     return (
+        advanced_controls,
         controls,
         formation_enthalpy,
         formation_entropy,
@@ -360,24 +314,20 @@ def _(mo):
 
 
 @app.cell
-def _(controls, mo):
+def _(advanced_controls, controls, mo):
     mo.vstack(
         [
             mo.md("## Explore the competition"),
             controls,
             mo.md(r"""
-            Start with the default state, then change one control at a time.
+            Change one quantity at a time. Higher temperature or a more
+            positive formation entropy lowers the effective defect cost and
+            should move equilibrium toward a larger defect fraction.
 
-            The intentionally large default defect fraction makes the curvature
-            near the free-energy minimum easy to see on a projector. It is a
-            teaching state, not a typical dilute defect concentration in an oxide.
-
-            - Increase \(T\): the \(-T S_{\rm config}\) term gains weight.
-            - Increase \(\Delta s_f^0\): the effective cost
-              \(\Delta g_f^0=\Delta h_f-T\Delta s_f^0\) falls.
-            - Change \(N\): the continuous thermodynamic equilibrium does not
-              move, but the exact finite lattice can represent only \(n/N\).
+            The default is intentionally easy to see; it is a teaching state,
+            not a claim that oxide defects are usually this concentrated.
             """),
+            advanced_controls,
         ]
     )
     return
@@ -447,7 +397,6 @@ def _(
     entropy_term_ev = -kbt_ev * stirling_entropy_kb_per_site(focus_x)
     total_free_energy_ev = formation_term_ev + entropy_term_ev
     chemical_potential_values_ev = delta_g0_ev + kbt_ev * _focus_logit
-
     return (
         chemical_potential_values_ev,
         delta_g0_ev,
@@ -455,7 +404,7 @@ def _(
         discrete_n,
         discrete_x,
         entropy_exact_kb_per_site,
-        entropy_stirling_on_discrete,
+        entropy_term_ev,
         equilibrium_x,
         finite_n_eq,
         finite_x_eq,
@@ -464,13 +413,11 @@ def _(
         formation_entropy_kb,
         formation_term_ev,
         free_energy_exact_ev_per_site,
-        kbt_ev,
         log_omega,
         omega_at_finite_min,
         reduced_formation_energy,
         site_count,
         temperature_k,
-        entropy_term_ev,
         total_free_energy_ev,
     )
 
@@ -487,7 +434,6 @@ def _(
     mo,
     omega_at_finite_min,
     reduced_formation_energy,
-    site_count,
     temperature_k,
 ):
     _dilute_error = abs(dilute_x - equilibrium_x) / equilibrium_x
@@ -504,7 +450,7 @@ def _(
         else "not a dilute approximation in this state"
     )
 
-    mo.md(
+    _state_table = mo.md(
         rf"""
         ### Current thermodynamic state
 
@@ -526,11 +472,12 @@ def _(
         when the ensemble-mean occupancy is nonzero.
         """
     )
+    mo.accordion({"Explore further — current state": _state_table})
     return
 
 
 @app.cell
-def _(finite_n_eq, finite_x_eq, np, plt, site_count):
+def _(finite_n_eq, np, plt, site_count):
     _columns = int(np.ceil(np.sqrt(site_count)))
     _rows = int(np.ceil(site_count / _columns))
     _indices = np.arange(site_count)
@@ -548,10 +495,10 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
 
     plt.rcParams.update(
         {
-            "font.size": 15,
-            "axes.titlesize": 17,
-            "axes.labelsize": 15,
-            "legend.fontsize": 12,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 13,
+            "legend.fontsize": 10.5,
         }
     )
     _lattice_fig, _lattice_axis = plt.subplots(figsize=(11.5, 4.8), dpi=120)
@@ -592,10 +539,7 @@ def _(finite_n_eq, finite_x_eq, np, plt, site_count):
     _lattice_axis.set_xlim(-1.0, _columns)
     _lattice_axis.set_ylim(-1.0, _rows)
     _lattice_axis.axis("off")
-    _lattice_axis.set_title(
-        f"One randomized microstate in the most probable finite-N macrostate: "
-        f"N = {site_count}, n = {finite_n_eq}, x = {finite_x_eq:.4g}"
-    )
+    _lattice_axis.set_title("A finite lattice at its most probable composition")
     _lattice_axis.legend(
         loc="center left",
         bbox_to_anchor=(1.01, 0.5),
@@ -614,21 +558,38 @@ def _(lattice_figure):
 
 
 @app.cell
-def _(finite_n_eq, mo, site_count):
-    if finite_n_eq == 0:
-        _lattice_note = (
-            f"**Figure takeaway.** For this {site_count}-site lattice, the most probable macrostate is the "
-            "perfect lattice. That does not mean the macroscopic equilibrium "
-            "fraction is zero: the finite lattice cannot display less than one "
-            f"defect, a fraction 1/N = {1.0 / site_count:.3e}."
-        )
-    else:
-        _lattice_note = (
-            "**Figure takeaway.** The open squares are defects placed on a reproducibly randomized "
-            "set of sites. Moving them among equivalent sites changes the "
-            "configuration but not the formation-energy term."
-        )
-    mo.md(_lattice_note)
+def _(finite_n_eq, finite_x_eq, mo, site_count):
+    _finite_note = (
+        "This finite lattice cannot display less than one defect, so its most "
+        "probable composition can be the perfect lattice even when the "
+        "thermodynamic mean is nonzero."
+        if finite_n_eq == 0
+        else
+        "The open squares are defects placed at reproducibly randomized sites. "
+        "Moving them among equivalent sites changes the configuration without "
+        "changing the formation-energy term."
+    )
+    mo.md(
+        rf"""
+        \(N={site_count}\), \(n={finite_n_eq}\), and
+        \(x=n/N={finite_x_eq:.4g}\). {_finite_note}
+
+        This lattice is a **configurational schematic**, not an atomistic
+        simulation.
+
+        ## From arrangements to entropy
+
+        For \(n\) defects on \(N\) equivalent sites,
+
+        \[
+        \Omega(N,n)=\binom{{N}}{{n}},\qquad
+        S_{{\rm config}}=k_B\ln\Omega.
+        \]
+
+        A perfect lattice has only one arrangement. Mixed occupied and defect
+        sites have many, creating an entropic reason for defects to appear.
+        """
+    )
     return
 
 
@@ -636,7 +597,6 @@ def _(finite_n_eq, mo, site_count):
 def _(
     discrete_x,
     entropy_exact_kb_per_site,
-    entropy_stirling_on_discrete,
     finite_x_eq,
     log_omega,
     np,
@@ -673,7 +633,7 @@ def _(
     _multiplicity_axis.set(
         xlabel="Defect fraction, x = n/N",
         ylabel=r"$\ln\Omega$",
-        title=f"Number of configurations (N = {site_count})",
+        title="How many arrangements are possible?",
         xlim=(0.0, 1.0),
     )
     _multiplicity_axis.grid(alpha=0.25)
@@ -699,7 +659,7 @@ def _(
     _entropy_axis.set(
         xlabel="Defect fraction, x = n/N",
         ylabel=r"Configurational entropy per site, $s_{\rm config}/k_B$",
-        title="Entropy is largest when mixing is greatest",
+        title="Mixing creates configurational entropy",
         xlim=(0.0, 1.0),
     )
     _entropy_axis.grid(alpha=0.25)
@@ -719,7 +679,7 @@ def _(entropy_figure):
 @app.cell
 def _(mo):
     mo.md(r"""
-    **Figure takeaway.** A perfect lattice has only one configuration, so
+    A perfect lattice has only one configuration, so
     \(\ln\Omega=0\) and \(S_{\rm config}=0\). Adding defects initially
     creates many new choices. Entropy is maximized near equal populations of
     occupied and defect sites. The continuous Stirling line approaches the
@@ -733,6 +693,7 @@ def _(mo):
 def _(
     chemical_potential_values_ev,
     discrete_x,
+    entropy_term_ev,
     equilibrium_x,
     finite_n_eq,
     finite_x_eq,
@@ -743,7 +704,6 @@ def _(
     plt,
     show_components,
     show_exact_points,
-    entropy_term_ev,
     total_free_energy_ev,
 ):
     _energy_fig, (_free_energy_axis, _mu_axis) = plt.subplots(
@@ -827,7 +787,7 @@ def _(
     _free_energy_axis.set_xlabel("Defect fraction, x")
     _free_energy_axis.set_ylabel("Free energy per site (meV/site)")
     _free_energy_axis.set_title(
-        "Formation energy competes with configurational entropy"
+        "Free energy balances cost and entropy"
     )
     _free_energy_axis.grid(alpha=0.25)
     _free_energy_axis.legend(frameon=False, fontsize=11)
@@ -851,7 +811,7 @@ def _(
     _mu_axis.set_xlim(focus_x[0], focus_x[-1])
     _mu_axis.set_xlabel("Defect fraction, x")
     _mu_axis.set_ylabel(r"Chemical potential, $\mu_D$ (eV/defect)")
-    _mu_axis.set_title(r"The same equilibrium is $\mu_D=0$")
+    _mu_axis.set_title(r"The same equilibrium has $\mu_D=0$")
     _mu_axis.grid(alpha=0.25)
     _energy_fig.tight_layout()
     plt.close(_energy_fig)
@@ -868,7 +828,7 @@ def _(free_energy_figure):
 @app.cell
 def _(mo):
     mo.md(r"""
-    **Figure takeaway.** Read the left panel first. The formation term
+    Read the left panel first. The formation term
     penalizes defects, while $-Ts_{\rm config}$ lowers the free energy. Their
     solid-line sum has a marked minimum. Nothing in the calculation
     assumes that equilibrium concentration in advance.
@@ -966,7 +926,7 @@ def _(
             color="#C49345",
             edgecolor="#40464D",
             zorder=6,
-            label="current thermodynamic state",
+            label="selected state",
         )
         if finite_x_eq > 0.0:
             _comparison_axis.scatter(
@@ -982,22 +942,13 @@ def _(
         ylim=(1.0e-7, 1.2),
         xlabel=r"Formation driving force, $\Delta g_f^0/(k_BT)$",
         ylabel="Defect fraction",
-        title="Finite-N mode, thermodynamic mean, and dilute limit",
+        title="Exact, thermodynamic, and dilute limits",
     )
     _comparison_axis.grid(which="both", alpha=0.25)
     _comparison_axis.legend(
         loc="upper right",
         frameon=False,
         fontsize=11,
-    )
-    _comparison_axis.text(
-        0.02,
-        0.05,
-        "The finite-N mode eventually becomes n = 0;\n"
-        "the ensemble mean remains nonzero.",
-        transform=_comparison_axis.transAxes,
-        fontsize=11,
-        color="#444444",
     )
     _comparison_fig.tight_layout()
     plt.close(_comparison_fig)
@@ -1010,7 +961,7 @@ def _(approximation_figure, mo):
     mo.vstack([
         approximation_figure,
         mo.md(r"""
-        **Figure takeaway.** The dilute exponential converges to the exact
+        The dilute exponential converges to the exact
         thermodynamic fraction only at low $x$. A finite lattice adds discrete
         composition steps, and its most-probable macrostate can reach $n=0$ even
         while the ensemble mean remains positive.
@@ -1166,58 +1117,27 @@ def _(mo, validation):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## What the approximations mean
+    ## What to carry forward
 
-    The exact finite lattice contains only the compositions
-    \(x=0,1/N,\ldots,1\). Its entropy comes from the binomial multiplicity. The
-    discrete minimum of \(G(n)\) is the **most probable finite-\(N\) macrostate**,
-    because
-
-    \[
-    P(n)\propto \binom{N}{n}
-    \exp\!\left[-\frac{n\Delta g_f^0}{k_BT}\right].
-    \]
-
-    For independent equivalent sites this distribution has ensemble mean
-    \(\langle n\rangle/N=x_{\rm eq}\). Its mode is a discrete composition and
-    can be \(n=0\) when \(x_{\rm eq}\ll1/N\); that does not make the mean zero.
-
-    Stirling's approximation turns those points into a smooth function. Its
-    derivative is the chemical potential, and its minimum gives the logistic
-    occupancy. No dilute assumption is needed for
+    The exact finite lattice contains only
+    \(x=0,1/N,\ldots,1\), while Stirling's approximation turns those states
+    into a smooth thermodynamic curve. Its minimum gives
 
     \[
     x_{\rm eq}=\frac{1}{1+\exp[\Delta g_f^0/(k_BT)]}.
     \]
 
-    Only when \(x_{\rm eq}\ll1\) may \(1-x_{\rm eq}\) be replaced by one:
+    Only when \(x_{\rm eq}\ll1\) may \(1-x_{\rm eq}\) be replaced by one, giving
+    the familiar dilute exponential.
 
-    \[
-    x_{\rm eq}\approx
-    \exp\left(-\frac{\Delta g_f^0}{k_BT}\right).
-    \]
+    The central lesson is simple: multiplicity creates configurational entropy,
+    and that entropy competes with the energy cost of forming defects. The
+    minimum of \(G\) and the zero of \(\mu_D\) are two views of the same
+    equilibrium.
 
-    Increasing temperature strengthens the configurational contribution
-    \(-T S_{\rm config}\). A positive non-configurational formation entropy
-    (for example, vibrational formation entropy) also
-    lowers \(\Delta g_f^0=\Delta h_f-T\Delta s_f^0\). Both effects therefore
-    shift equilibrium toward more defects.
-
-    **Assumptions.** All sites are equivalent; defects do not interact; occupied
-    and defect sites have ideal configurational statistics; \(\Delta h_f\) and
-    \(\Delta s_f^0\) are independent of composition. Charged defects, coupled
-    defect reactions, pressure, electroneutrality, non-ideal activities, and
-    vibrational spectra are deliberately outside this first module.
-
-    ## Three messages to keep
-
-    1. **Multiplicity creates an entropic driving force.** Even an energetic
-       defect cost competes with the many ways defects can be arranged.
-    2. **One equilibrium, two views.** The minimum of $G(x)$ and the zero of
-       $\mu_D(x)$ identify the same thermodynamic composition.
-    3. **Approximations have domains.** Exact finite-$N$ counting becomes the
-       smooth Stirling result for large systems; the exponential form requires
-       the additional condition $x\ll1$.
+    **Model boundary.** Sites are equivalent and defects do not interact.
+    Charged defects, coupled reactions, pressure, and electroneutrality begin in
+    the next module.
     """)
     return
 
@@ -1228,7 +1148,6 @@ def _(mo):
     **Continue:** [Module 02 — Brouwer Diagram Explorer](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/02-brouwer-sto/)
     """)
     return
-
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ class CDPClient:
     """Minimal synchronous Chrome DevTools Protocol client."""
 
     def __init__(self, endpoint: str) -> None:
-        self._socket = websocket.create_connection(endpoint, timeout=20)
+        self._socket = websocket.create_connection(endpoint, timeout=60)
         self._message_id = 0
 
     def call(self, method: str, **params):
@@ -44,6 +44,9 @@ class CDPClient:
             awaitPromise=True,
             returnByValue=True,
         )
+        if "exceptionDetails" in result:
+            details = result["exceptionDetails"]
+            raise RuntimeError(details.get("text", "JavaScript evaluation failed"))
         return result["result"].get("value")
 
     def close(self) -> None:
@@ -87,20 +90,80 @@ def set_range_by_label(client: CDPClient, label_text: str, value: float) -> None
     script = f"""
     (() => {{
       const labelText = {json.dumps(label_text)};
-      const candidates = [...document.querySelectorAll('label, marimo-ui-element, div')];
-      const host = candidates.find((node) =>
-        node.textContent && node.textContent.includes(labelText) &&
-        node.querySelector('input[type=range]'));
+      const host = [...document.querySelectorAll('marimo-slider')].find((node) =>
+        node.getAttribute('data-label')?.includes(labelText));
       if (!host) throw new Error(`No slider labelled ${{labelText}}`);
-      const input = host.querySelector('input[type=range]');
-      input.value = {float(value)};
-      input.dispatchEvent(new Event('input', {{bubbles: true}}));
-      input.dispatchEvent(new Event('change', {{bubbles: true}}));
-      return {{value: input.value, min: input.min, max: input.max}};
+      const thumb = host.shadowRoot?.querySelector('[role=slider]');
+      if (!thumb) throw new Error(`Slider ${{labelText}} has no thumb`);
+      const root = thumb.parentElement.parentElement;
+      const minimum = Number(thumb.getAttribute('aria-valuemin'));
+      const maximum = Number(thumb.getAttribute('aria-valuemax'));
+      const clamped = Math.max(minimum, Math.min(maximum, {float(value)}));
+      const fraction = (clamped - minimum) / (maximum - minimum);
+      const rect = root.getBoundingClientRect();
+      return {{x: rect.left + fraction * rect.width, y: rect.top + rect.height / 2}};
+    }})()
+    """
+    point = client.evaluate(script)
+    client.call(
+        "Input.dispatchMouseEvent",
+        type="mousePressed",
+        x=point["x"],
+        y=point["y"],
+        button="left",
+        clickCount=1,
+    )
+    client.call(
+        "Input.dispatchMouseEvent",
+        type="mouseReleased",
+        x=point["x"],
+        y=point["y"],
+        button="left",
+        clickCount=1,
+    )
+    time.sleep(2.0)
+
+
+def figure_signature(client: CDPClient) -> str:
+    return client.evaluate(
+        "Array.from(document.querySelectorAll('img')).map((e) => e.currentSrc).join('|')"
+    )
+
+
+def wait_for_figure_update(
+    client: CDPClient, previous_signature: str, timeout_s: float = 120.0
+) -> None:
+    deadline = time.monotonic() + timeout_s
+    last_signature = previous_signature
+    stable_since = time.monotonic()
+    changed = False
+    while time.monotonic() < deadline:
+        current_signature = figure_signature(client)
+        changed = changed or current_signature != previous_signature
+        if current_signature != last_signature:
+            last_signature = current_signature
+            stable_since = time.monotonic()
+        elif changed and time.monotonic() - stable_since >= 8.0:
+            return
+        time.sleep(1.0)
+    raise TimeoutError("Figures did not settle after the control change")
+
+
+def scroll_to_text(client: CDPClient, text: str) -> None:
+    script = f"""
+    (() => {{
+      const targetText = {json.dumps(text)};
+      const candidates = [...document.querySelectorAll('h1, h2, h3, p, figcaption, .marimo-cell')];
+      const target = candidates.find((node) =>
+        node.textContent && node.textContent.includes(targetText));
+      if (!target) throw new Error(`No visible section contains ${{targetText}}`);
+      target.scrollIntoView({{block: 'start'}});
+      window.scrollBy(0, -24);
+      return target.textContent.trim().slice(0, 100);
     }})()
     """
     client.evaluate(script)
-    time.sleep(1.5)
+    time.sleep(0.7)
 
 
 def layout_warnings(client: CDPClient):
@@ -162,13 +225,15 @@ def capture(client: CDPClient, output: Path, full_page: bool) -> None:
         }
         result = client.call(
             "Page.captureScreenshot",
-            format="png",
+            format="jpeg",
+            quality=85,
             clip=clip,
             captureBeyondViewport=True,
+            fromSurface=True,
         )
     else:
         result = client.call(
-            "Page.captureScreenshot", format="png", captureBeyondViewport=False
+            "Page.captureScreenshot", format="jpeg", quality=85, captureBeyondViewport=False, fromSurface=True
         )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_bytes(base64.b64decode(result["data"]))
@@ -182,6 +247,9 @@ def main() -> None:
     parser.add_argument("--height", type=int, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--slider", action="append", default=[], metavar="LABEL=VALUE")
+    parser.add_argument("--focus-text")
+    parser.add_argument("--scroll-y", type=float)
+    parser.add_argument("--scroll-offset", type=float, default=0.0)
     parser.add_argument("--full-page", action="store_true")
     args = parser.parse_args()
 
@@ -191,13 +259,30 @@ def main() -> None:
         client.call("Runtime.enable")
         set_viewport(client, args.width, args.height)
         wait_until_ready(client)
+        previous_signature = figure_signature(client) if args.slider else ""
+        if args.slider:
+            client.evaluate("document.getElementById('App').scrollTop = 0")
+            time.sleep(0.5)
         for assignment in args.slider:
             label, raw_value = assignment.rsplit("=", 1)
             set_range_by_label(client, label, float(raw_value))
-        client.evaluate("window.scrollTo(0, 0)")
+        if args.slider:
+            wait_for_figure_update(client, previous_signature)
+        if args.scroll_y is not None:
+            client.evaluate(f"document.getElementById('App').scrollTop = {args.scroll_y}")
+        elif args.focus_text:
+            scroll_to_text(client, args.focus_text)
+        else:
+            client.evaluate("window.scrollTo(0, 0)")
+        if args.scroll_offset:
+            client.evaluate(f"document.getElementById('App').scrollTop += {args.scroll_offset}")
         time.sleep(0.5)
         warnings = layout_warnings(client)
-        capture(client, args.output, args.full_page)
+        capture_client = CDPClient(page_endpoint(args.port, args.url))
+        try:
+            capture(capture_client, args.output, args.full_page)
+        finally:
+            capture_client.close()
         print(
             json.dumps(
                 {"screenshot": str(args.output), "layout": warnings}, indent=2
