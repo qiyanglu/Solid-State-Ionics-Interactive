@@ -12,6 +12,14 @@ The intended core audience is an undergraduate or beginning graduate student
 in Solid State Ionics who has not read the source code, lecture slides, or
 tutorial articles. Each core reader should take roughly 10--20 minutes.
 
+## Implementation status
+
+The redesign described below was completed across Modules 01--07 on
+2026-08-21. Scientific models and public routes were preserved. The completed
+module-by-module outcome and release checks are summarized in
+[IMPLEMENTATION_REPORT.md](IMPLEMENTATION_REPORT.md); mobile, laptop, and
+projector browser evidence is recorded in [VISUAL_QA.md](VISUAL_QA.md).
+
 ## Module 01 — Defect formation thermodynamics
 
 **Main question.** Why can a crystal contain defects at equilibrium even when

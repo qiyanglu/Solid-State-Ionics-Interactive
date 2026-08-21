@@ -16,8 +16,13 @@ rather than repository source files.
 
 The review checks responsive control wrapping, clipped text, title/label/tick
 collisions, legends and annotations over data, meaningful parameter response,
-and equal-scale Nyquist geometry. A matplotlib bounding-box scan supplies
-warnings only; the browser screenshot remains the acceptance evidence.
+and equal-scale Nyquist geometry. Release exports enable the lightweight
+`scripts/matplotlib_layout_qa/sitecustomize.py` draw-time scan through
+`PYTHONPATH`. It inspects titles, labels, tick labels, legends, colorbars, and
+annotations without adding QA code to the notebooks or their WASM runtime. The
+scan stores possible intersections or clipping on each figure and emits warnings
+only. Endpoint tick boxes can generate conservative warnings, so every warning
+is adjudicated in the browser; screenshots remain the acceptance evidence.
 
 ## Status legend
 

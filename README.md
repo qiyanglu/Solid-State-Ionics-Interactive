@@ -21,6 +21,14 @@ lecture decks, and independently audited tutorial articles—not a literal
 transcription of one year's slides. Symbols and sign conventions are connected
 in [NOTATION.md](NOTATION.md).
 
+Each notebook is organized as a short **core reader**, followed by collapsed
+**Explore further** material and a final collapsed set of **numerical and
+physical checks**. Core interactions use at most two figure panels and three
+visible controls so they remain readable on phones, laptops, and classroom
+projectors. The editorial map is recorded in
+[STUDENT_FIRST_AUDIT.md](STUDENT_FIRST_AUDIT.md), with browser evidence in
+[VISUAL_QA.md](VISUAL_QA.md).
+
 ## Learning pathways
 
 ### Foundations (Modules 01–03)
@@ -116,8 +124,9 @@ J = -D dc/dx
 
 Here Gamma is the total hop frequency and 1/Gamma is the mean time between
 hops. A discrete master equation recovers Fick's law using the same Gamma
-throughout. The microscopic figure uses physical position and time, regenerates
-its random-walk realization when any hopping control changes, fits the
+throughout. The microscopic reader uses physical position and time with a fixed random-walk
+realization, so changing a hopping parameter reveals a physical trend instead
+of a new random draw. It fits the
 mean-square-displacement slope, and compares the extracted diffusivity directly
 with \(a^2\Gamma/2\). A symmetric electric-field bias then produces
 detailed balance, low-field Nernst-Einstein drift, and
@@ -157,12 +166,13 @@ Gouy-Chapman:  both +ze and -ze defects are mobile
 Mott-Schottky: negative majority dopants are frozen
 ~~~
 
-The Gouy-Chapman profiles use the exact nonlinear planar solution; the familiar
-exponential is shown only as its small-potential approximation. The
-Mott-Schottky section keeps the frozen-dopant depletion approximation and its
-parabolic potential over the finite width lambda. Both cases display the
-chemical and electrical contributions cancelling to keep the mobile-defect
-electrochemical potential flat.
+The core interaction uses one GC/MS/compare selector and one two-panel figure:
+electrostatic potential beside charged-defect concentrations. The
+Gouy-Chapman curves use the exact nonlinear planar solution; the familiar
+exponential is only an optional small-potential guide. Mott-Schottky keeps the
+frozen-dopant depletion approximation and parabolic potential. Detailed
+chemical/electrical/electrochemical cancellation and screening-length sweeps
+remain in collapsed exploration sections.
 
 The advanced, initially collapsed sections turn the Gouy-Chapman
 charge-potential relation into the differential capacitance C_d, introduce a
@@ -216,9 +226,11 @@ Constant current is the core classroom path, with weak, moderate, strong,
 and reverse physical presets that report both beta and the corresponding
 current density. Constant potential remains available in a collapsed extension.
 The conductivity ratio sigma_e/sigma_i controls the carrier bottleneck, while
-the total conductivity sets the initial Ohmic scale. Interactive figures show
-the full concentration history, voltage/current relaxation, and separate
-chemical, electrical, and electrochemical potentials. A measurement panel
+the total conductivity sets the initial Ohmic scale. The core interaction shows
+one selected concentration profile beside the matching measured response. Full
+histories, drive alternatives, conductivity sweeps, and separate chemical,
+electrical, and electrochemical potentials are collapsed for further
+exploration. A measurement panel
 separates imposed, measured, immediate Ohmic, evolving chemical-polarization,
 and late Nernstian contributions, then bridges total C_chem to the distributed
 c_chem used in Module 07.
@@ -240,12 +252,13 @@ ion electrolyte at x = 0:    J_e = 0
 current collector at x = L:  J_i = 0
 ~~~
 
-Students may label the neutral pair as Li or H. PITT fixes a small electrode-
-potential step and solves for the current;
-GITT fixes a current step and calculates the voltage. In both cases, the full
-finite-slab chemical-diffusion equation generates the transient concentration,
-chemical-potential, electrical-potential, and electrochemical-potential
-profiles. The selective contact fluxes are enforced directly at both faces, so
+Students may label the neutral pair as Li or H. A top-level selector shows one
+experiment at a time: PITT fixes a small electrode-potential step and solves for
+the current, while GITT fixes a current step and calculates the voltage. A
+simple timeline connects the pulse, current interruption, and OCV rest. The
+full finite-slab chemical-diffusion equation generates every transient profile;
+potential decompositions and asymptotic fitting tools are optional. The
+selective contact fluxes are enforced directly at both faces, so
 the steep electrolyte-side concentration response remains smooth and physically
 consistent. The final pulse profile becomes the initial condition for the OCV
 relaxation, where terminal current is zero but equal internal ion and electron
@@ -268,45 +281,31 @@ potential, charge-transfer overpotential, and Ohmic drop.
 
 ### Module 07: Impedance Spectroscopy, Warburg Diffusion, and Transmission Lines
 
-[07_impedance_tlm.py](07_impedance_tlm.py) begins with the lecture convention
+[07_impedance_tlm.py](07_impedance_tlm.py) uses the lecture convention
 
 ~~~text
 exp(i omega t),   Z = V_hat / I_hat = Z' + i Z'',
 Nyquist axes: Z' versus -Z''.
 ~~~
 
-Students first connect voltage/current phase to complex impedance, then see
-how physical frequency changes the waveform period in seconds. A series RC and
-a parallel RC then show why connection topology changes the Nyquist shape;
-one- and two-relaxation parallel-RC examples follow. The diffusion reader next
-presents the semi-infinite concentration wave, Nyquist response, and Bode
-response as three views of the same solution before comparing finite
-far-boundary cases. The section solves the one-dimensional frequency-domain
-chemical-diffusion equation. Semi-infinite, fixed-composition finite-length,
-and zero-flux finite-length Warburg responses are kept distinct, and the
-controls let students vary the far boundary, frequency, snapshot phase,
-$D^\delta$, $L$, and physical impedance scale. Every finite-length name is
-paired with its boundary equation, while general and dilute resistance scales
-are stated separately.
+A fixed two-second waveform window makes frequency change the visible cycle
+count. Students then compare series and parallel RC Nyquist signatures before
+connecting a one-dimensional concentration wave to the derived semi-infinite
+Warburg line. The finite-length interaction exposes only boundary condition,
+frequency, and chemical diffusivity; phase, geometry, physical impedance scale,
+boundary comparison, and Bode views remain optional.
 
-The final section incorporates the continuous dual-rail model from the
-[TLM teaching tool](https://qiyanglu.github.io/TLM-teaching-tool/):
-
-~~~text
-du_e/dx = -r_e I_e                    dI_e/dx = -i omega c_chem (u_e - u_i)
-du_i/dx = -r_i I_i                    dI_i/dx = +i omega c_chem (u_e - u_i)
-~~~
-
-Here u_e and u_i are voltage-equivalent electrochemical potentials. Three
-transparent ideal contact cases reveal how the same interior MIEC can look
-conducting, chemically polarized, or blocking. The schematic, distributed
-parameter controls, frequency-colored Nyquist/Bode views, and spatial profiles
-closely follow the original teaching tool. The profiles show chemical storage
-and current transfer between rails while I_e + I_i remains conserved. The
-general anatomy labels all four contact impedances and distinguishes the
-interactive model from conceptual extensions involving dielectric capacitance,
-surface reaction resistance, and more general contacts.
-
+The final reader adopts the two-rail anatomy of the
+[TLM teaching tool](https://qiyanglu.github.io/TLM-teaching-tool/). Electronic
+and ionic rail resistance are linked by distributed chemical capacitance, and
+explicit contact presets determine the terminal boundary conditions. One
+equal-scale Nyquist spectrum replaces the previous three simultaneous
+viewports. A separate selector shows one internal composition, rail-potential,
+or rail-current view at the marked frequency. The default electron-reversible,
+ion-blocked contact case opens with a legible polarization arc; cross-selective
+and fully reversible limits remain available. Total current conservation,
+voltage-equivalent-potential signs, distributed/total conversions, passivity,
+and the connection to finite Warburg behavior are all checked numerically.
 ## Run locally
 
 With Python 3.11 or newer and [uv](https://docs.astral.sh/uv/) installed:
@@ -377,7 +376,7 @@ diffusion-only fitting bias across Biot number.
 
 
 Module 07 checks the phasor sign convention, ideal resistor and capacitor
-limits, the waveform period in seconds, the series-RC identity, equal Nyquist
+limits, the fixed-time waveform response, the series-RC identity, equal Nyquist
 scaling, the parallel-RC semicircle and apex, the general-to-dilute Warburg
 resistance reduction, finite-length Warburg limits and passivity, TLM boundary
 residuals, voltage-equivalent potential signs, distributed/total conversions,
