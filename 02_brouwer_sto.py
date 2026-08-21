@@ -9,7 +9,7 @@
 # ///
 import marimo
 
-__generated_with = "0.23.14"
+__generated_with = "0.24.0"
 app = marimo.App(width="full")
 
 
@@ -70,7 +70,7 @@ def _(mo):
 @app.cell
 def _(mo):
     model_details = mo.md(r"""
-    # Brouwer diagram explorer: weakly acceptor-doped SrTiO$_3$
+    # Brouwer diagram explorer: weakly acceptor-doped $\mathrm{SrTiO_3}$
 
     **Question.** Can Brouwer regimes and slopes emerge from equilibrium
     thermodynamics and electroneutrality, without putting a power law into the
@@ -86,7 +86,7 @@ def _(mo):
 
     > **Predict before exploring.** Increase the fixed acceptor concentration
     > $A$. Which concentration plateau must move, and which transition should
-    > shift along the $p_{O_2}$ axis?
+    > shift along the $p_{\mathrm{O_2}}$ axis?
 
     **Model and notation scope.** Full Kröger–Vink symbols are introduced once
     and then shortened to $V,n,p,A$. The course notation may write the same
@@ -94,14 +94,16 @@ def _(mo):
     $K_{eh}\equiv K_{el}$. See the shared
     [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
 
-    We retain only oxygen vacancies $V=[V_O^{\bullet\bullet}]$, electrons
+    We retain only oxygen vacancies $V=[V_{\mathrm{O}}^{\bullet\bullet}]$, electrons
     $n=[e']$, holes $p=[h^\bullet]$, and a fixed concentration
-    $A=[A_{Ti}']$ of fully ionized acceptors. Concentrations are in cm$^{-3}$,
-    temperature is in K, and $p_{O_2}$ is in bar.
+    $A=[A_{\mathrm{Ti}}']$ of fully ionized acceptors. Concentrations are in
+    $\mathrm{cm^{-3}}$, temperature is in K, and $p_{\mathrm{O_2}}$ is in bar.
 
-    $$O_O^x \rightleftharpoons V_O^{\bullet\bullet}+2e'+\tfrac12O_2,$$
+    $$\mathrm{O}_{\mathrm{O}}^{\times}
+    \rightleftharpoons V_{\mathrm{O}}^{\bullet\bullet}+2e'
+    +\tfrac12\mathrm{O_2},$$
 
-    $$K_{red}=Vn^2p_{O_2}^{1/2}, \qquad K_{eh}=np,$$
+    $$K_{red}=Vn^2p_{\mathrm{O_2}}^{1/2}, \qquad K_{eh}=np,$$
 
     $$\boxed{2V+p=A+n}. $$
 
@@ -109,7 +111,7 @@ def _(mo):
     the two positive effective charges on each oxygen vacancy plus holes balance
     ionized acceptors plus electrons.
 
-    The quantitative SrTiO$_3$ equilibrium constants are
+    The quantitative $\mathrm{SrTiO_3}$ equilibrium constants are
 
     $$K_{red}(T)=6.616\times10^{68}
     \exp\!\left[-\frac{5.581}{k_BT}\right]
@@ -125,22 +127,22 @@ def _(mo):
 
     Activities are approximated by the displayed concentrations. The activity
     of regular oxygen sites is absorbed into $K_{red}$, and oxygen activity is
-    represented by $p_{O_2}$ in bar. At fixed $T$,
-    $\mu_{O_2}=\mu_{O_2}^\circ+RT\ln p_{O_2}$, so the horizontal axis is also a
+    represented by $p_{\mathrm{O_2}}$ in bar. At fixed $T$,
+    $\mu_{\mathrm{O_2}}=\mu_{\mathrm{O_2}}^\circ+RT\ln p_{\mathrm{O_2}}$, so the horizontal axis is also a
     linear chemical-potential coordinate.
     """)
     mo.vstack([
         mo.md(r"""
-        # Brouwer diagram explorer: acceptor-doped SrTiO$_3$
+        # Brouwer diagram explorer: acceptor-doped $\mathrm{SrTiO_3}$
 
         **Can the familiar Brouwer slopes emerge without putting any power law
         into the calculation?**
 
-        We keep only oxygen vacancies (V=[V_O^{\bullet\bullet}]), electrons
-        (n=[e']), holes (p=[h^\bullet]), and fixed ionized acceptors
-        (A=[A_{Ti}']). At every oxygen pressure the notebook solves
+        We keep only oxygen vacancies $V=[V_{\mathrm{O}}^{\bullet\bullet}]$,
+        electrons $n=[e']$, holes $p=[h^\bullet]$, and fixed ionized acceptors
+        $A=[A_{\mathrm{Ti}}']$. At every oxygen pressure the notebook solves
 
-        $$K_{red}=Vn^2p_{O_2}^{1/2},\qquad K_{eh}=np,$$
+        $$K_{red}=Vn^2p_{\mathrm{O_2}}^{1/2},\qquad K_{eh}=np,$$
 
         together with exact electroneutrality
 
@@ -148,7 +150,8 @@ def _(mo):
 
         The plotted curves are the full equilibrium solution. Limiting balances
         and slopes are added only afterward to explain what the solution does.
-        Concentrations use cm$^{-3}$, (p_{O_2}) uses bar, and (T) uses K.
+        Concentrations use $\mathrm{cm^{-3}}$, $p_{\mathrm{O_2}}$ uses bar,
+        and $T$ uses K.
         """),
         mo.accordion({"Model details — reactions, constants, notation, and assumptions": model_details}),
     ])
@@ -249,7 +252,7 @@ def _(mo):
         stop=1500,
         step=1,
         value=973,
-        label="Temperature, T (K)",
+        label="Temperature (K)",
         show_value=True,
     )
     log_acceptor = mo.ui.slider(
@@ -257,21 +260,22 @@ def _(mo):
         stop=21.0,
         step=0.1,
         value=18.0,
-        label="Acceptor concentration, log10(A / cm-3)",
+        label="Acceptor concentration exponent",
         show_value=True,
     )
-    show_guides = mo.ui.checkbox(
-        value=False,
-        label="Show post-solution limiting-slope guides",
+    guide_regime = mo.ui.dropdown(
+        options=["None", "Reducing", "Acceptor-compensated", "Oxidizing"],
+        value="None",
+        label="Optional limiting guide",
     )
     controls = mo.hstack(
-        [temperature, log_acceptor, show_guides],
+        [temperature, log_acceptor, guide_regime],
         justify="start",
         align="center",
         wrap=True,
         gap=2.0,
     )
-    return controls, log_acceptor, show_guides, temperature
+    return controls, guide_regime, log_acceptor, temperature
 
 
 @app.cell
@@ -281,8 +285,13 @@ def _(controls, mo):
             mo.md("## Explore the exact equilibrium"),
             controls,
             mo.md(
+                r"The acceptor control sets "
+                r"$A=10^x\,\mathrm{cm^{-3}}$. The optional guide draws only "
+                "one limiting regime at a time; it never changes the solved curves."
+            ),
+            mo.md(
                 "The pressure window is fixed at "
-                r"$10^{-25}\leq p_{O_2}\leq 1$ bar so temperatures and acceptor "
+                r"$10^{-25}\leq p_{\mathrm{O_2}}\leq 1$ bar so temperatures and acceptor "
                 "levels can be compared directly.\n\n"
                 "**Suggested comparisons:** keep the 973 K, $10^{18}$ cm$^{-3}$ "
                 "default for the acceptor plateau; raise $T$ toward 1500 K to "
@@ -506,7 +515,7 @@ def _(
     np,
     plt,
     regime_masks,
-    show_guides,
+    guide_regime,
     temperature,
 ):
     plt.rcParams.update(
@@ -524,7 +533,7 @@ def _(
         log_pressure,
         np.log10(concentrations["V"]),
         color="#C27A50",
-        label=r"$V_O^{\bullet\bullet}$ ($V$)",
+        label=r"$V_{\mathrm{O}}^{\bullet\bullet}$ ($V$)",
     )
     axis.plot(
         log_pressure,
@@ -544,7 +553,7 @@ def _(
         color="#666D73",
         ls="--",
         lw=1.7,
-        label=r"fixed $A_{Ti}'$ ($A$)",
+        label=r"fixed $A_{\mathrm{Ti}}'$ ($A$)",
     )
 
     if crossover_log_pressure is not None:
@@ -562,7 +571,7 @@ def _(
         )
 
 
-    if show_guides.value:
+    if guide_regime.value == "Reducing":
         add_slope_guide(
             axis,
             concentrations["n"],
@@ -570,6 +579,14 @@ def _(
             -1.0 / 6.0,
             r"$n:\;-1/6$",
         )
+        add_slope_guide(
+            axis,
+            concentrations["V"],
+            regime_masks["reducing"],
+            -1.0 / 6.0,
+            r"$V:\;-1/6$",
+        )
+    elif guide_regime.value == "Acceptor-compensated":
         add_slope_guide(
             axis,
             concentrations["n"],
@@ -591,6 +608,7 @@ def _(
             0.0,
             r"$V:\;0$",
         )
+    elif guide_regime.value == "Oxidizing":
         add_slope_guide(
             axis,
             concentrations["V"],
@@ -614,11 +632,12 @@ def _(
         np.ceil(plotted_logs.max()) + 0.7,
     )
     axis.set_xlim(-25.0, 0.0)
-    axis.set_xlabel(r"$\log_{10}(p_{O_2}\,/\,\mathrm{bar})$")
+    axis.set_xlabel(r"$\log_{10}(p_{\mathrm{O_2}}/\mathrm{bar})$")
     axis.set_ylabel(r"$\log_{10}(c\,/\,\mathrm{cm}^{-3})$")
     axis.set_title(
-        rf"Exact defect equilibrium in SrTiO$_3$:  T = {temperature.value:.0f} K,  "
-        rf"A = $10^{{{np.log10(acceptor):.1f}}}$ cm$^{{-3}}$"
+        rf"Exact defect equilibrium in $\mathrm{{SrTiO_3}}$:  "
+        rf"$T={temperature.value:.0f}\ \mathrm{{K}}$,  "
+        rf"$A=10^{{{np.log10(acceptor):.1f}}}\ \mathrm{{cm^{{-3}}}}$"
     )
     axis.xaxis.set_major_locator(plt.MultipleLocator(5.0))
     axis.xaxis.set_minor_locator(plt.MultipleLocator(1.0))
@@ -641,8 +660,8 @@ def _(mo):
     mo.md(r"""
     Every colored line comes from the full equilibrium equations. The dotted
     vertical line is the derived crossover $n=p$, not an imposed regime
-    boundary. Turn on the optional dashed guides to compare local numerical
-    slopes with limiting Brouwer predictions.
+    boundary. Select one optional dashed guide to compare local numerical
+    slopes with a limiting Brouwer prediction.
     """)
     return
 
@@ -674,7 +693,7 @@ def _(
     if crossover_log_pressure is None:
         crossover_text = "outside the plotted pressure window"
     else:
-        crossover_text = f"$p_{{O_2}}={10.0 ** crossover_log_pressure:.3e}$ bar"
+        crossover_text = f"$p_{{\\mathrm{{O_2}}}}={10.0 ** crossover_log_pressure:.3e}$ bar"
 
     _checks = mo.md(
         rf"""
@@ -692,7 +711,7 @@ def _(
 
         A regime is labeled only where the displayed concentrations clearly
         support its limiting charge balance. Pressure spans are reported as
-        $\log_{{10}}(p_{{O_2}}/\mathrm{{bar}})$; “not sampled” simply means the
+        $\log_{{10}}(p_{{\mathrm{{O_2}}}}/\mathrm{{bar}})$; “not sampled” simply means the
         selected window does not reach that limit.
 
         | Limiting balance | Sampled span |
@@ -731,15 +750,15 @@ def _(mo):
     particular terms dominate the exact charge-neutrality equation:
 
     - **Strong reduction:** if $2V\simeq n$, substitution into
-      $K_{red}=Vn^2p_{O_2}^{1/2}$ gives
-      $V,n\propto p_{O_2}^{-1/6}$. Since $np=K_{eh}$,
-      $p\propto p_{O_2}^{+1/6}$.
+      $K_{red}=Vn^2p_{\mathrm{O_2}}^{1/2}$ gives
+      $V,n\propto p_{\mathrm{O_2}}^{-1/6}$. Since $np=K_{eh}$,
+      $p\propto p_{\mathrm{O_2}}^{+1/6}$.
     - **Acceptor-compensated plateau:** if $2V\simeq A$, then $V$ has slope zero,
-      $n\propto p_{O_2}^{-1/4}$, and
-      $p=K_{eh}/n\propto p_{O_2}^{+1/4}$.
+      $n\propto p_{\mathrm{O_2}}^{-1/4}$, and
+      $p=K_{eh}/n\propto p_{\mathrm{O_2}}^{+1/4}$.
     - **Strong oxidation:** if $p\simeq A$, then $p$ and
       $n=K_{eh}/p$ approach slope-zero plateaus, while
-      $V\propto p_{O_2}^{-1/2}$.
+      $V\propto p_{\mathrm{O_2}}^{-1/2}$.
 
     The bends between these limits are not patched together. They appear because
     all four terms in $2V+p=A+n$ are retained while the balance changes smoothly.
@@ -763,8 +782,8 @@ def _(mo):
     2. **A Brouwer condition is an interpretation.** Dominant charge-balance
        terms explain plateaus and slopes only after the exact solution reveals
        that the assumed terms really dominate.
-    3. **Pressure is a chemical-potential control.** Changing $p_{O_2}$ shifts
-       $\mu_{O_2}$ and smoothly changes which defects or carriers compensate
+    3. **Pressure is a chemical-potential control.** Changing $p_{\mathrm{O_2}}$ shifts
+       $\mu_{\mathrm{O_2}}$ and smoothly changes which defects or carriers compensate
        the fixed acceptors.
     """)
     return
