@@ -512,7 +512,7 @@ def _(mo):
         stop=21.0,
         step=0.25,
         value=20.0,
-        label="Initial concentration, log10(c0 / cm^-3)",
+        label="Initial-concentration exponent",
         show_value=True,
     )
     log_total_conductivity_control = mo.ui.slider(
@@ -520,7 +520,7 @@ def _(mo):
         stop=0.0,
         step=0.25,
         value=-3.0,
-        label="Total conductivity, log10(sigma / S cm^-1)",
+        label="Total-conductivity exponent",
         show_value=True,
     )
     log_conductivity_ratio_control = mo.ui.dropdown(
@@ -575,7 +575,7 @@ def _(mo):
         stop=0.7,
         step=0.1,
         value=-0.3,
-        label="Time, log10(t / tau-delta)",
+        label="Reduced-time exponent",
         show_value=True,
     )
     return (
@@ -700,7 +700,15 @@ def _(
         polarization_positions,
         mode_count=50,
     )
+    profile_time_targets = np.array([0.02, 0.10, 0.50, 2.0])
+    profile_time_indices = np.array([
+        int(np.argmin(np.abs(polarization_time_ratios - target)))
+        for target in profile_time_targets
+    ])
     requested_time_ratio = 10.0 ** float(log_time_control.value)
+    highlighted_profile_slot = int(
+        np.argmin(np.abs(np.log(profile_time_targets / requested_time_ratio)))
+    )
     selected_time_index = int(
         np.argmin(np.abs(polarization_time_ratios - requested_time_ratio))
     )
@@ -721,9 +729,12 @@ def _(
         polarization_solution["modes"],
     )
     return (
+        highlighted_profile_slot,
         polarization_positions,
         polarization_solution,
         polarization_time_ratios,
+        profile_time_indices,
+        profile_time_targets,
         requested_time_ratio,
         selected_applied_voltage_v,
         selected_beta_setpoint,
@@ -909,92 +920,114 @@ def _(
 
 @app.cell
 def _(
+    highlighted_profile_slot,
     mo,
     np,
     plt,
     polarization_positions,
     polarization_solution,
     polarization_time_ratios,
+    profile_time_indices,
+    profile_time_targets,
     selected_drive_mode,
     selected_parameters,
     selected_time_index,
-    selected_time_ratio,
 ):
-    core_figure, (profile_axis, response_axis) = plt.subplots(
-        1, 2, figsize=(13.2, 4.8), dpi=120
-    )
-    selected_profile = polarization_solution["concentration_ratio"][selected_time_index]
-    steady_profile = polarization_solution["concentration_ratio"][-1]
-    profile_axis.axhline(
-        1.0, color="#8D949A", lw=1.1, ls=":", label="Initially uniform"
-    )
+    profile_figure, profile_axis = plt.subplots(figsize=(9.2, 5.2), dpi=120)
+    profile_colors = ("#B8CCD0", "#91AEB4", "#6D9098", "#4D737C")
+    profile_styles = ("-", "--", "-.", ":")
+    for slot, (target, index, color, style) in enumerate(
+        zip(profile_time_targets, profile_time_indices, profile_colors, profile_styles)
+    ):
+        highlighted = slot == highlighted_profile_slot
+        profile_axis.plot(
+            polarization_positions,
+            polarization_solution["concentration_ratio"][index],
+            color=color,
+            ls=style,
+            lw=2.8 if highlighted else 1.7,
+            label=rf"$t/\tau^\delta={target:.2f}$"
+            + (" (nearest selection)" if highlighted else ""),
+            zorder=4 if highlighted else 2,
+        )
     profile_axis.plot(
-        polarization_positions, selected_profile,
-        color="#4C7C86", lw=1.7, label=rf"Selected time, $t/\tau^\delta={selected_time_ratio:.2g}$",
+        polarization_positions,
+        polarization_solution["concentration_ratio"][-1],
+        color="#A56F55",
+        lw=2.0,
+        label="Steady state",
+        zorder=3,
     )
-    profile_axis.plot(
-        polarization_positions, steady_profile,
-        color="#B8734A", lw=1.3, ls="--", label="Blocked steady state",
-    )
+    profile_axis.axvline(0.0, color="#7F878C", lw=1.0, alpha=0.55)
+    profile_axis.axvline(1.0, color="#7F878C", lw=1.0, alpha=0.55)
     profile_axis.set(
-        xlabel=r"Position, $x/L$",
+        xlabel=r"Position, $x$",
         ylabel=r"Stoichiometry, $c/c_0$",
-        title="Blocking builds a concentration gradient",
+        title="The concentration gradient grows toward the blocked steady state",
+        xticks=[0.0, 0.5, 1.0],
+        xticklabels=[r"$0$", r"$L/2$", r"$L$"],
+    )
+    profile_axis.text(
+        0.0, -0.19, "Ion-blocking electrode", transform=profile_axis.get_xaxis_transform(),
+        ha="left", va="top", color="#526173", clip_on=False,
+    )
+    profile_axis.text(
+        1.0, -0.19, "Ion-blocking electrode", transform=profile_axis.get_xaxis_transform(),
+        ha="right", va="top", color="#526173", clip_on=False,
     )
     profile_axis.grid(alpha=0.22)
-    profile_axis.legend(frameon=False)
+    profile_axis.legend(frameon=False, ncols=2, loc="best")
+    profile_figure.subplots_adjust(bottom=0.25)
+    plt.close(profile_figure)
 
     physical_time_s = polarization_time_ratios * selected_parameters["tau_delta_s"]
     plotted_time_s = np.maximum(physical_time_s, physical_time_s[1] * 0.2)
-    _selected_plot_time_s = plotted_time_s[selected_time_index]
+    selected_plot_time_s = plotted_time_s[selected_time_index]
+    response_figure, response_axis = plt.subplots(figsize=(9.2, 4.5), dpi=120)
     if selected_drive_mode == "current":
         response = 1.0e3 * polarization_solution["voltage_v"]
-        selected_response = response[selected_time_index]
-        response_axis.semilogx(
-            plotted_time_s, response, color="#4C7C86", lw=1.7
-        )
-        response_axis.scatter(
-            [_selected_plot_time_s], [selected_response], s=65,
-            color="#C49345", edgecolor="#40464D", zorder=4,
-        )
+        response_axis.semilogx(plotted_time_s, response, color="#4C7C86", lw=1.9)
         response_axis.set_ylabel(r"Measured voltage, $U$ (mV)")
         response_axis.set_title("Voltage rises at fixed current")
         response_sentence = (
-            "The current is fixed. As the chemical-potential difference grows, "
-            "the measured voltage rises above its initial ohmic value."
+            "The imposed current is fixed. As the composition gradient grows, "
+            "chemical polarization adds to the measured voltage."
         )
     else:
         response = 0.1 * polarization_solution["current_density_a_per_m2"]
-        selected_response = response[selected_time_index]
-        response_axis.semilogx(
-            plotted_time_s, response, color="#B8734A", lw=1.7
-        )
-        response_axis.scatter(
-            [_selected_plot_time_s], [selected_response], s=65,
-            color="#C49345", edgecolor="#40464D", zorder=4,
-        )
+        response_axis.semilogx(plotted_time_s, response, color="#B8734A", lw=1.9)
         response_axis.set_ylabel(r"Current density, $j$ (mA cm$^{-2}$)")
         response_axis.set_title("Current relaxes at fixed voltage")
         response_sentence = (
-            "The voltage is fixed. Chemical polarization takes over part of "
-            "the drive, so the current relaxes."
+            "The imposed voltage is fixed. Chemical polarization takes over "
+            "part of the drive, so the current relaxes."
         )
+    response_axis.scatter(
+        [selected_plot_time_s], [response[selected_time_index]], s=65,
+        color="#C49345", edgecolor="#40464D", zorder=4,
+    )
     response_axis.set_xlabel("Time (s)")
     response_axis.grid(alpha=0.22)
-    core_figure.tight_layout()
-    plt.close(core_figure)
+    response_figure.tight_layout()
+    plt.close(response_figure)
 
     mo.vstack([
         mo.md(r"""
-        ## 2. Watch the stoichiometry and voltage evolve
+        ## 2. Watch the stoichiometry and electrical response evolve
 
         The total amount of ion is unchanged: depletion at one side equals
-        accumulation at the other. What changes is the spatial distribution.
+        accumulation at the other. The selected time control highlights the
+        nearest representative profile; it does not add another curve.
         """),
-        core_figure,
+        profile_figure,
+        mo.md(
+            "Every transient profile has the same imposed ion-blocking boundary "
+            "condition. Their growing separation shows the approach to steady state."
+        ),
+        response_figure,
         mo.md(response_sentence),
     ])
-    return (core_figure,)
+    return profile_figure, response_figure
 
 @app.cell
 def _(
@@ -1081,6 +1114,7 @@ def _(
     GAS_CONSTANT_J_PER_MOL_K,
     mo,
     polarization_solution,
+    profile_time_indices,
     selected_drive_mode,
     selected_parameters,
     selected_time_index,
@@ -1244,6 +1278,23 @@ def _(
         )
         / blocking_flux_scale
     )
+    displayed_boundary_residual = float(max(
+        abs(
+            selected_parameters["ionic_fraction"]
+            * current_history[index]
+            / FARADAY_C_PER_MOL
+            - selected_parameters["chemical_diffusivity_m2_per_s"]
+            * selected_parameters["concentration_mol_per_m3"]
+            / selected_parameters["length_m"]
+            * polarization_solution["beta"][index]
+        )
+        / max(
+            abs(selected_parameters["ionic_fraction"] * current_history[index]
+                / FARADAY_C_PER_MOL),
+            1.0e-300,
+        )
+        for index in profile_time_indices
+    ))
 
     potential_decomposition_residual = float(
         max(
@@ -1317,6 +1368,8 @@ def _(
         "initial_ohmic_pass": initial_ohmic_residual < 2.0e-13,
         "blocking_flux_residual": blocking_flux_residual,
         "blocking_flux_pass": blocking_flux_residual < 2.0e-13,
+        "displayed_boundary_residual": displayed_boundary_residual,
+        "displayed_boundary_pass": displayed_boundary_residual < 2.0e-13,
         "diffusivity_residual": diffusivity_residual,
         "diffusivity_pass": diffusivity_residual < 2.0e-14,
         "potential_decomposition_residual": potential_decomposition_residual,
@@ -1348,7 +1401,7 @@ def _(mo, module05_validation):
         |---:|---|---|
         | {_check_status(module05_validation['solver_pass'] and module05_validation['initial_uniform_pass'] and module05_validation['mass_pass'] and module05_validation['positivity_pass'])} | the sample begins uniform, remains positive, and conserves its total ion content | blocking electrodes redistribute stoichiometry without adding or removing ions |
         | {_check_status(module05_validation['drive_pass'])} | the selected current or voltage is held constant | the two experimental controls remain distinct |
-        | {_check_status(module05_validation['initial_ohmic_pass'] and module05_validation['blocking_flux_pass'])} | the initial response uses \(\sigma_i+\sigma_e\) and ionic flux vanishes at both electrodes | the bulk and contact conditions match the stated experiment |
+        | {_check_status(module05_validation['initial_ohmic_pass'] and module05_validation['blocking_flux_pass'] and module05_validation['displayed_boundary_pass'])} | the initial response uses \(\sigma_i+\sigma_e\), and every displayed profile obeys zero ionic flux at both electrodes | the bulk and contact conditions match the stated experiment |
         | {_check_status(module05_validation['diffusivity_pass'])} | \(D^\delta=2D_iD_e/(D_i+D_e)\) | ion and electron motion combine into one chemical diffusivity |
         | {_check_status(module05_validation['potential_decomposition_pass'] and module05_validation['reconstructed_voltage_pass'])} | chemical and electrical contributions reproduce both electrochemical potentials and the terminal voltage | all plotted potentials belong to the same physical state |
         | {_check_status(module05_validation['steady_limit_pass'] and module05_validation['final_ion_flatness_pass'])} | the late profile reaches the expected steady state and \(\widetilde\mu_i\) becomes flat | the long-time limit agrees with ion blocking |

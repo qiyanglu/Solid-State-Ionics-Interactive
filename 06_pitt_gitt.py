@@ -101,7 +101,7 @@ def _(mo):
             "Hydrogen host: H ⇌ H⁺ + e⁻": "H",
         },
         value="Lithium host: Li ⇌ Li⁺ + e⁻",
-        label="neutral composition label",
+        label="Neutral species",
     )
     species_label_06
     return (species_label_06,)
@@ -113,7 +113,7 @@ def _(mo, np, plt, species_label_06):
     _reduced_potential = -np.log(_delta / (1.0 - _delta))
     _selected = np.array([0.18, 0.36, 0.58, 0.78])
     _selected_potential = -np.log(_selected / (1.0 - _selected))
-    _figure, _axis = plt.subplots(figsize=(11.8, 4.1), constrained_layout=True)
+    _figure, _axis = plt.subplots(figsize=(7.5, 4.6), constrained_layout=True)
     _axis.plot(_delta, _reduced_potential, color="#4F7881", lw=1.9)
     _axis.scatter(
         _selected, _selected_potential, marker="D", s=65, color="#B8734A",
@@ -128,7 +128,7 @@ def _(mo, np, plt, species_label_06):
     _axis.set(
         xlabel=rf"neutral {species_label_06.value} stoichiometry, $\delta$",
         ylabel=r"Illustrative $F(E-E^0)/(RT)$",
-        title="Coulometry locates composition; long-rest potential locates equilibrium",
+        title="Illustrative equilibrium titration curve",
     )
     _axis.grid(alpha=0.22)
     _axis.legend(loc="best")
@@ -233,7 +233,7 @@ def _(np, solve_ivp):
             "tau_delta_s": tau_delta_s,
         }
 
-    def _transport_operator(positions, params):
+    def transport_operator_06(positions, params):
         """Conservative diffusion operator with selective-contact face fluxes."""
         xi = np.asarray(positions, dtype=float)
         if xi.ndim != 1 or xi.size < 9:
@@ -323,7 +323,7 @@ def _(np, solve_ivp):
         pulse_times = np.asarray(reduced_pulse_times, dtype=float)
         rest_times = np.asarray(reduced_rest_times, dtype=float)
         xi = np.asarray(positions, dtype=float)
-        operator, contact_forcing, quadrature_weights = _transport_operator(xi, params)
+        operator, contact_forcing, quadrature_weights = transport_operator_06(xi, params)
         initial_profile = np.ones(xi.size, dtype=float)
         t_i = params["ionic_fraction"]
         t_e = params["electronic_fraction"]
@@ -402,7 +402,7 @@ def _(np, solve_ivp):
         pulse_times = np.asarray(reduced_pulse_times, dtype=float)
         rest_times = np.asarray(reduced_rest_times, dtype=float)
         xi = np.asarray(positions, dtype=float)
-        operator, contact_forcing, _ = _transport_operator(xi, params)
+        operator, contact_forcing, _ = transport_operator_06(xi, params)
         initial_profile = np.ones(xi.size, dtype=float)
         pulse_profiles = _linear_profile_evolution(
             initial_profile, pulse_times, operator, contact_forcing * q_step
@@ -488,6 +488,7 @@ def _(np, solve_ivp):
         potential_decomposition,
         simulate_gitt,
         simulate_pitt,
+        transport_operator_06,
     )
 
 
@@ -553,56 +554,45 @@ def _(np):
 
 @app.cell
 def _(mo, plt, species_label_06):
-    _fig, _ax = plt.subplots(figsize=(12.0, 2.7), constrained_layout=True)
-    _ax.set_xlim(-0.12, 1.12)
+    _fig, _ax = plt.subplots(figsize=(11.8, 3.0), constrained_layout=True)
+    _ax.set_xlim(-0.24, 1.18)
     _ax.set_ylim(-0.42, 0.48)
-    _ax.axvspan(-0.1, 0.0, color="#697386", alpha=0.95)
+    _ax.axvspan(-0.22, 0.0, color="#DCE5ED", alpha=1.0)
     _ax.axvspan(0.0, 1.0, color="#DDEBDD", alpha=0.95)
-    _ax.axvspan(1.0, 1.1, color="#B8DDE3", alpha=0.95)
+    _ax.axvspan(1.0, 1.16, color="#B8DDE3", alpha=0.95)
     _ax.text(
-        -0.05, 0.12, "ion\nelectrolyte", ha="center", va="center", color="white", weight="bold"
+        -0.11, 0.12, "Ion electrolyte", ha="center", va="center",
+        color="#263746", weight="bold",
     )
     _ax.text(
-        0.5,
-        0.15,
+        0.5, 0.15,
         rf"MIEC:  ${species_label_06.value} \rightleftharpoons {species_label_06.value}^+ + e^-$",
-        ha="center",
-        va="center",
-        fontsize=15,
-        weight="bold",
+        ha="center", va="center", fontsize=15, weight="bold",
     )
     _ax.text(
-        1.05, 0.12, "current\ncollector", ha="center", va="center", color="#405E66", weight="bold"
+        1.08, 0.12, "Current\ncollector", ha="center", va="center",
+        color="#263746", weight="bold",
     )
     _ax.annotate(
-        rf"${species_label_06.value}^+$ passes",
-        xy=(-0.02, -0.12),
-        xytext=(0.20, -0.12),
-        arrowprops={"arrowstyle": "->", "lw": 2},
-        ha="center",
+        rf"${species_label_06.value}^+$ passes", xy=(-0.02, -0.12), xytext=(0.22, -0.12),
+        arrowprops={"arrowstyle": "->", "lw": 2}, ha="center",
     )
     _ax.annotate(
-        "$e^-$ passes",
-        xy=(1.02, -0.12),
-        xytext=(0.80, -0.12),
-        arrowprops={"arrowstyle": "->", "lw": 2},
-        ha="center",
+        "$e^-$ passes", xy=(1.02, -0.12), xytext=(0.78, -0.12),
+        arrowprops={"arrowstyle": "->", "lw": 2}, ha="center",
     )
     _ax.text(0.02, -0.31, "$J_e(0,t)=0$", ha="left", color="#A65E5E", weight="bold")
     _ax.text(0.98, -0.31, "$J_i(L,t)=0$", ha="right", color="#A65E5E", weight="bold")
     _ax.text(0.0, 0.37, "$x=0$", ha="center")
     _ax.text(1.0, 0.37, "$x=L$", ha="center")
     _ax.axis("off")
-    mo.vstack(
-        [
-            _fig,
-            mo.md(
-                "The contacts are complementary: neither carrier can cross the whole "
-                "cell by itself, yet the neutral pair can be inserted or extracted through "
-                "the external circuit."
-            ),
-        ]
-    )
+    mo.vstack([
+        _fig,
+        mo.md(
+            "The ion electrolyte at $x=0$ passes ions and blocks electrons; "
+            "the current collector at $x=L$ passes electrons and blocks ions."
+        ),
+    ])
     return
 
 
@@ -683,11 +673,16 @@ def _(mo):
         value="PITT",
         label="Experiment",
     )
+    profile_stage_06 = mo.ui.dropdown(
+        options=["Pulse evolution", "OCV relaxation"],
+        value="Pulse evolution",
+        label="Profile stage",
+    )
     temperature_06 = mo.ui.slider(
-        600, 1200, value=800, step=25, label="Temperature T (K)", show_value=True
+        600, 1200, value=800, step=25, label="Temperature (K)", show_value=True
     )
     log_concentration_06 = mo.ui.slider(
-        17.0, 22.0, value=20.0, step=0.25, label="Initial concentration, log10(c0 / cm^-3)", show_value=True
+        17.0, 22.0, value=20.0, step=0.25, label="Initial-concentration exponent", show_value=True
     )
     length_06 = mo.ui.dropdown(
         options={
@@ -700,10 +695,10 @@ def _(mo):
         label="MIEC thickness, L",
     )
     log_diffusivity_06 = mo.ui.slider(
-        -12.0, -6.0, value=-8.0, step=0.25, label="Chemical diffusivity, log10(D-delta / cm^2 s^-1)", show_value=True
+        -12.0, -6.0, value=-8.0, step=0.25, label="Chemical-diffusivity exponent", show_value=True
     )
     log_ratio_06 = mo.ui.slider(
-        -1.0, 4.0, value=2.0, step=0.25, label="Conductivity ratio, log10(sigma_e / sigma_i)", show_value=True
+        -1.0, 4.0, value=2.0, step=0.25, label="Conductivity-ratio exponent", show_value=True
     )
     pitt_voltage_06 = mo.ui.slider(
         5.0, 35.0, value=15.0, step=1.0, label="PITT potential step (mV, extraction)", show_value=True
@@ -712,20 +707,10 @@ def _(mo):
         0.05, 0.60, value=0.30, step=0.025, label="GITT current-step strength", show_value=True
     )
     pulse_duration_06 = mo.ui.slider(
-        0.20, 3.0, value=1.20, step=0.10, label="Pulse duration / tau-delta", show_value=True
+        0.20, 3.0, value=1.20, step=0.10, label="Pulse duration in reduced time", show_value=True
     )
     rest_duration_06 = mo.ui.slider(
-        0.25, 5.0, value=2.50, step=0.25, label="OCV rest duration / tau-delta", show_value=True
-    )
-    potential_case_06 = mo.ui.dropdown(
-        options=[
-            "PITT: voltage step",
-            "PITT: OCV relaxation",
-            "GITT: current step",
-            "GITT: OCV relaxation",
-        ],
-        value="GITT: current step",
-        label="Advanced profile case",
+        0.25, 5.0, value=2.50, step=0.25, label="OCV-rest duration in reduced time", show_value=True
     )
     potential_time_06 = mo.ui.slider(
         0, 100, value=65, step=5, label="Stage progress (%)", show_value=True
@@ -738,8 +723,8 @@ def _(mo):
         log_diffusivity_06,
         log_ratio_06,
         pitt_voltage_06,
-        potential_case_06,
         potential_time_06,
+        profile_stage_06,
         pulse_duration_06,
         rest_duration_06,
         temperature_06,
@@ -756,8 +741,8 @@ def _(
     log_ratio_06,
     mo,
     pitt_voltage_06,
-    potential_case_06,
     potential_time_06,
+    profile_stage_06,
     pulse_duration_06,
     rest_duration_06,
     temperature_06,
@@ -766,12 +751,7 @@ def _(
         pitt_voltage_06 if experiment_mode_06.value == "PITT" else gitt_current_06
     )
     core_controls_06 = mo.hstack(
-        [
-            experiment_mode_06,
-            pulse_size_control,
-            pulse_duration_06,
-            log_diffusivity_06,
-        ],
+        [experiment_mode_06, profile_stage_06, pulse_size_control],
         justify="start",
         align="center",
         wrap=True,
@@ -783,11 +763,11 @@ def _(
             justify="start", align="center", wrap=True, gap=1.2,
         ),
         mo.hstack(
-            [log_ratio_06, rest_duration_06],
+            [log_ratio_06, pulse_duration_06, rest_duration_06],
             justify="start", align="center", wrap=True, gap=1.2,
         ),
         mo.hstack(
-            [potential_case_06, potential_time_06],
+            [log_diffusivity_06, potential_time_06],
             justify="start", align="center", wrap=True, gap=1.2,
         ),
     ])
@@ -956,80 +936,119 @@ def _(
     pitt_result_06,
     plt,
     positions_06,
+    profile_stage_06,
     pulse_times_06,
     rest_times_06,
     voltage_scale_v_06,
 ):
-    selected_result = (
-        pitt_result_06 if experiment_mode_06.value == "PITT" else gitt_result_06
-    )
+    _selected_result = pitt_result_06 if experiment_mode_06.value == "PITT" else gitt_result_06
     tau_s = parameters_06["tau_delta_s"]
-    x_um = positions_06 * parameters_06["length_m"] * 1.0e6
     pulse_seconds = pulse_times_06 * tau_s
     rest_seconds = (pulse_times_06[-1] + rest_times_06) * tau_s
 
-    profile_figure, profile_axis = plt.subplots(figsize=(11.8, 4.2), dpi=120)
-    profile_axis.axhline(
-        1.0, color="#8D949A", lw=1.1, ls=":", label="Initial state"
-    )
-    profile_axis.plot(
-        x_um, selected_result["pulse_profiles"][-1][::-1],
-        color="#4C7C86", lw=1.7, label="At current interruption",
-    )
-    profile_axis.plot(
-        x_um, selected_result["rest_profiles"][-1][::-1],
-        color="#B8734A", lw=1.4, ls="--", label="After OCV rest",
-    )
+    profile_figure, profile_axis = plt.subplots(figsize=(8.2, 4.6), dpi=120)
+    if profile_stage_06.value == "Pulse evolution":
+        target_times = pulse_times_06[-1] * np.array([0.02, 0.10, 0.45, 1.00])
+        profile_indices = [
+            int(np.argmin(np.abs(pulse_times_06 - target))) for target in target_times
+        ]
+        colors = ("#B9CDD1", "#8EADB3", "#698E96", "#4C737C")
+        styles = ("-", "--", "-.", ":")
+        for index, color, style in zip(profile_indices, colors, styles):
+            profile_axis.plot(
+                positions_06,
+                _selected_result["pulse_profiles"][index],
+                color=color,
+                ls=style,
+                lw=1.9,
+                label=rf"$t/\tau^\delta={pulse_times_06[index]:.2g}$",
+            )
+        profile_title = f"{experiment_mode_06.value}: profile development during the pulse"
+        if experiment_mode_06.value == "PITT":
+            profile_explanation = (
+                "PITT holds the terminal voltage. The current and the two "
+                "selective-contact fluxes adjust as the profile develops."
+            )
+        else:
+            profile_explanation = (
+                "GITT holds the terminal current. The selective contacts impose "
+                "different ion and electron face fluxes; they do not require a "
+                "shared surface concentration or a common slope."
+            )
+    else:
+        rest_targets = np.array([0.0, 0.18, 1.0]) * rest_times_06[-1]
+        profile_indices = [
+            int(np.argmin(np.abs(rest_times_06 - target))) for target in rest_targets
+        ]
+        colors = ("#4C737C", "#7C6A91", "#A56F55")
+        styles = ("--", "-.", ":")
+        labels = ("End of pulse", "Intermediate rest", "Long rest")
+        for index, color, style, label in zip(profile_indices, colors, styles, labels):
+            profile_axis.plot(
+                positions_06,
+                _selected_result["rest_profiles"][index],
+                color=color,
+                ls=style,
+                lw=1.9,
+                label=label,
+            )
+        profile_title = f"{experiment_mode_06.value}: OCV relaxation remembers the pulse"
+        profile_explanation = (
+            "At OCV the terminal current is zero and both external face fluxes "
+            "vanish. The inherited profile flattens while its spatial mean remains constant."
+        )
+    profile_axis.axvline(0.0, color="#7F878C", lw=1.0, alpha=0.5)
+    profile_axis.axvline(1.0, color="#7F878C", lw=1.0, alpha=0.5)
     profile_axis.set(
-        xlabel=r"Position, $x$ (micrometers)",
+        xlabel=r"Position, $x$",
         ylabel=r"Composition, $c/c_0$",
-        title=f"{experiment_mode_06.value}: the pulse creates a profile",
+        title=profile_title,
+        xticks=[0.0, 0.5, 1.0],
+        xticklabels=[r"$0$", r"$L/2$", r"$L$"],
+    )
+    profile_axis.text(
+        0.0, -0.18, "Ion electrolyte", transform=profile_axis.get_xaxis_transform(),
+        ha="left", va="top", color="#526173", clip_on=False,
+    )
+    profile_axis.text(
+        1.0, -0.18, "Current collector", transform=profile_axis.get_xaxis_transform(),
+        ha="right", va="top", color="#526173", clip_on=False,
     )
     profile_axis.grid(alpha=0.22)
-    profile_axis.legend(frameon=False)
-    profile_figure.tight_layout()
+    profile_axis.legend(frameon=False, ncols=2, loc="best")
+    profile_figure.subplots_adjust(bottom=0.24)
     plt.close(profile_figure)
 
-    response_figure, response_axis = plt.subplots(figsize=(11.8, 4.2), dpi=120)
+    response_figure, response_axis = plt.subplots(figsize=(8.2, 4.5), dpi=120)
     if experiment_mode_06.value == "PITT":
-        pulse_response = (
-            0.1 * current_scale_a_per_m2_06 * selected_result["pulse_q"]
-        )
-        rest_response = np.zeros_like(rest_seconds)
-        response_axis.plot(
-            pulse_seconds, pulse_response, color="#4C7C86", lw=1.7,
-            label="Measured current",
-        )
-        response_axis.plot(
-            rest_seconds, rest_response, color="#4C7C86", lw=1.4,
-        )
+        pulse_response = 0.1 * current_scale_a_per_m2_06 * _selected_result["pulse_q"]
+        response_axis.plot(pulse_seconds, pulse_response, color="#4C7C86", lw=1.8)
+        response_axis.plot(rest_seconds, np.zeros_like(rest_seconds), color="#4C7C86", lw=1.4)
         response_axis.set_ylabel(r"Current density, $j$ (mA cm$^{-2}$)")
         response_axis.set_title("PITT current decays, then is interrupted")
-        explanation = (
-            "The imposed potential is held during the pulse, so the measured "
-            "current decays. At interruption the terminal current is exactly zero."
+        response_explanation = (
+            "The voltage is held during the pulse, so the measured current decays. "
+            "At interruption the terminal current becomes exactly zero."
         )
     else:
-        pulse_response = 1.0e3 * voltage_scale_v_06 * selected_result["pulse_u"]
-        rest_response = 1.0e3 * voltage_scale_v_06 * selected_result["rest_u"]
+        pulse_response = 1.0e3 * voltage_scale_v_06 * _selected_result["pulse_u"]
+        rest_response = 1.0e3 * voltage_scale_v_06 * _selected_result["rest_u"]
         response_axis.plot(
-            pulse_seconds, pulse_response, color="#4C7C86", lw=1.7,
-            label="During current pulse",
+            pulse_seconds, pulse_response, color="#4C7C86", lw=1.8,
+            label="Current pulse",
         )
         response_axis.plot(
-            rest_seconds, rest_response, color="#B8734A", lw=1.5, ls="--",
+            rest_seconds, rest_response, color="#A56F55", lw=1.6, ls="--",
             label="OCV relaxation",
         )
         response_axis.set_ylabel(r"Electrode-potential change, $\Delta E$ (mV)")
         response_axis.set_title("GITT potential evolves and relaxes")
         response_axis.legend(frameon=False)
-        explanation = (
+        response_explanation = (
             "The current is fixed during the pulse. After interruption, the "
             "potential relaxes toward the equilibrium value of the new mean composition."
         )
-    response_axis.axvline(
-        pulse_seconds[-1], color="#6D747A", lw=1.2, ls=":",
-    )
+    response_axis.axvline(pulse_seconds[-1], color="#6D747A", lw=1.2, ls=":")
     response_axis.set_xlabel("Time (s)")
     response_axis.grid(alpha=0.22)
     response_figure.tight_layout()
@@ -1038,12 +1057,9 @@ def _(
     mo.vstack([
         mo.md(f"### {experiment_mode_06.value}: concentration first, response second"),
         profile_figure,
-        mo.md(
-            "The solid line is the inherited end-of-pulse profile; the dashed "
-            "line shows how OCV rest flattens it while preserving its mean."
-        ),
+        mo.md(profile_explanation),
         response_figure,
-        mo.md(explanation),
+        mo.md(response_explanation),
     ])
     return profile_figure, response_figure
 
@@ -1069,44 +1085,43 @@ def _(mo):
 
 @app.cell
 def _(
+    experiment_mode_06,
     gitt_result_06,
     np,
     pitt_result_06,
-    potential_case_06,
     potential_decomposition,
     potential_time_06,
     positions_06,
+    profile_stage_06,
     pulse_times_06,
     rest_times_06,
     parameters_06,
 ):
-    _progress = potential_time_06.value / 100.0
-    if "PITT" in potential_case_06.value:
-        _selected_result = pitt_result_06
+    progress = potential_time_06.value / 100.0
+    _selected_result = pitt_result_06 if experiment_mode_06.value == "PITT" else gitt_result_06
+    if profile_stage_06.value == "OCV relaxation":
+        selected_times = rest_times_06
+        selected_profiles = _selected_result["rest_profiles"]
+        selected_q = _selected_result["rest_q"]
+        selected_stage_06 = "OCV relaxation"
     else:
-        _selected_result = gitt_result_06
-    if "OCV" in potential_case_06.value:
-        _selected_times = rest_times_06
-        _selected_profiles = _selected_result["rest_profiles"]
-        _selected_q = _selected_result["rest_q"]
-        _stage_name = "OCV relaxation"
-    else:
-        _selected_times = pulse_times_06
-        _selected_profiles = _selected_result["pulse_profiles"]
-        _selected_q = _selected_result["pulse_q"]
-        _stage_name = "driven pulse"
-    potential_index_06 = int(np.argmin(np.abs(_selected_times - _progress * _selected_times[-1])))
-    selected_profile_06 = _selected_profiles[potential_index_06]
-    selected_q_06 = float(_selected_q[potential_index_06])
-    selected_reduced_time_06 = float(_selected_times[potential_index_06])
-    selected_stage_06 = _stage_name
+        selected_times = pulse_times_06
+        selected_profiles = _selected_result["pulse_profiles"]
+        selected_q = _selected_result["pulse_q"]
+        selected_stage_06 = "driven pulse"
+    potential_index_06 = int(np.argmin(np.abs(selected_times - progress * selected_times[-1])))
+    selected_profile_06 = selected_profiles[potential_index_06]
+    selected_q_06 = float(selected_q[potential_index_06])
+    selected_reduced_time_06 = float(selected_times[potential_index_06])
     selected_potentials_06 = potential_decomposition(
         selected_profile_06,
         selected_q_06,
         positions_06,
         parameters_06,
     )
+    potential_case_06 = f"{experiment_mode_06.value}: {profile_stage_06.value}"
     return (
+        potential_case_06,
         potential_index_06,
         selected_potentials_06,
         selected_q_06,
@@ -1132,27 +1147,27 @@ def _(
     _energy_scale = GAS_CONSTANT_J_PER_MOL_K * parameters_06["temperature_k"] / 1000.0
     _x_um = positions_06 * parameters_06["length_m"] * 1.0e6
     _fig, _axes = plt.subplots(1, 3, figsize=(15.0, 4.5), constrained_layout=True)
-    _axes[0].plot(_x_um, selected_potentials_06["profile"][::-1], color="#4F7881", lw=1.9)
+    _axes[0].plot(_x_um, selected_potentials_06["profile"], color="#4F7881", lw=1.9)
     _axes[0].set_title("Composition")
     _axes[0].set_ylabel("c / c0")
 
     _axes[1].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["mu_i"][::-1],
+        _energy_scale * selected_potentials_06["mu_i"],
         color="#5F8F8D",
         lw=1.7,
         label="$\\mu_i$",
     )
     _axes[1].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["electrical_i"][::-1],
+        _energy_scale * selected_potentials_06["electrical_i"],
         color="#C49345",
         lw=1.7,
         label="$+F\\phi$",
     )
     _axes[1].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["tilde_mu_i"][::-1],
+        _energy_scale * selected_potentials_06["tilde_mu_i"],
         color="#A65E5E",
         lw=1.9,
         label="$\\widetilde\\mu_i$",
@@ -1163,21 +1178,21 @@ def _(
 
     _axes[2].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["mu_e"][::-1],
+        _energy_scale * selected_potentials_06["mu_e"],
         color="#5F8F8D",
         lw=1.7,
         label="$\\mu_e$",
     )
     _axes[2].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["electrical_e"][::-1],
+        _energy_scale * selected_potentials_06["electrical_e"],
         color="#C49345",
         lw=1.7,
         label="$-F\\phi$",
     )
     _axes[2].plot(
         _x_um,
-        _energy_scale * selected_potentials_06["tilde_mu_e"][::-1],
+        _energy_scale * selected_potentials_06["tilde_mu_e"],
         color="#A65E5E",
         lw=1.9,
         label="$\\widetilde\\mu_e$",
@@ -1186,10 +1201,10 @@ def _(
     _axes[2].set_ylabel("Change (kJ mol$^{-1}$)")
     _axes[2].legend(fontsize=10)
     for _axis in _axes:
-        _axis.set_xlabel("Position x (micrometers)")
+        _axis.set_xlabel(r"Position, $x$ (micrometers)")
         _axis.grid(alpha=0.22)
     _fig.suptitle(
-        f"{potential_case_06.value} | {selected_stage_06}, "
+        f"{potential_case_06} | {selected_stage_06}, "
         f"t/tau = {selected_reduced_time_06:.3f}, "
         f"normalized current = {selected_q_06:.3f}",
         fontsize=14,
@@ -1444,7 +1459,7 @@ def _(mo):
 def _(mo):
     kinetics_profile_time_06 = mo.ui.slider(
         -3.0, 0.0, value=-1.3, step=0.1,
-        label=r"profile time, $\log_{10}\theta$", show_value=True,
+        label="Profile-time exponent", show_value=True,
     )
     return (kinetics_profile_time_06,)
 
@@ -1719,6 +1734,7 @@ def _(
     pitt_reduced_voltage_06,
     pitt_result_06,
     pitt_series_06,
+    transport_operator_06,
     pitt_short_06,
     positions_06,
     potential_decomposition,
@@ -1821,6 +1837,16 @@ def _(
     first_mode_relaxation_error_06 = abs(
         _first_amplitudes[-1] / _first_amplitudes[0] - np.exp(-rest_times_06[-1])
     )
+    _, contact_forcing_check, _ = transport_operator_06(positions_06, parameters_06)
+    grid_spacing = positions_06[1] - positions_06[0]
+    left_ionic_fraction = -0.5 * np.pi**2 * grid_spacing * contact_forcing_check[0]
+    right_electronic_fraction = -0.5 * np.pi**2 * grid_spacing * contact_forcing_check[-1]
+    selective_face_mapping_error_06 = max(
+        abs(left_ionic_fraction - parameters_06["ionic_fraction"]),
+        abs(right_electronic_fraction - parameters_06["electronic_fraction"]),
+        abs(positions_06[0]),
+        abs(positions_06[-1] - 1.0),
+    )
     return (
         composition_balance_error_06,
         diffusivity_identity_error_06,
@@ -1837,6 +1863,7 @@ def _(
         pitt_rest_current_error_06,
         pitt_short_error_06,
         pitt_voltage_control_error_06,
+        selective_face_mapping_error_06,
         voltage_reconstruction_error_06,
     )
 
@@ -1857,6 +1884,7 @@ def _(
     pitt_rest_current_error_06,
     pitt_short_error_06,
     pitt_voltage_control_error_06,
+    selective_face_mapping_error_06,
     voltage_reconstruction_error_06,
 ):
     _checks = [
@@ -1891,6 +1919,12 @@ def _(
             composition_balance_error_06 < 2.0e-4,
             "Integrated current changes the mean during a pulse; the mean is "
             "conserved during rest.",
+        ),
+        (
+            "Displayed coordinate and selective faces",
+            selective_face_mapping_error_06 < 1.0e-14,
+            "$x=0$ is the ion electrolyte and $x=L$ is the current collector; "
+            "the conservative operator applies the ionic and electronic face fluxes there.",
         ),
         (
             "Chemical-diffusivity identity",
