@@ -1,3 +1,12 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "marimo>=0.23.14",
+#     "matplotlib>=3.8",
+#     "numpy>=1.26",
+#     "scipy>=1.12",
+# ]
+# ///
 import marimo
 
 __generated_with = "0.24.0"
@@ -13,12 +22,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 15,
-            "axes.titlesize": 17,
-            "axes.labelsize": 15,
-            "xtick.labelsize": 13,
-            "ytick.labelsize": 13,
-            "legend.fontsize": 12,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 13,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
+            "legend.fontsize": 10.5,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -59,74 +68,56 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
-    mo.md(r"""
-    # Stoichiometry Polarization in a Mixed Conductor
+def _(mo, plt):
+    introduction = mo.md(r"""
+    # Stoichiometry polarization in a mixed conductor
 
-    **Guiding question.** When ions and electrons can both move through a solid,
-    how do ion-blocking electrodes turn an electrical drive into a changing
-    stoichiometry profile?
+    **What happens inside a mixed conductor when both electrodes block ions but
+    still pass electrons?**
 
-    **Learning goals**
+    Immediately after a current is applied, ions and electrons both respond.
+    The ions then meet blocking faces: they cannot leave, so the stoichiometry
+    redistributes until an internal chemical-potential gradient balances their
+    electrical drive.
 
-    1. Use transference numbers to predict which carrier initially carries the
-       current.
-    2. Connect ion-blocking boundary conditions to stoichiometry polarization.
-    3. Separate the measured voltage into chemical, electrical, and
-       electrochemical-potential contributions.
-
-    > **Predict before exploring.** Under constant current, should the voltage
-    > remain at its initial ohmic value, rise, or fall as the concentration
-    > gradient grows? What changes if the current is weak versus strong?
-
-    **Core path.** Start with constant current and the named weak/moderate/strong
-    presets. Constant potential is the complementary extension. The generic
-    $H/H^+/e^-$ pair is motivated by proton-insertion MIECs such as
-    $H_xNdNiO_3$, but it is not a material-specific parameterization. See the
-    shared [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
-
-    We use the one-dimensional geometry and notation of the lecture:
-
-    $$
-    \text{applied }j\text{ or }U
-    \rightarrow J_i,J_e
-    \rightarrow c(x,t)
-    \rightarrow \mu_i,\mu_e,\phi
-    \rightarrow \widetilde\mu_i,\widetilde\mu_e
-    \rightarrow \text{measured response}.
-    $$
-
-    The slab occupies $0\le x\le L$. Both metal electrodes pass electrons but
-    block the mobile ion. The explicit defect reaction is
-
-    $$
-    H \rightleftharpoons H^+ + e^-.
-    $$
-
-    Local electroneutrality in the bulk therefore gives
-    $c_i=c_e=c(x,t)$. The symbol $c_0=c(x,0)$ denotes the initially uniform
-    reference concentration. Because both electrodes block ions, the spatial
-    average of $c(x,t)$ remains exactly $c_0$. Thin interfacial space-charge
-    layers are not resolved; they supply the boundary conditions for this bulk
-    model.
-
-    | symbol | meaning |
-    |---|---|
-    | $c(x,t)$, $c_0$ | local pair concentration and its uniform initial value |
-    | $J_i,J_e$ | molar fluxes of $H^+$ and $e^-$ |
-    | $j=F(J_i-J_e)$ | conventional current density, positive toward $+x$ |
-    | $\sigma_i,\sigma_e$ | ionic and electronic conductivities |
-    | $t_i,t_e$ | conductivity fractions, $t_i+t_e=1$ |
-    | $\mu_i,\mu_e$ | chemical potentials of ion and electron |
-    | $\widetilde\mu_i,\widetilde\mu_e$ | electrochemical potentials |
-    | $U=[\widetilde\mu_e(L)-\widetilde\mu_e(0)]/F$ | lecture voltage convention |
-    | $D^\delta$, $\tau^\delta=L^2/(\pi^2D^\delta)$ | chemical diffusivity and polarization time |
-
-    Inputs use **K, cm⁻³, S/cm, μm, mV, and mA/cm²**. Physics functions
-    convert to SI and molar quantities internally.
+    The model uses one ideal reaction,
+    \(\mathrm{H}\rightleftharpoons\mathrm{H^+}+e^-\), with local bulk
+    electroneutrality \(c_i=c_e=c(x,t)\). The initially uniform concentration is
+    \(c_0\), and both blocking faces keep its spatial average constant.
     """)
-    return
 
+    geometry_figure, geometry_axis = plt.subplots(figsize=(11.8, 3.1), dpi=120)
+    geometry_axis.set_xlim(-0.08, 1.08)
+    geometry_axis.set_ylim(-0.45, 0.65)
+    geometry_axis.fill_between(
+        [0.0, 1.0], [-0.22, -0.22], [0.30, 0.30],
+        color="#DDE7E8", edgecolor="#4C7C86", linewidth=1.5,
+    )
+    geometry_axis.plot([0.0, 0.0], [-0.28, 0.36], color="#6D747A", lw=7)
+    geometry_axis.plot([1.0, 1.0], [-0.28, 0.36], color="#6D747A", lw=7)
+    geometry_axis.annotate(
+        "", xy=(0.82, 0.46), xytext=(0.18, 0.46),
+        arrowprops={"arrowstyle": "->", "lw": 1.6, "color": "#B8734A"},
+    )
+    geometry_axis.text(0.50, 0.51, "Positive conventional current", ha="center")
+    geometry_axis.text(0.50, 0.02, r"MIEC: mobile H$^+$ and e$^-$", ha="center", fontsize=14)
+    geometry_axis.text(0.0, -0.37, "Ion-blocking\nmetal", ha="center", va="top")
+    geometry_axis.text(1.0, -0.37, "Ion-blocking\nmetal", ha="center", va="top")
+    geometry_axis.text(0.50, -0.29, r"$0\leq x\leq L$", ha="center", va="top")
+    geometry_axis.axis("off")
+    geometry_axis.set_title("Ions remain in the slab; electrons cross both contacts")
+    geometry_figure.tight_layout()
+    plt.close(geometry_figure)
+
+    mo.vstack([
+        introduction,
+        geometry_figure,
+        mo.md(r"""
+        Positive current points toward \(+x\). The lecture voltage convention is
+        \(U=[\widetilde{\mu}_e(L)-\widetilde{\mu}_e(0)]/F\).
+        """),
+    ])
+    return (geometry_figure,)
 
 @app.cell
 def _(np, solve_ivp):
@@ -433,7 +424,7 @@ def _(np, solve_ivp):
 
 @app.cell
 def _(mo):
-    mo.md(r"""
+    derivation = mo.md(r"""
     ## 1. Derive the transient model from the two carrier fluxes
 
     For ideal dilute $H^+$ and $e^-$, measured relative to the uniform
@@ -502,6 +493,7 @@ def _(mo):
     potential model. This is why the boundary equation must be re-derived from
     the chosen species rather than copied independently of the defect reaction.
     """)
+    mo.accordion({"Model details - from carrier fluxes to diffusion": derivation})
     return
 
 
@@ -512,7 +504,7 @@ def _(mo):
         stop=1200,
         step=25,
         value=800,
-        label="temperature, T (K)",
+        label="Temperature, T (K)",
         show_value=True,
     )
     log_concentration_control = mo.ui.slider(
@@ -520,7 +512,7 @@ def _(mo):
         stop=21.0,
         step=0.25,
         value=20.0,
-        label="log10 initial concentration, c0 (cm^-3)",
+        label="Initial concentration, log10(c0 / cm^-3)",
         show_value=True,
     )
     log_total_conductivity_control = mo.ui.slider(
@@ -528,16 +520,18 @@ def _(mo):
         stop=0.0,
         step=0.25,
         value=-3.0,
-        label="log10 total conductivity (S/cm)",
+        label="Total conductivity, log10(sigma / S cm^-1)",
         show_value=True,
     )
-    log_conductivity_ratio_control = mo.ui.slider(
-        start=-3.0,
-        stop=3.0,
-        step=0.25,
-        value=2.0,
-        label="log10(sigma_e / sigma_i)",
-        show_value=True,
+    log_conductivity_ratio_control = mo.ui.dropdown(
+        options={
+            "Ions faster (sigma_e / sigma_i = 0.01)": -2.0,
+            "Balanced carriers (ratio = 1)": 0.0,
+            "Electrons faster (ratio = 100)": 2.0,
+            "Electrons much faster (ratio = 1000)": 3.0,
+        },
+        value="Electrons faster (ratio = 100)",
+        label="Conductivity ratio",
     )
     length_control = mo.ui.dropdown(
         options={
@@ -548,7 +542,7 @@ def _(mo):
             "1 millimeter": 1.0e-3,
         },
         value="100 micrometers",
-        label="sample length, L",
+        label="Sample thickness, L",
     )
     drive_mode_control = mo.ui.dropdown(
         options={
@@ -556,7 +550,7 @@ def _(mo):
             "constant potential": "voltage",
         },
         value="constant current",
-        label="electrical drive",
+        label="Electrical drive",
     )
     current_strength_control = mo.ui.dropdown(
         options={
@@ -566,14 +560,14 @@ def _(mo):
             "moderate reverse polarization (beta = -0.80)": -0.80,
         },
         value="moderate forward polarization (beta = 0.80)",
-        label="constant-current classroom preset",
+        label="Polarization strength",
     )
     applied_voltage_control = mo.ui.slider(
         start=-120,
         stop=120,
         step=5,
         value=60,
-        label="constant potential, U (mV)",
+        label="Applied voltage, U (mV)",
         show_value=True,
     )
     log_time_control = mo.ui.slider(
@@ -581,7 +575,7 @@ def _(mo):
         stop=0.7,
         step=0.1,
         value=-0.3,
-        label="log10(t / tau-delta)",
+        label="Time, log10(t / tau-delta)",
         show_value=True,
     )
     return (
@@ -610,77 +604,52 @@ def _(
     mo,
     temperature_control,
 ):
-    polarization_controls = mo.vstack(
+    core_controls = mo.hstack(
         [
-            mo.hstack(
-                [
-                    temperature_control,
-                    log_concentration_control,
-                    length_control,
-                ],
-                justify="start",
-                align="center",
-                wrap=True,
-                gap=1.2,
-            ),
-            mo.hstack(
-                [
-                    log_total_conductivity_control,
-                    log_conductivity_ratio_control,
-                ],
-                justify="start",
-                align="center",
-                wrap=True,
-                gap=1.2,
-            ),
-            mo.hstack(
-                [current_strength_control, log_time_control],
-                justify="start",
-                align="center",
-                wrap=True,
-                gap=1.2,
-            ),
-        ]
+            current_strength_control,
+            log_conductivity_ratio_control,
+            log_time_control,
+        ],
+        justify="start",
+        align="center",
+        wrap=True,
+        gap=1.2,
     )
-    _voltage_extension = mo.vstack(
+    advanced_controls = mo.vstack(
         [
+            mo.hstack(
+                [temperature_control, log_concentration_control, length_control],
+                justify="start", align="center", wrap=True, gap=1.2,
+            ),
+            mo.hstack(
+                [log_total_conductivity_control, drive_mode_control, applied_voltage_control],
+                justify="start", align="center", wrap=True, gap=1.2,
+            ),
             mo.md(r"""
-            Constant potential holds the two-terminal voltage $U$ while the
-            current relaxes. Select that mode here only after understanding the
-            constant-current path.
+            Constant potential is a complementary extension: it holds \(U\)
+            while the current relaxes. The visible core defaults to constant
+            current.
             """),
-            mo.hstack(
-                [drive_mode_control, applied_voltage_control],
-                justify="start",
-                align="center",
-                wrap=True,
-                gap=1.2,
-            ),
         ]
     )
-    mo.vstack(
-        [
-            mo.md(r"""
-            ## 2. Core path: constant-current polarization
-+
-            The conductivity **ratio** controls which carrier is the bottleneck.
-            The total conductivity fixes the initial ohmic scale. For constant
-            current we use
-+
-            $$
-            \beta=\frac{FjL}{2RT\sigma_e}.
-            $$
-+
-            It is also the steady concentration slope in normalized coordinates:
-            $c/c_0=1+\beta(x/L-1/2)$. Keeping
-            $|\beta|<2$ preserves a positive steady concentration.
-            """),
-            polarization_controls,
-            mo.accordion({"Extension — constant-potential operation": _voltage_extension}),
-        ]
-    )
-    return (polarization_controls,)
+    mo.vstack([
+        mo.md(r"""
+        ## 1. Apply a constant current
 
+        The polarization preset fixes the current strength. The conductivity
+        ratio decides which carrier is slower, and the time control lets the
+        concentration profile grow from uniform toward its blocked steady
+        state.
+
+        \[
+        \beta=\frac{FjL}{2RT\sigma_e},\qquad
+        \frac{c(x,\infty)}{c_0}=1+\beta\left(\frac{x}{L}-\frac12\right).
+        \]
+        """),
+        core_controls,
+        mo.accordion({"Explore further - material and voltage controls": advanced_controls}),
+    ])
+    return (core_controls,)
 
 @app.cell
 def _(
@@ -796,7 +765,7 @@ def _(
             "The constant-potential extension is active; the classroom current "
             "preset is retained but is not imposed."
         )
-    mo.md(
+    state_details = mo.md(
         rf"""
         ### What the selected material parameters imply
 
@@ -823,6 +792,7 @@ def _(
         cannot compensate for making the other one vanishingly small.
         """
     )
+    mo.accordion({"Model details - selected material state": state_details})
     return
 
 
@@ -928,10 +898,12 @@ def _(
     )
     ratio_figure.tight_layout()
     plt.close(ratio_figure)
-    mo.vstack([
-        ratio_figure,
-        mo.md("**Figure takeaway.** Transference numbers partition the immediate current, while the slower carrier controls $D^\\delta$ and the polarization time."),
-    ])
+    mo.accordion({
+        "Explore further - conductivity partition and time scale": mo.vstack([
+            ratio_figure,
+            mo.md("Transference numbers partition the immediate current, while the slower carrier controls the chemical diffusivity and polarization time."),
+        ])
+    })
     return (ratio_figure,)
 
 
@@ -948,155 +920,81 @@ def _(
     selected_time_index,
     selected_time_ratio,
 ):
-    transient_figure, transient_axes = plt.subplots(
-        1,
-        3,
-        figsize=(15.0, 5.4),
-        dpi=120,
+    core_figure, (profile_axis, response_axis) = plt.subplots(
+        1, 2, figsize=(13.2, 4.8), dpi=120
     )
-    profile_time_targets = [0.0, 0.03, 0.1, 0.3, 1.0, 3.0]
-    profile_colors = [
-        "#B8C6C8", "#9FB5B8", "#83A4A8",
-        "#6E9297", "#587F86", "#3F6971",
-    ]
-    for target_time, profile_color in zip(profile_time_targets, profile_colors):
-        profile_index = int(
-            np.argmin(np.abs(polarization_time_ratios - target_time))
-        )
-        transient_axes[0].plot(
-            polarization_positions,
-            polarization_solution["concentration_ratio"][profile_index],
-            color=profile_color,
-            lw=2.0,
-            label=rf"$t/\tau^\delta={polarization_time_ratios[profile_index]:.2g}$",
-        )
-    transient_axes[0].plot(
-        polarization_positions,
-        polarization_solution["concentration_ratio"][selected_time_index],
-        color="#B65C4A",
-        lw=2.0,
-        ls="--",
-        label=rf"selected {selected_time_ratio:.2g}",
+    selected_profile = polarization_solution["concentration_ratio"][selected_time_index]
+    steady_profile = polarization_solution["concentration_ratio"][-1]
+    profile_axis.axhline(
+        1.0, color="#8D949A", lw=1.1, ls=":", label="Initially uniform"
     )
-    transient_axes[0].axhline(1.0, color="#858B90", lw=1.0, ls=":")
-    transient_axes[0].set(
+    profile_axis.plot(
+        polarization_positions, selected_profile,
+        color="#4C7C86", lw=1.7, label=rf"Selected time, $t/\tau^\delta={selected_time_ratio:.2g}$",
+    )
+    profile_axis.plot(
+        polarization_positions, steady_profile,
+        color="#B8734A", lw=1.3, ls="--", label="Blocked steady state",
+    )
+    profile_axis.set(
         xlabel=r"Position, $x/L$",
-        ylabel=r"Stoichiometry ratio, $c/c_0$",
-        title="Ions redistribute\nbut cannot leave",
+        ylabel=r"Stoichiometry, $c/c_0$",
+        title="Blocking builds a concentration gradient",
     )
-    transient_axes[0].grid(alpha=0.22)
-    transient_axes[0].legend(
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.20),
-        fontsize=9.5,
-        ncol=2,
-        borderaxespad=0.0,
-    )
+    profile_axis.grid(alpha=0.22)
+    profile_axis.legend(frameon=False)
 
-    positive_time_mask = polarization_time_ratios > 0.0
-    transient_heatmap = transient_axes[1].pcolormesh(
-        polarization_positions,
-        np.log10(polarization_time_ratios[positive_time_mask]),
-        polarization_solution["concentration_ratio"][positive_time_mask],
-        shading="auto",
-        cmap="RdBu_r",
-        alpha=0.78,
-    )
-    transient_axes[1].axhline(
-        np.log10(selected_time_ratio),
-        color="#40464D",
-        lw=1.5,
-        ls="--",
-    )
-    transient_axes[1].set(
-        xlabel=r"Position, $x/L$",
-        ylabel=r"$\log_{10}(t/\tau^\delta)$",
-        title="Stoichiometry polarization\ndevelops in time",
-    )
-    transient_figure.colorbar(
-        transient_heatmap,
-        ax=transient_axes[1],
-        label=r"$c/c_0$",
-    )
+    physical_time_s = polarization_time_ratios * selected_parameters["tau_delta_s"]
+    plotted_time_s = np.maximum(physical_time_s, physical_time_s[1] * 0.2)
+    _selected_plot_time_s = plotted_time_s[selected_time_index]
+    if selected_drive_mode == "current":
+        response = 1.0e3 * polarization_solution["voltage_v"]
+        selected_response = response[selected_time_index]
+        response_axis.semilogx(
+            plotted_time_s, response, color="#4C7C86", lw=1.7
+        )
+        response_axis.scatter(
+            [_selected_plot_time_s], [selected_response], s=65,
+            color="#C49345", edgecolor="#40464D", zorder=4,
+        )
+        response_axis.set_ylabel(r"Measured voltage, $U$ (mV)")
+        response_axis.set_title("Voltage rises at fixed current")
+        response_sentence = (
+            "The current is fixed. As the chemical-potential difference grows, "
+            "the measured voltage rises above its initial ohmic value."
+        )
+    else:
+        response = 0.1 * polarization_solution["current_density_a_per_m2"]
+        selected_response = response[selected_time_index]
+        response_axis.semilogx(
+            plotted_time_s, response, color="#B8734A", lw=1.7
+        )
+        response_axis.scatter(
+            [_selected_plot_time_s], [selected_response], s=65,
+            color="#C49345", edgecolor="#40464D", zorder=4,
+        )
+        response_axis.set_ylabel(r"Current density, $j$ (mA cm$^{-2}$)")
+        response_axis.set_title("Current relaxes at fixed voltage")
+        response_sentence = (
+            "The voltage is fixed. Chemical polarization takes over part of "
+            "the drive, so the current relaxes."
+        )
+    response_axis.set_xlabel("Time (s)")
+    response_axis.grid(alpha=0.22)
+    core_figure.tight_layout()
+    plt.close(core_figure)
 
-    physical_time_s = (
-        polarization_time_ratios * selected_parameters["tau_delta_s"]
-    )
-    response_voltage_mv = 1.0e3 * polarization_solution["voltage_v"]
-    response_current_ma_per_cm2 = (
-        0.1 * polarization_solution["current_density_a_per_m2"]
-    )
-    response_voltage_line = transient_axes[2].semilogx(
-        np.maximum(physical_time_s, physical_time_s[1] * 0.2),
-        response_voltage_mv,
-        color="#4C7C86",
-        lw=1.9,
-        label="voltage U",
-    )[0]
-    response_current_axis = transient_axes[2].twinx()
-    response_current_line = response_current_axis.semilogx(
-        np.maximum(physical_time_s, physical_time_s[1] * 0.2),
-        response_current_ma_per_cm2,
-        color="#B65C4A",
-        lw=1.9,
-        ls="--",
-        label="current density j",
-    )[0]
-    selected_physical_time = max(
-        physical_time_s[selected_time_index],
-        physical_time_s[1] * 0.2,
-    )
-    transient_axes[2].axvline(
-        selected_physical_time,
-        color="#C49345",
-        lw=1.5,
-        ls=":",
-    )
-    transient_axes[2].set(
-        xlabel="Time (s)",
-        ylabel="Voltage U (mV)",
-        title=(
-            "Voltage grows under\nconstant current"
-            if selected_drive_mode == "current"
-            else "Current relaxes under\nconstant potential"
-        ),
-    )
-    response_current_axis.set_ylabel(
-        r"Current density $j$ (mA cm$^{-2}$)",
-        color="#B65C4A",
-    )
-    transient_axes[2].grid(alpha=0.22)
-    transient_axes[2].legend(
-        [response_voltage_line, response_current_line],
-        ["voltage U", "current density j"],
-        frameon=False,
-        loc="best",
-    )
-    transient_figure.tight_layout(rect=(0.0, 0.08, 1.0, 1.0))
-    plt.close(transient_figure)
+    mo.vstack([
+        mo.md(r"""
+        ## 2. Watch the stoichiometry and voltage evolve
 
-    mo.vstack(
-        [
-            mo.md(r"""
-            ## 3. Watch stoichiometry and the electrical response evolve
-
-            At $t=0$, $c=c_0$: both carriers contribute to the ohmic
-            response. The ion-blocking boundaries then force a concentration
-            gradient to grow. The sample keeps the same total number of ions;
-            one side depletes by exactly the amount accumulated at the other.
-
-            Under **constant current**, the increasing chemical-potential
-            difference makes the measured voltage rise. Under **constant
-            potential**, that same chemical polarization takes over part of the
-            imposed voltage, so the current relaxes toward its electronic-only
-            steady value.
-            """),
-            transient_figure,
-            mo.md("**Figure takeaway.** Blocking electrodes conserve the mean composition but build a gradient; that chemical polarization makes $U(t)$ grow at fixed $j$ or makes $j(t)$ relax at fixed $U$."),
-        ]
-    )
-    return (transient_figure,)
-
+        The total amount of ion is unchanged: depletion at one side equals
+        accumulation at the other. What changes is the spatial distribution.
+        """),
+        core_figure,
+        mo.md(response_sentence),
+    ])
+    return (core_figure,)
 
 @app.cell
 def _(
@@ -1107,122 +1005,75 @@ def _(
     selected_potential_profiles,
     selected_time_ratio,
 ):
-    potential_figure, potential_axes = plt.subplots(
-        1,
-        3,
-        figsize=(15.0, 4.8),
-        dpi=120,
+    potential_figure, (ion_axis, electron_axis) = plt.subplots(
+        1, 2, figsize=(13.2, 4.7), dpi=120
     )
-    potential_axes[0].plot(
-        polarization_positions,
-        selected_potential_profiles["concentration_ratio"],
-        color="#B65C4A",
-        lw=2.0,
-    )
-    potential_axes[0].axhline(1.0, color="#858B90", lw=1.0, ls=":")
-    potential_axes[0].set(
-        xlabel=r"Position, $x/L$",
-        ylabel=r"$c/c_0$",
-        title=("Stoichiometry profile\n" + rf"at $t/\tau^\delta={selected_time_ratio:.2g}$"),
-    )
-    potential_axes[0].grid(alpha=0.22)
-
-    potential_axes[1].plot(
+    ion_axis.plot(
         polarization_positions,
         selected_potential_profiles["mu_i_j_per_mol"] / 1.0e3,
-        color="#B65C4A",
-        lw=1.9,
-        label=r"chemical $\mu_i$",
+        color="#B8734A", lw=1.6, label=r"Chemical, $\mu_i$",
     )
-    potential_axes[1].plot(
+    ion_axis.plot(
         polarization_positions,
         selected_potential_profiles["electrical_i_j_per_mol"] / 1.0e3,
-        color="#4C7C86",
-        lw=1.9,
-        label=r"electrical $+F\phi$",
+        color="#4C7C86", lw=1.4, ls="--", label=r"Electrical, $+F\phi$",
     )
-    potential_axes[1].plot(
+    ion_axis.plot(
         polarization_positions,
         selected_potential_profiles["tilde_mu_i_j_per_mol"] / 1.0e3,
-        color="#40464D",
-        lw=1.9,
-        ls="--",
-        label=r"sum $\widetilde\mu_i$",
+        color="#40464D", lw=1.6, ls="-.", label=r"Sum, $\widetilde\mu_i$",
     )
-    potential_axes[1].set(
+    ion_axis.set(
         xlabel=r"Position, $x/L$",
-        ylabel="Molar energy relative to reference (kJ/mol)",
+        ylabel="Molar energy (kJ mol$^{-1}$)",
         title="Ion potential balance",
     )
-    potential_axes[1].grid(alpha=0.22)
-    potential_axes[1].legend(frameon=False, fontsize=10)
+    ion_axis.grid(alpha=0.22)
+    ion_axis.legend(frameon=False)
 
-    potential_axes[2].plot(
+    electron_axis.plot(
         polarization_positions,
         selected_potential_profiles["mu_e_j_per_mol"] / 1.0e3,
-        color="#B65C4A",
-        lw=1.9,
-        label=r"chemical $\mu_e$",
+        color="#B8734A", lw=1.6, label=r"Chemical, $\mu_e$",
     )
-    potential_axes[2].plot(
+    electron_axis.plot(
         polarization_positions,
         selected_potential_profiles["electrical_e_j_per_mol"] / 1.0e3,
-        color="#4C7C86",
-        lw=1.9,
-        label=r"electrical $-F\phi$",
+        color="#4C7C86", lw=1.4, ls="--", label=r"Electrical, $-F\phi$",
     )
-    potential_axes[2].plot(
+    electron_axis.plot(
         polarization_positions,
         selected_potential_profiles["tilde_mu_e_j_per_mol"] / 1.0e3,
-        color="#40464D",
-        lw=1.9,
-        ls="--",
-        label=r"sum $\widetilde\mu_e$",
+        color="#40464D", lw=1.6, ls="-.", label=r"Sum, $\widetilde\mu_e$",
     )
-    potential_axes[2].set(
+    electron_axis.set(
         xlabel=r"Position, $x/L$",
-        ylabel="Molar energy relative to reference (kJ/mol)",
-        title=r"Electron potential balance gives $U$",
+        ylabel="Molar energy (kJ mol$^{-1}$)",
+        title="Electron potential balance",
     )
-    potential_axes[2].grid(alpha=0.22)
-    potential_axes[2].legend(frameon=False, fontsize=10)
+    electron_axis.grid(alpha=0.22)
+    electron_axis.legend(frameon=False)
     potential_figure.tight_layout()
     plt.close(potential_figure)
 
     reconstructed_voltage_mv = (
         selected_potential_profiles["reconstructed_voltage_v"] * 1.0e3
     )
-    selected_phi_drop_mv = (
-        selected_potential_profiles["electrostatic_potential_v"][-1]
-        - selected_potential_profiles["electrostatic_potential_v"][0]
-    ) * 1.0e3
-    mo.vstack(
-        [
-            mo.md(
-                rf"""
-                ## 4. Separate chemical, electrical, and electrochemical potentials
+    details = mo.vstack([
+        mo.md(rf"""
+        ### Why the measured voltage contains chemical polarization
 
-                The same $c(x,t)$ sets both chemical potentials. The internal
-                electrostatic potential is then reconstructed from the flux and
-                current equations; it is **not** drawn as an assumed straight
-                line. The selected state has
-                $\Delta\phi={selected_phi_drop_mv:.2f}$ mV and
-                $[\widetilde\mu_e(L)-\widetilde\mu_e(0)]/F
-                ={reconstructed_voltage_mv:.2f}$ mV.
-
-                During the transient, $\widetilde\mu_i$ still has a gradient,
-                so ions move inside the sample. At steady state the blocking
-                condition makes $J_i=0$ everywhere and
-                $\widetilde\mu_i$ becomes flat. Electrons continue carrying
-                current because $\widetilde\mu_e$ retains a gradient.
-                """
-            ),
-            potential_figure,
-            mo.md("**Figure takeaway.** Chemical and electrical contributions are not separate experiments: their sum gives each carrier's electrochemical potential and reconstructs the measured terminal voltage."),
-        ]
-    )
+        The selected profile at \(t/\tau^\delta={selected_time_ratio:.2g}\)
+        fixes both carrier chemical potentials. The internal electrostatic
+        potential follows from the same flux equations. Their sums reconstruct
+        the measured voltage,
+        \([\widetilde\mu_e(L)-\widetilde\mu_e(0)]/F
+        ={reconstructed_voltage_mv:.2f}\) mV.
+        """),
+        potential_figure,
+    ])
+    mo.accordion({"Explore further - chemical and electrical potentials": details})
     return (potential_figure,)
-
 
 @app.cell
 def _(
@@ -1263,7 +1114,7 @@ def _(
     )
     _imposed = "current density $j$" if selected_drive_mode == "current" else "two-terminal voltage $U$"
     _measured = "voltage $U(t)$" if selected_drive_mode == "current" else "current density $j(t)$"
-    mo.md(
+    decomposition = mo.md(
         rf"""
         ### Measurement decomposition
 
@@ -1295,6 +1146,7 @@ def _(
         $\mu_{{\rm neutral}}$ is molar (J mol$^{{-1}}$).
         """
     )
+    mo.accordion({"Model details - measurement decomposition": decomposition})
     return
 
 
@@ -1512,7 +1364,7 @@ def _(mo, module05_validation):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## Take-home map
+    ## What to carry forward
 
     1. **One neutral stoichiometry variable couples two carriers.** Local bulk
        electroneutrality gives $c_i=c_e=c$, while the slower carrier limits
