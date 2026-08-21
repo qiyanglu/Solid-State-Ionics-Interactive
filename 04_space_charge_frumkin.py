@@ -1,3 +1,11 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "marimo>=0.23.14",
+#     "matplotlib>=3.8",
+#     "numpy>=1.26",
+# ]
+# ///
 import marimo
 
 __generated_with = "0.24.0"
@@ -12,12 +20,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 15,
-            "axes.titlesize": 17,
-            "axes.labelsize": 15,
-            "xtick.labelsize": 13,
-            "ytick.labelsize": 13,
-            "legend.fontsize": 12,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 13,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
+            "legend.fontsize": 10.5,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -59,7 +67,7 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    mo.md(r"""
+    model_details = mo.md(r"""
     # Space-Charge Layers and the Frumkin Effect
 
     **Guiding question.** How does an interface redistribute charged defects,
@@ -124,6 +132,30 @@ def _(mo):
     \(k_B,e\) for energies per defect and \(R,F\) for the equivalent molar
     kinetic equations.
     """)
+    mo.vstack([
+        mo.md(r"""
+        # Space-charge layers: screening a charged interface
+
+        **How does a charged interface rearrange defects in the nearby solid?**
+
+        A charged core creates an electrostatic potential (phi(x)). Mobile
+        charged defects respond through their electrochemical potential,
+
+        $$\widetilde\mu_i=\mu_i^0+k_BT\ln c_i+z_i e\phi.$$
+
+        At equilibrium this sum is spatially constant. Concentration therefore
+        changes in exactly the way needed to oppose the electrical-energy
+        change. We compare two one-dimensional limits:
+
+        - **Gouy–Chapman:** positive and negative defects are both mobile.
+        - **Mott–Schottky:** majority dopants are frozen and mobile defects are depleted.
+
+        The core reader ends with the profile and screening length. GCS
+        capacitance and the Frumkin reaction-plane correction remain available
+        as advanced continuations.
+        """),
+        mo.accordion({"Model details — geometry, notation, units, and reader map": model_details}),
+    ])
     return
 
 
@@ -479,122 +511,91 @@ def _(np):
 
 @app.cell
 def _(mo):
+    profile_model_control = mo.ui.dropdown(
+        options=["Gouy-Chapman", "Mott-Schottky", "Compare both"],
+        value="Compare both",
+        label="Space-charge model",
+    )
     temperature_control = mo.ui.slider(
-        start=300,
-        stop=1200,
-        step=25,
-        value=800,
-        label="temperature, T (K)",
-        show_value=True,
+        start=300, stop=1200, step=25, value=800,
+        label="Temperature, T (K)", show_value=True,
     )
     log_concentration_control = mo.ui.slider(
-        start=16.0,
-        stop=21.0,
-        step=0.25,
-        value=18.0,
-        label="log10 bulk concentration, c_i,infinity (cm^-3)",
-        show_value=True,
+        start=16.0, stop=21.0, step=0.25, value=18.0,
+        label="Bulk concentration, log10(c-infinity / cm-3)", show_value=True,
     )
     epsilon_r_control = mo.ui.slider(
-        start=5,
-        stop=300,
-        step=5,
-        value=100,
-        label="relative permittivity, epsilon_r",
-        show_value=True,
+        start=5, stop=300, step=5, value=100,
+        label="Relative permittivity, epsilon-r", show_value=True,
     )
     charge_control = mo.ui.slider(
-        start=1,
-        stop=3,
-        step=1,
-        value=1,
-        label="defect charge magnitude, z",
-        show_value=True,
+        start=1, stop=3, step=1, value=1,
+        label="Defect charge magnitude, z", show_value=True,
     )
     surface_potential_control = mo.ui.slider(
-        start=0.01,
-        stop=0.25,
-        step=0.01,
-        value=0.16,
-        label="core potential, phi_0 (V)",
-        show_value=True,
+        start=0.01, stop=0.25, step=0.01, value=0.16,
+        label="Core potential, phi-0 (V)", show_value=True,
     )
     show_linear_control = mo.ui.checkbox(
-        value=True,
+        value=False,
         label="show the low-potential Gouy-Chapman approximation",
     )
-    profile_controls = mo.vstack(
-        [
-            mo.hstack(
-                [temperature_control, log_concentration_control, epsilon_r_control],
-                justify="start",
-                align="center",
-                wrap=True,
-                gap=1.2,
-            ),
-            mo.hstack(
-                [charge_control, surface_potential_control, show_linear_control],
-                justify="start",
-                align="center",
-                wrap=True,
-                gap=1.2,
-            ),
-        ]
+    core_profile_controls = mo.hstack(
+        [profile_model_control, surface_potential_control, log_concentration_control],
+        justify="start", align="center", wrap=True, gap=1.2,
     )
+    advanced_profile_controls = mo.hstack(
+        [temperature_control, epsilon_r_control, charge_control, show_linear_control],
+        justify="start", align="center", wrap=True, gap=1.2,
+    )
+    profile_controls = mo.vstack([
+        core_profile_controls,
+        mo.accordion({"Explore further — temperature, permittivity, charge, and linear guide": advanced_profile_controls}),
+    ])
     return (
         charge_control,
         epsilon_r_control,
         log_concentration_control,
         profile_controls,
+        profile_model_control,
         show_linear_control,
         surface_potential_control,
         temperature_control,
     )
 
-
 @app.cell
 def _(mo, profile_controls):
-    mo.vstack(
-        [
-            mo.md(r"""
-            ## 1. From electrochemical equilibrium to a space-charge profile
+    derivation = mo.md(r"""
+    At equilibrium,
 
-            At equilibrium, every mobile defect has a flat electrochemical
-            potential:
+    $$
+    \frac{c_i(x)}{c_{i,\infty}}
+    =\exp\!\left[-\frac{z_i e\phi(x)}{k_BT}\right],
+    $$
 
-            \[
-            \widetilde\mu_i(x)=\mu_i^0+k_BT\ln c_i(x)+z_i e\phi(x)
-            =\text{constant}.
-            \]
+    and the redistributed charge bends the potential through Poisson's equation,
 
-            Taking the bulk as the reference gives the Boltzmann distribution
+    $$
+    \rho(x)=\sum_i z_i e c_i(x),\qquad
+    \frac{d^2\phi}{dx^2}=-\frac{\rho(x)}{\epsilon_0\epsilon_r}.
+    $$
 
-            \[
-            \frac{c_i(x)}{c_{i,\infty}}
-            =\exp\!\left[-\frac{z_i e\phi(x)}{k_BT}\right].
-            \]
+    Potential changes concentration, while the resulting charge density changes
+    potential. The exact Gouy-Chapman solution and the Mott-Schottky depletion
+    approximation close this loop in different ways.
+    """)
+    mo.vstack([
+        mo.md(r"""
+        ## 1. Compare two ways to screen the same positive core
 
-            The chemical term \(k_BT\ln(c_i/c_{i,\infty})\) and electrical term
-            \(z_i e\phi\) change in opposite directions. Their sum remains
-            constant. For a mobile \(+ze/-ze\) pair,
-
-            \[
-            \rho(x)=ze[c_+(x)-c_-(x)],
-            \qquad
-            \frac{d^2\phi}{dx^2}=-\frac{\rho(x)}{\epsilon_0\epsilon_r}.
-            \]
-
-            This is the self-consistency loop: potential redistributes charged
-            defects, and those defects create the charge density that bends the
-            potential. With a positive core, \(\phi>0\): positive co-ions are
-            depleted, negative counter-ions accumulate, and the surrounding
-            space charge is negative.
-            """),
-            profile_controls,
-        ]
-    )
+        Choose a model, core potential, and bulk concentration. Ask first which
+        species can move. Then look for the consequences in both the potential
+        profile and the defect redistribution.
+        """),
+        profile_controls,
+        mo.accordion({"Model details — Boltzmann distribution and Poisson equation": derivation}),
+    ])
     return
-
 
 @app.cell
 def _(
@@ -677,6 +678,99 @@ def _(
         temperature_k,
     )
 
+@app.cell
+def _(
+    gc_distance_m,
+    gc_profile,
+    mo,
+    ms_distance_m,
+    ms_profile,
+    plt,
+    profile_model_control,
+    selected_debye_length_m,
+    selected_ms_width_m,
+):
+    model = profile_model_control.value
+    show_gc = model in ("Gouy-Chapman", "Compare both")
+    show_ms = model in ("Mott-Schottky", "Compare both")
+    gc_x_nm = gc_distance_m * 1.0e9
+    ms_x_nm = ms_distance_m * 1.0e9
+
+    profile_figure, (potential_axis, concentration_axis) = plt.subplots(
+        1, 2, figsize=(12.8, 4.8), dpi=120, constrained_layout=True
+    )
+    if show_gc:
+        potential_axis.plot(
+            gc_x_nm, gc_profile["potential_v"], color="#4C7C86", lw=1.9,
+            label="Gouy-Chapman",
+        )
+        potential_axis.axvline(
+            selected_debye_length_m * 1.0e9, color="#4C7C86", lw=1.1, ls=":"
+        )
+        concentration_axis.semilogy(
+            gc_x_nm, gc_profile["positive_ratio"], color="#B8734A", lw=1.8,
+            label=r"GC positive co-ion, $c_+/c_{i,\infty}$",
+        )
+        concentration_axis.semilogy(
+            gc_x_nm, gc_profile["negative_ratio"], color="#4C7C86", lw=1.8, ls="--",
+            label=r"GC negative counter-ion, $c_-/c_{i,\infty}$",
+        )
+    if show_ms:
+        potential_axis.plot(
+            ms_x_nm, ms_profile["potential_v"], color="#7C6A91", lw=1.9,
+            ls="--" if show_gc else "-", label="Mott-Schottky",
+        )
+        potential_axis.axvline(
+            selected_ms_width_m * 1.0e9, color="#7C6A91", lw=1.1, ls=":"
+        )
+        concentration_axis.semilogy(
+            ms_x_nm, ms_profile["positive_ratio"], color="#B8734A", lw=1.8,
+            ls="-." if show_gc else "-", label=r"MS mobile positive defect",
+        )
+        concentration_axis.semilogy(
+            ms_x_nm, ms_profile["negative_ratio"], color="#7C6A91", lw=1.7, ls=":",
+            label=r"MS frozen negative dopant",
+        )
+
+    potential_axis.set(
+        xlabel=r"Distance from core, $x$ (nm)",
+        ylabel=r"Electrostatic potential, $\phi$ (V)",
+        title="How far does the core potential extend?",
+    )
+    concentration_axis.axhline(1.0, color="#858B90", lw=1.0, ls=":")
+    concentration_axis.set(
+        xlabel=r"Distance from core, $x$ (nm)",
+        ylabel=r"Concentration / bulk concentration",
+        title="Which charged species rearrange?",
+    )
+    for axis in (potential_axis, concentration_axis):
+        axis.grid(True, which="both", alpha=0.22)
+        axis.legend(frameon=False, loc="best")
+    plt.close(profile_figure)
+
+    explanation = {
+        "Gouy-Chapman": (
+            "Both signs are mobile: positive co-ions leave the core region while "
+            "negative counter-ions accumulate. The dotted marker is the Debye length."
+        ),
+        "Mott-Schottky": (
+            "The negative dopants stay fixed. Depleting the mobile positive defects "
+            "exposes nearly uniform negative charge, producing a parabolic potential."
+        ),
+        "Compare both": (
+            "The same positive core is screened by two different charge inventories. "
+            "GC continuously redistributes both signs; MS exposes frozen dopants over a depletion width."
+        ),
+    }[model]
+    mo.vstack([
+        profile_figure,
+        mo.md(
+            explanation
+            + f" Selected lengths: $\\lambda_D={selected_debye_length_m * 1.0e9:.2f}$ nm "
+            + f"and $\\lambda={selected_ms_width_m * 1.0e9:.2f}$ nm."
+        ),
+    ])
+    return (profile_figure,)
 
 @app.cell
 def _(
@@ -808,16 +902,16 @@ def _(
         profile should be treated as qualitative and atomistic structure matters.
         """
     )
-    mo.vstack([
+    mo.accordion({"Explore further — exact Gouy-Chapman profiles and electrochemical potential": mo.vstack([
         gc_explanation,
         gc_figure,
         mo.md(r"""
-        **Figure takeaway.** Mobile co-ions and counter-ions redistribute
+        Mobile co-ions and counter-ions redistribute
         until their chemical and electrical energy changes cancel everywhere.
         The Debye–Hückel exponential is only the low-potential guide; the plotted
         nonlinear profile is the exact planar Gouy–Chapman result.
         """),
-    ])
+    ])})
     return (gc_figure,)
 
 
@@ -943,15 +1037,15 @@ def _(
 
         """
     )
-    mo.vstack([
+    mo.accordion({"Explore further — Mott-Schottky depletion and electrochemical potential": mo.vstack([
         ms_explanation,
         ms_figure,
         mo.md(r"""
-        **Figure takeaway.** Frozen charge produces a parabolic potential, but
+        Frozen charge produces a parabolic potential, but
         the mobile positive-defect electrochemical potential still remains flat
         at equilibrium.
         """),
-    ])
+    ])})
     return (ms_figure,)
 
 
@@ -1076,7 +1170,7 @@ def _(
     width_figure.tight_layout()
     plt.close(width_figure)
 
-    mo.vstack(
+    mo.accordion({"Explore further — how concentration and permittivity set screening length": mo.vstack(
         [
             mo.md(r"""
             ### Compare the two screening lengths
@@ -1098,12 +1192,12 @@ def _(
             """),
             width_figure,
             mo.md(r"""
-            **Figure takeaway.** Raising the bulk concentration shortens both
+            Raising the bulk concentration shortens both
             screening lengths, while raising permittivity broadens them. Only
             the Mott–Schottky width also grows with the imposed core potential.
             """),
         ]
-    )
+    )})
     return (width_figure,)
 
 
