@@ -106,7 +106,7 @@ def _(mo):
     \rightarrow \rho(x)
     \rightarrow \phi(x)
     \rightarrow Q_{\rm core}
-    \rightarrow C_d
+    \rightarrow C_{\rm sc}
     \rightarrow \text{GCS}
     \rightarrow \text{Frumkin effect}.
     \]
@@ -124,7 +124,7 @@ def _(mo):
     | \(\phi_0\), \(\phi_1\), \(\phi_\infty\) | core, reaction-plane, and bulk potentials |
     | \(Q_{\rm core}\) | core charge **per unit area** |
     | \(\lambda_D\), \(\lambda\) | Gouy–Chapman Debye length and Mott–Schottky depletion width |
-    | \(C_d\), \(C_s\) | diffuse-layer and Stern-layer differential capacitances per area |
+    | \(C_{\rm sc}\), \(C_s\) | diffuse-layer and Stern-layer differential capacitances per area |
 
     The bulk is the reference, \(\phi_\infty=0\), and the main profile sections
     use a positively charged core, as in the slides. Inputs are shown in
@@ -518,53 +518,56 @@ def _(mo):
     )
     temperature_control = mo.ui.slider(
         start=300, stop=1200, step=25, value=800,
-        label="Temperature, T (K)", show_value=True,
+        label="Temperature (K)", show_value=True,
     )
     log_concentration_control = mo.ui.slider(
         start=16.0, stop=21.0, step=0.25, value=18.0,
-        label="Bulk concentration, log10(c-infinity / cm-3)", show_value=True,
+        label="Bulk concentration exponent", show_value=True,
     )
     epsilon_r_control = mo.ui.slider(
         start=5, stop=300, step=5, value=100,
-        label="Relative permittivity, epsilon-r", show_value=True,
+        label="Relative permittivity", show_value=True,
     )
     charge_control = mo.ui.slider(
         start=1, stop=3, step=1, value=1,
-        label="Defect charge magnitude, z", show_value=True,
+        label="Defect charge magnitude", show_value=True,
     )
-    surface_potential_control = mo.ui.slider(
-        start=0.01, stop=0.25, step=0.01, value=0.16,
-        label="Core potential, phi-0 (V)", show_value=True,
+    gc_surface_potential_control = mo.ui.slider(
+        start=-0.50, stop=0.50, step=0.01, value=0.16,
+        label="Gouy-Chapman core potential (V)", show_value=True,
+    )
+    ms_surface_potential_control = mo.ui.slider(
+        start=0.01, stop=0.50, step=0.01, value=0.16,
+        label="Mott-Schottky depletion potential (V)", show_value=True,
     )
     show_linear_control = mo.ui.checkbox(
         value=False,
-        label="show the low-potential Gouy-Chapman approximation",
+        label="Show the low-potential Gouy-Chapman approximation",
     )
-    core_profile_controls = mo.hstack(
-        [profile_model_control, surface_potential_control, log_concentration_control],
-        justify="start", align="center", wrap=True, gap=1.2,
-    )
-    advanced_profile_controls = mo.hstack(
-        [temperature_control, epsilon_r_control, charge_control, show_linear_control],
-        justify="start", align="center", wrap=True, gap=1.2,
-    )
-    profile_controls = mo.vstack([
-        core_profile_controls,
-        mo.accordion({"Explore further — temperature, permittivity, charge, and linear guide": advanced_profile_controls}),
-    ])
     return (
         charge_control,
         epsilon_r_control,
+        gc_surface_potential_control,
         log_concentration_control,
-        profile_controls,
+        ms_surface_potential_control,
         profile_model_control,
         show_linear_control,
-        surface_potential_control,
         temperature_control,
     )
 
+
 @app.cell
-def _(mo, profile_controls):
+def _(
+    charge_control,
+    epsilon_r_control,
+    gc_surface_potential_control,
+    log_concentration_control,
+    mo,
+    ms_surface_potential_control,
+    profile_model_control,
+    show_linear_control,
+    temperature_control,
+):
     derivation = mo.md(r"""
     At equilibrium,
 
@@ -584,6 +587,19 @@ def _(mo, profile_controls):
     potential. The exact Gouy-Chapman solution and the Mott-Schottky depletion
     approximation close this loop in different ways.
     """)
+    active_potential_control = (
+        gc_surface_potential_control
+        if profile_model_control.value == "Gouy-Chapman"
+        else ms_surface_potential_control
+    )
+    core_profile_controls = mo.hstack(
+        [profile_model_control, active_potential_control, log_concentration_control],
+        justify="start", align="center", wrap=True, gap=1.2,
+    )
+    advanced_profile_controls = mo.hstack(
+        [temperature_control, epsilon_r_control, charge_control, show_linear_control],
+        justify="start", align="center", wrap=True, gap=1.2,
+    )
     mo.vstack([
         mo.md(r"""
         ## 1. Compare two ways to screen the same positive core
@@ -592,8 +608,18 @@ def _(mo, profile_controls):
         species can move. Then look for the consequences in both the potential
         profile and the defect redistribution.
         """),
-        profile_controls,
-        mo.accordion({"Model details — Boltzmann distribution and Poisson equation": derivation}),
+        core_profile_controls,
+        mo.md(r"""
+        The concentration control sets
+        $c_{i,\infty}=10^x\,\mathrm{cm^{-3}}$. Gouy–Chapman permits either sign
+        of $\phi_0$; the Mott–Schottky depletion approximation uses only the
+        positive branch, $0.01\leq\phi_0\leq0.50\ \mathrm{V}$.
+        """),
+        mo.accordion({
+            "Explore further — temperature, permittivity, charge, and linear guide":
+            advanced_profile_controls,
+            "Model details — Boltzmann distribution and Poisson equation": derivation,
+        }),
     ])
     return
 
@@ -604,20 +630,27 @@ def _(
     charge_control,
     debye_length_m,
     epsilon_r_control,
+    gc_surface_potential_control,
     gouy_chapman_profile,
     log_concentration_control,
     mott_schottky_profile,
     mott_schottky_width_m,
     ms_surface_charge_c_per_m2,
+    ms_surface_potential_control,
     np,
-    surface_potential_control,
+    profile_model_control,
     temperature_control,
 ):
     temperature_k = float(temperature_control.value)
     bulk_concentration_cm3 = 10.0 ** float(log_concentration_control.value)
     epsilon_r = float(epsilon_r_control.value)
     charge_magnitude = float(charge_control.value)
-    surface_potential_v = float(surface_potential_control.value)
+    ms_surface_potential_v = float(ms_surface_potential_control.value)
+    surface_potential_v = (
+        float(gc_surface_potential_control.value)
+        if profile_model_control.value == "Gouy-Chapman"
+        else ms_surface_potential_v
+    )
 
     selected_debye_length_m = debye_length_m(
         temperature_k,
@@ -626,13 +659,13 @@ def _(
         charge_magnitude,
     )
     selected_ms_width_m = mott_schottky_width_m(
-        surface_potential_v,
+        ms_surface_potential_v,
         bulk_concentration_cm3,
         epsilon_r,
         charge_magnitude,
     )
     selected_ms_core_charge_c_per_m2 = ms_surface_charge_c_per_m2(
-        surface_potential_v,
+        ms_surface_potential_v,
         bulk_concentration_cm3,
         epsilon_r,
         charge_magnitude,
@@ -641,7 +674,10 @@ def _(
         charge_magnitude * E_CHARGE_C * surface_potential_v
         / (KB_J_PER_K * temperature_k)
     )
-    ms_surface_mobile_ratio = np.exp(-surface_reduced_potential)
+    ms_surface_mobile_ratio = np.exp(
+        -charge_magnitude * E_CHARGE_C * ms_surface_potential_v
+        / (KB_J_PER_K * temperature_k)
+    )
 
     gc_distance_m = np.linspace(0.0, 6.0 * selected_debye_length_m, 700)
     ms_distance_m = np.linspace(0.0, 1.5 * selected_ms_width_m, 700)
@@ -655,7 +691,7 @@ def _(
     )
     ms_profile = mott_schottky_profile(
         ms_distance_m,
-        surface_potential_v,
+        ms_surface_potential_v,
         temperature_k,
         bulk_concentration_cm3,
         epsilon_r,
@@ -670,6 +706,7 @@ def _(
         ms_distance_m,
         ms_profile,
         ms_surface_mobile_ratio,
+        ms_surface_potential_v,
         selected_debye_length_m,
         selected_ms_core_charge_c_per_m2,
         selected_ms_width_m,
@@ -689,6 +726,7 @@ def _(
     profile_model_control,
     selected_debye_length_m,
     selected_ms_width_m,
+    surface_reduced_potential,
 ):
     model = profile_model_control.value
     show_gc = model in ("Gouy-Chapman", "Compare both")
@@ -762,6 +800,18 @@ def _(
             "GC continuously redistributes both signs; MS exposes frozen dopants over a depletion width."
         ),
     }[model]
+    if show_gc and abs(surface_reduced_potential) > 5.0:
+        validity_note = mo.callout(
+            mo.md(r"""
+            **Model caution.** Here $|ze\phi_0/(k_BT)|>5$. Ideal dilute
+            Poisson–Boltzmann theory can then predict unrealistically large
+            enrichment because it neglects finite site density, non-ideal
+            activities, defect association, and field-dependent permittivity.
+            """),
+            kind="warn",
+        )
+    else:
+        validity_note = mo.md("")
     mo.vstack([
         profile_figure,
         mo.md(
@@ -769,6 +819,7 @@ def _(
             + f" Selected lengths: $\\lambda_D={selected_debye_length_m * 1.0e9:.2f}$ nm "
             + f"and $\\lambda={selected_ms_width_m * 1.0e9:.2f}$ nm."
         ),
+        validity_note,
     ])
     return (profile_figure,)
 
@@ -789,7 +840,7 @@ def _(
         gc_profile["potential_v"],
         color="#4C7C86",
         lw=1.9,
-        label="exact Gouy-Chapman",
+        label="Exact Gouy-Chapman",
     )
     if bool(show_linear_control.value):
         gc_axes[0].plot(
@@ -808,7 +859,7 @@ def _(
         label=r"$\lambda_D$",
     )
     gc_axes[0].set(
-        xlabel="Distance from core, x (nm)",
+        xlabel=r"Distance from core, $x$ (nm)",
         ylabel=r"Electrostatic potential, $\phi$ (V)",
         title="Potential is screened into the bulk",
     )
@@ -831,7 +882,7 @@ def _(
     )
     gc_axes[1].axhline(1.0, color="#858B90", lw=1.0, ls=":")
     gc_axes[1].set(
-        xlabel="Distance from core, x (nm)",
+        xlabel=r"Distance from core, $x$ (nm)",
         ylabel="Concentration / bulk concentration",
         title="Co-ions deplete; counter-ions accumulate",
     )
@@ -861,7 +912,7 @@ def _(
         label=r"sum: $\Delta\widetilde\mu_+$",
     )
     gc_axes[2].set(
-        xlabel="Distance from core, x (nm)",
+        xlabel=r"Distance from core, $x$ (nm)",
         ylabel="Energy change (meV per defect)",
         title="Electrochemical potential stays flat",
     )
@@ -942,7 +993,7 @@ def _(
         label=r"depletion width $\lambda$",
     )
     ms_axes[0].set(
-        xlabel="Distance from core, x (nm)",
+        xlabel=r"Distance from core, $x$ (nm)",
         ylabel=r"Electrostatic potential, $\phi$ (V)",
         title="Frozen charge gives a parabola",
     )
@@ -965,7 +1016,7 @@ def _(
         label=r"frozen $c_-/c_{i,\infty}$",
     )
     ms_axes[1].set(
-        xlabel="Distance from core, x (nm)",
+        xlabel=r"Distance from core, $x$ (nm)",
         ylabel="Concentration / bulk concentration",
         title="Mobile positive defects are depleted",
     )
@@ -995,7 +1046,7 @@ def _(
         label=r"sum: $\Delta\widetilde\mu_+$",
     )
     ms_axes[2].set(
-        xlabel="Distance from core, x (nm)",
+        xlabel=r"Distance from core, $x$ (nm)",
         ylabel="Energy change (meV per defect)",
         title="The same equilibrium cancellation remains",
     )
@@ -1059,7 +1110,7 @@ def _(
     mott_schottky_width_m,
     np,
     plt,
-    surface_potential_v,
+    ms_surface_potential_v,
     temperature_k,
 ):
     concentration_sweep_cm3 = np.logspace(16.0, 21.0, 350)
@@ -1077,7 +1128,7 @@ def _(
     ms_sweep_nm = np.array(
         [
             mott_schottky_width_m(
-                surface_potential_v,
+                ms_surface_potential_v,
                 concentration,
                 epsilon_r,
                 charge_magnitude,
@@ -1100,7 +1151,7 @@ def _(
     ms_epsilon_nm = np.array(
         [
             mott_schottky_width_m(
-                surface_potential_v,
+                ms_surface_potential_v,
                 bulk_concentration_cm3,
                 relative_permittivity,
                 charge_magnitude,
@@ -1208,13 +1259,20 @@ def _(mo):
         stop=80,
         step=1,
         value=20,
-        label="Stern capacitance, C_s (microF/cm^2)",
+        label="Stern capacitance (microfarads per square centimeter)",
         show_value=True,
     )
+    capacitance_view_control = mo.ui.dropdown(
+        options=["Space-charge capacitance only", "Full GCS series capacitance"],
+        value="Space-charge capacitance only",
+        label="Capacitance view",
+    )
     interface_controls = mo.hstack(
-        [stern_capacitance_control],
+        [stern_capacitance_control, capacitance_view_control],
         justify="start",
         align="center",
+        wrap=True,
+        gap=1.2,
     )
 
     transfer_coefficient_control = mo.ui.slider(
@@ -1234,7 +1292,7 @@ def _(mo):
             "+2 (doubly positive R)": 2,
         },
         value="+1 (singly positive R)",
-        label="signed reactant charge number, z_R",
+        label="Signed reactant charge number",
     )
     kinetic_controls = mo.hstack(
         [transfer_coefficient_control, reactant_charge_control],
@@ -1244,6 +1302,7 @@ def _(mo):
         gap=1.2,
     )
     return (
+        capacitance_view_control,
         interface_controls,
         kinetic_controls,
         reactant_charge_control,
@@ -1267,7 +1326,7 @@ def _(interface_controls, mo):
             \frac{2k_BT}{ze\lambda_D}
             \sinh\!\left(\frac{ze\phi_1}{2k_BT}\right),
             \qquad
-            C_d=\frac{dQ_{\rm core}}{d\phi_1}
+            C_{\rm sc}=\frac{dQ_{\rm core}}{d\phi_1}
             =\frac{\epsilon_0\epsilon_r}{\lambda_D}
             \cosh\!\left(\frac{ze\phi_1}{2k_BT}\right).
             \]
@@ -1282,21 +1341,21 @@ def _(interface_controls, mo):
             \[
             Q_{\rm core}=C_s(\phi_0-\phi_1)=Q_{\rm GC}(\phi_1),
             \qquad
-            \frac{1}{C_{\rm tot}}=\frac{1}{C_s}+\frac{1}{C_d(\phi_1)}.
+            \frac{1}{C_{\rm tot}}=\frac{1}{C_s}+\frac{1}{C_{\rm sc}(\phi_1)}.
             \]
 
             At the pZC, \(\phi_0=\phi_1=0\), so
 
             \[
-            C_{d,\rm pZC}=\frac{\epsilon_0\epsilon_r}{\lambda_D},
+            C_{\rm sc,pZC}=\frac{\epsilon_0\epsilon_r}{\lambda_D},
             \qquad
             C_{\rm tot,pZC}
-            =\left(\frac{1}{C_s}+\frac{1}{C_{d,\rm pZC}}\right)^{-1}.
+            =\left(\frac{1}{C_s}+\frac{1}{C_{\rm sc,pZC}}\right)^{-1}.
             \]
 
             Thus the pZC capacitance is close to \(C_s\) only when
-            \(C_{d,\rm pZC}\gg C_s\). In the ideal Gouy-Chapman model,
-            \(C_d\) grows with \(|\phi_1|\), so the total capacitance approaches
+            \(C_{\rm sc,pZC}\gg C_s\). In the ideal Gouy-Chapman model,
+            \(C_{\rm sc}\) grows with \(|\phi_1|\), so the total capacitance approaches
             \(C_s\) at large field. The profile drawing places \(x_1\) at 0.5 nm
             only to make the two regions visible. The physical compact-layer
             input is \(C_s\); an independent thickness would require a separate
@@ -1332,7 +1391,7 @@ def _(
         charge_magnitude,
         stern_capacitance_f_per_m2,
     )
-    gcs_potential_sweep_v = np.linspace(-0.25, 0.25, 301)
+    gcs_potential_sweep_v = np.linspace(-0.50, 0.50, 401)
     gcs_states = [
         gcs_state(
             phi0,
@@ -1387,6 +1446,13 @@ def _(
         epsilon_r,
         charge_magnitude,
     )
+    bare_gc_capacitance_sweep = gc_differential_capacitance_f_per_m2(
+        gcs_potential_sweep_v,
+        temperature_k,
+        bulk_concentration_cm3,
+        epsilon_r,
+        charge_magnitude,
+    )
     pzc_diffuse_capacitance_f_per_m2 = gc_differential_capacitance_f_per_m2(
         0.0,
         temperature_k,
@@ -1401,6 +1467,7 @@ def _(
 
     return (
         bare_gc_capacitance_selected,
+        bare_gc_capacitance_sweep,
         gcs_charge_sweep_c_per_m2,
         gcs_diffuse_capacitance_sweep,
         gcs_diffuse_distance_m,
@@ -1421,6 +1488,8 @@ def _(
 
 @app.cell
 def _(
+    bare_gc_capacitance_sweep,
+    capacitance_view_control,
     gcs_diffuse_capacitance_sweep,
     gcs_diffuse_distance_m,
     gcs_diffuse_profile,
@@ -1450,7 +1519,7 @@ def _(
         gcs_diffuse_profile["potential_v"],
         color="#4C7C86",
         lw=2.0,
-        label="diffuse layer",
+        label="Space-charge layer",
     )
     gcs_axes[0].axvline(
         stern_thickness_m * 1.0e9,
@@ -1468,57 +1537,72 @@ def _(
         zorder=5,
     )
     gcs_axes[0].set(
-        xlabel="Distance from core, x (nm)",
+        xlabel=r"Distance from core, $x$ (nm)",
         ylabel=r"Electrostatic potential, $\phi$ (V)",
         title=r"The total drop splits into $\phi_0-\phi_1$ and $\phi_1$",
     )
     gcs_axes[0].grid(alpha=0.22)
     gcs_axes[0].legend(frameon=False)
 
-    gcs_axes[1].plot(
-        gcs_potential_sweep_v,
-        gcs_diffuse_capacitance_sweep / 0.01,
-        color="#4C7C86",
-        lw=1.9,
-        label=r"diffuse $C_d(\phi_1)$",
-    )
-    gcs_axes[1].scatter(
-        [0.0],
-        [pzc_diffuse_capacitance_f_per_m2 / 0.01],
-        s=70,
-        color="#4C7C86",
-        edgecolor="white",
-        zorder=5,
-    )
-    gcs_axes[1].axhline(
-        stern_capacitance_f_per_m2 / 0.01,
-        color="#C49345",
-        lw=1.8,
-        ls="--",
-        label=r"Stern $C_s$",
-    )
-    gcs_axes[1].plot(
-        gcs_potential_sweep_v,
-        gcs_total_capacitance_sweep / 0.01,
-        color="#B65C4A",
-        lw=2.0,
-        label=r"series total $C_{\rm tot}$",
-    )
-    gcs_axes[1].scatter(
-        [0.0],
-        [pzc_total_capacitance_f_per_m2 / 0.01],
-        s=80,
-        color="#B65C4A",
-        edgecolor="white",
-        zorder=5,
-        label="value at pZC",
-    )
-    gcs_axes[1].axvline(surface_potential_v, color="#666D73", lw=1.2, ls=":")
-    gcs_axes[1].set(
-        xlabel=r"Core potential relative to pZC, $\phi_0$ (V)",
-        ylabel=r"Differential capacitance ($\mu$F cm$^{-2}$)",
-        title="The Stern layer limits the high-field capacitance",
-    )
+    if capacitance_view_control.value == "Space-charge capacitance only":
+        gcs_axes[1].plot(
+            gcs_potential_sweep_v,
+            bare_gc_capacitance_sweep / 0.01,
+            color="#4C7C86",
+            lw=2.0,
+            label=r"$C_{\rm sc}(\phi_1)$",
+        )
+        gcs_axes[1].scatter(
+            [0.0], [pzc_diffuse_capacitance_f_per_m2 / 0.01],
+            s=75, color="#4C7C86", edgecolor="white", zorder=5,
+            label="pZC",
+        )
+        gcs_axes[1].set(
+            xlabel=r"Space-charge potential, $\phi_1$ (V)",
+            ylabel=r"$C_{\rm sc}$ ($\mu$F cm$^{-2}$)",
+            title=r"At pZC, $C_{\rm sc}=\epsilon/\lambda_D$",
+        )
+        view_takeaway = (
+            "This view isolates the Gouy–Chapman space-charge response. "
+            "It does not yet include the compact Stern layer."
+        )
+    else:
+        gcs_axes[1].plot(
+            gcs_potential_sweep_v,
+            gcs_diffuse_capacitance_sweep / 0.01,
+            color="#4C7C86",
+            lw=1.8,
+            label=r"$C_{\rm sc}[\phi_1(\phi_0)]$",
+        )
+        gcs_axes[1].axhline(
+            stern_capacitance_f_per_m2 / 0.01,
+            color="#C49345",
+            lw=1.7,
+            ls="--",
+            label=r"$C_s$",
+        )
+        gcs_axes[1].plot(
+            gcs_potential_sweep_v,
+            gcs_total_capacitance_sweep / 0.01,
+            color="#B65C4A",
+            lw=2.0,
+            label=r"$C_{\rm tot}$",
+        )
+        gcs_axes[1].scatter(
+            [0.0], [pzc_total_capacitance_f_per_m2 / 0.01],
+            s=80, color="#B65C4A", edgecolor="white", zorder=5,
+            label="total at pZC",
+        )
+        gcs_axes[1].set(
+            xlabel=r"Applied core potential, $\phi_0$ (V)",
+            ylabel=r"Differential capacitance ($\mu$F cm$^{-2}$)",
+            title="Compact and space-charge layers add in series",
+        )
+        view_takeaway = (
+            "The horizontal axis is the applied core potential $\\phi_0$; "
+            "the space-charge curve is evaluated at the self-consistent "
+            "reaction-plane potential $\\phi_1(\\phi_0)$."
+        )
     gcs_axes[1].grid(alpha=0.22)
     gcs_axes[1].legend(frameon=False)
     gcs_figure.tight_layout()
@@ -1526,29 +1610,23 @@ def _(
 
     gcs_summary = mo.md(
         rf"""
-        At the selected \(\phi_0={surface_potential_v:.3f}\) V, the calculation
-        gives \(\phi_1=\mathbf{{{selected_gcs_state['phi1_v']:.4f}\ V}}\) and
-        \(\phi_0-\phi_1=\mathbf{{{selected_gcs_state['stern_drop_v']:.4f}\ V}}\).
-        The common charge is
-        \(Q_{{\rm core}}={selected_gcs_state['charge_c_per_m2']:.3e}\) C/m².
-        The diffuse and total capacitances are
-        \(C_d={selected_gcs_state['diffuse_capacitance_f_per_m2'] / 0.01:.2f}\)
-        and \(C_{{\rm tot}}={selected_gcs_state['total_capacitance_f_per_m2'] / 0.01:.2f}\)
-        μF/cm². Because the two layers are in series, the total is always below
-        either individual capacitance.
+        At the selected $\phi_0={surface_potential_v:.3f}$ V, the common charge
+        is $Q_{{\rm core}}={selected_gcs_state['charge_c_per_m2']:.3e}$ C m$^{{-2}}$,
+        with $\phi_1={selected_gcs_state['phi1_v']:.4f}$ V and
+        $\phi_0-\phi_1={selected_gcs_state['stern_drop_v']:.4f}$ V.
 
-        **At the pZC:** \(C_{{d,\rm pZC}}=
-        {pzc_diffuse_capacitance_f_per_m2 / 0.01:.2f}\) μF/cm²,
-        \(C_{{\rm tot,pZC}}={pzc_total_capacitance_f_per_m2 / 0.01:.2f}\)
-        μF/cm², and \(C_s={stern_capacitance_f_per_m2 / 0.01:.2f}\)
-        μF/cm². Here \(C_{{d,\rm pZC}}/C_s=
-        {pzc_diffuse_capacitance_f_per_m2 / stern_capacitance_f_per_m2:.2f}\).
-        Only a ratio much larger than one makes the pZC total nearly equal to
-        the Stern capacitance.
+        The selected space-charge and total capacitances are
+        $C_{{\rm sc}}={selected_gcs_state['diffuse_capacitance_f_per_m2'] / 0.01:.2f}$
+        and $C_{{\rm tot}}={selected_gcs_state['total_capacitance_f_per_m2'] / 0.01:.2f}$
+        $\mu$F cm$^{{-2}}$. At the pZC,
+        $C_{{\rm sc,pZC}}={pzc_diffuse_capacitance_f_per_m2 / 0.01:.2f}$,
+        $C_s={stern_capacitance_f_per_m2 / 0.01:.2f}$, and
+        $C_{{\rm tot,pZC}}={pzc_total_capacitance_f_per_m2 / 0.01:.2f}$
+        $\mu$F cm$^{{-2}}$.
 
-        **Figure takeaway.** The Stern and diffuse layers carry the same charge
-        and add in series. Near the pZC, the total is close to $C_s$ only when
-        $C_{{d,\rm pZC}}\gg C_s$.
+        The series total is near $C_{{\rm sc,pZC}}$ only when
+        $C_s\gg C_{{\rm sc,pZC}}$; it is near $C_s$ only in the opposite limit.
+        {view_takeaway}
         """
     )
     mo.accordion({
@@ -1572,7 +1650,7 @@ def _(
 ):
     transfer_coefficient = float(transfer_coefficient_control.value)
     reactant_charge_number = float(reactant_charge_control.value)
-    frumkin_potential_sweep_v = np.linspace(-0.25, 0.25, 301)
+    frumkin_potential_sweep_v = np.linspace(-0.50, 0.50, 401)
     frumkin_sweep = frumkin_log10_anodic_current(
         frumkin_potential_sweep_v,
         temperature_k,
@@ -1814,16 +1892,22 @@ def _(
     epsilon_r,
     gc_distance_m,
     gc_profile,
+    gc_differential_capacitance_f_per_m2,
     gc_surface_charge_c_per_m2,
+    gcs_diffuse_capacitance_sweep,
+    gcs_phi1_sweep_v,
     gcs_state,
+    gcs_total_capacitance_sweep,
     ms_distance_m,
     ms_profile,
     ms_surface_charge_c_per_m2,
+    ms_surface_potential_v,
     np,
     reactant_charge_number,
     selected_debye_length_m,
     selected_frumkin,
     selected_gcs_state,
+    frumkin_sweep,
     selected_ms_width_m,
     stern_capacitance_f_per_m2,
     surface_potential_v,
@@ -1875,7 +1959,7 @@ def _(
         )
     ) / max(abs(permittivity * gc_surface_field_v_per_m), 1.0e-300)
 
-    ms_surface_residual = abs(ms_profile["potential_v"][0] - surface_potential_v)
+    ms_surface_residual = abs(ms_profile["potential_v"][0] - ms_surface_potential_v)
     ms_far_residual = np.max(
         np.abs(ms_profile["potential_v"][ms_distance_m >= selected_ms_width_m])
     )
@@ -1889,7 +1973,7 @@ def _(
         * 1.0e6
         / permittivity
     )
-    analytic_ms_curvature = 2.0 * surface_potential_v / selected_ms_width_m**2
+    analytic_ms_curvature = 2.0 * ms_surface_potential_v / selected_ms_width_m**2
     ms_poisson_residual = abs(
         analytic_ms_curvature - expected_ms_curvature
     ) / expected_ms_curvature
@@ -1900,7 +1984,7 @@ def _(
         charge_magnitude,
     )
     ms_charge_from_gauss = (
-        2.0 * permittivity * surface_potential_v / selected_ms_width_m
+        2.0 * permittivity * ms_surface_potential_v / selected_ms_width_m
     )
     ms_charge_residual = abs(
         ms_charge_from_width - ms_charge_from_gauss
@@ -1969,6 +2053,16 @@ def _(
         - selected_gcs_state["total_capacitance_f_per_m2"]
     ) / selected_gcs_state["total_capacitance_f_per_m2"]
     pzc_diffuse_capacitance = permittivity / selected_debye_length_m
+    calculated_pzc_space_charge_capacitance = gc_differential_capacitance_f_per_m2(
+        0.0,
+        temperature_k,
+        bulk_concentration_cm3,
+        epsilon_r,
+        charge_magnitude,
+    )
+    gcs_pzc_space_charge_residual = abs(
+        calculated_pzc_space_charge_capacitance - pzc_diffuse_capacitance
+    ) / pzc_diffuse_capacitance
     expected_pzc_total_capacitance = 1.0 / (
         1.0 / stern_capacitance_f_per_m2
         + 1.0 / pzc_diffuse_capacitance
@@ -2000,14 +2094,20 @@ def _(
     frumkin_factor_residual = abs(
         actual_frumkin_log10_factor - expected_frumkin_log10_factor
     )
-    positive_finite_values = np.array(
-        [
+    positive_finite_values = np.concatenate([
+        np.array([
             selected_debye_length_m,
             selected_ms_width_m,
             bare_gc_capacitance_selected,
             selected_gcs_state["diffuse_capacitance_f_per_m2"],
             selected_gcs_state["total_capacitance_f_per_m2"],
-        ]
+        ]),
+        np.asarray(gcs_diffuse_capacitance_sweep),
+        np.asarray(gcs_total_capacitance_sweep),
+    ])
+    expanded_finite_pass = bool(
+        np.all(np.isfinite(gcs_phi1_sweep_v))
+        and all(np.all(np.isfinite(values)) for values in frumkin_sweep.values())
     )
     module04_validation = {
         "gc_boltzmann_residual": gc_boltzmann_residual,
@@ -2036,6 +2136,8 @@ def _(
         "gcs_series_capacitance_pass": gcs_series_capacitance_pass,
         "gcs_capacitance_residual": gcs_capacitance_residual,
         "gcs_capacitance_pass": gcs_capacitance_residual < 2.0e-9,
+        "gcs_pzc_space_charge_residual": gcs_pzc_space_charge_residual,
+        "gcs_pzc_space_charge_pass": gcs_pzc_space_charge_residual < 2.0e-13,
         "gcs_pzc_capacitance_residual": gcs_pzc_capacitance_residual,
         "gcs_pzc_capacitance_pass": gcs_pzc_capacitance_residual < 2.0e-13,
         "frumkin_phi1_residual": frumkin_phi1_residual,
@@ -2043,7 +2145,8 @@ def _(
         "frumkin_factor_residual": frumkin_factor_residual,
         "frumkin_factor_pass": frumkin_factor_residual < 1.0e-13,
         "positive_finite_pass": bool(
-            np.all(np.isfinite(positive_finite_values))
+            expanded_finite_pass
+            and np.all(np.isfinite(positive_finite_values))
             and np.all(positive_finite_values > 0.0)
         ),
     }
@@ -2062,9 +2165,9 @@ def _(mo, module04_validation):
         | status | physical statement | why it matters |
         |---:|---|---|
         | {_status(module04_validation['gc_boltzmann_pass'] and module04_validation['gc_electrochemical_pass'] and module04_validation['gc_solution_pass'])} | the Gouy–Chapman concentration and potential profiles obey Boltzmann equilibrium | chemical and electrical energies balance throughout the diffuse layer |
-        | {_status(module04_validation['gc_gauss_pass'] and module04_validation['gc_capacitance_pass'])} | the diffuse-layer charge agrees with Gauss's law and its slope gives \(C_d\) | charge, field, and capacitance are three views of the same interface |
+        | {_status(module04_validation['gc_gauss_pass'] and module04_validation['gc_capacitance_pass'])} | the diffuse-layer charge agrees with Gauss's law and its slope gives \(C_{{\rm sc}}\) | charge, field, and capacitance are three views of the same interface |
         | {_status(module04_validation['ms_boundary_pass'] and module04_validation['ms_poisson_pass'] and module04_validation['ms_charge_pass'] and module04_validation['ms_electrochemical_pass'])} | the Mott–Schottky profile obeys its boundary potentials, frozen charge, and flat electrochemical potential | the depletion approximation remains self-consistent |
-        | {_status(module04_validation['gcs_charge_pass'] and module04_validation['gcs_voltage_pass'] and module04_validation['gcs_series_capacitance_pass'] and module04_validation['gcs_capacitance_pass'] and module04_validation['gcs_pzc_capacitance_pass'])} | Stern and diffuse layers carry the same charge and add as series capacitances | the GCS voltage split and pZC limit agree |
+        | {_status(module04_validation['gcs_charge_pass'] and module04_validation['gcs_voltage_pass'] and module04_validation['gcs_series_capacitance_pass'] and module04_validation['gcs_capacitance_pass'] and module04_validation['gcs_pzc_space_charge_pass'] and module04_validation['gcs_pzc_capacitance_pass'])} | Stern and diffuse layers carry the same charge and add as series capacitances | the GCS voltage split and pZC limit agree |
         | {_status(module04_validation['frumkin_phi1_pass'] and module04_validation['frumkin_factor_pass'])} | the Frumkin response uses the same reaction-plane concentration and potential | equilibrium space charge and interfacial kinetics are connected consistently |
         | {_status(module04_validation['positive_finite_pass'])} | all lengths and capacitances are positive and finite | every plotted interfacial scale is physical |
 
@@ -2086,9 +2189,9 @@ def _(mo):
        charge, and potential self-consistent. Gouy–Chapman moves both signs;
        Mott–Schottky freezes the majority dopants.
     2. **Capacitance measures the charge response.** Gauss's law gives
-       $Q_{\rm core}(\phi)$ and differentiation gives $C_d$. Stern and diffuse
+       $Q_{\rm core}(\phi)$ and differentiation gives $C_{\rm sc}$. Stern and diffuse
        layers carry the same charge and add in series; near the pZC the total is
-       close to $C_s$ only when $C_{d,\rm pZC}\gg C_s$.
+       close to $C_s$ only when $C_{\rm sc,pZC}\gg C_s$.
     3. **A reaction experiences the reaction plane.** The Frumkin effect combines
        the local concentration and local potential at $x=x_1$. The transfer
        coefficient $\alpha$ belongs to this kinetic step, not to equilibrium GCS
