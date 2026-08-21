@@ -62,3 +62,31 @@ filled during each focused module pass.
 | 07 | Finite Warburg boundary | Boundary, frequency, and (D^\delta) change penetration and the low-frequency termination. | `module-07/warburg-default-laptop.jpg`; `module-07/warburg-low-mobile.jpg`; `module-07/warburg-high-projector.jpg` | Three core controls drive one profile and one equal-scale Nyquist plot. Optional phase, geometry, comparison, scale, and limiting formulas stay collapsed. | **Pass** |
 | 07 | TLM schematic and spectrum | Contact, conductivity ratio, and frequency change one equal-scale Nyquist spectrum. | `module-07/tlm-schematic-default-laptop.jpg`; `module-07/tlm-spectrum-default-laptop.jpg`; `module-07/tlm-low-mobile.jpg`; `module-07/tlm-high-projector.jpg` | The schematic preserves the original two-rail teaching anatomy without vertical strokes through the (c_{\rm chem}) label. Browser review caught and fixed a compressed default: electron-reversible/ion-blocked contacts now open with a legible arc, while cross-selective blocking remains selectable. | **Pass** |
 | 07 | Selected TLM internal state | Frequency and view selector change composition, potentials, or currents. | `module-07/tlm-internal-default-laptop.jpg`; `module-07/tlm-internal-low-mobile.jpg`; `module-07/tlm-internal-high-projector.jpg` | One selected internal observable replaces the former simultaneous three-panel view. The composition envelope remains the default bridge to Warburg; no clipping or overlap warnings occur. | **Pass** |
+
+
+## Targeted correction pass — 2026-08-21
+
+This section supersedes the changed figure descriptions in the historical
+student-first table above. The final apps were rebuilt from the current source
+and inspected through headless Chrome over HTTP. The in-app browser controller
+could not attach on this Windows host because of a local ACL restriction, so
+the repository's Chrome DevTools capture helper provided equivalent real-browser
+screenshots. Every reported layout check returned no clipping. On mobile, the
+lightweight overlap scan sometimes associated marimo's top-right menu button
+with a nearby heading; direct inspection confirmed that the button clears the
+text in every case.
+
+| Module | Final targeted evidence | Finding | Status |
+|---:|---|---|---:|
+| 01 | `targeted-fixes/module-01-default-mobile.jpg`; `targeted-fixes/module-01-default-laptop.jpg` | The entropy widget now has a plain-language label and the adjacent text defines $\Delta s_f^0/k_B$, including the meaning of a value of 3. The randomized lattice and controls remain clear. | **Pass** |
+| 02 | `targeted-fixes/module-02-default-mobile.jpg`; `targeted-fixes/module-02-default-laptop.jpg`; `targeted-fixes/module-02-low-laptop.jpg`; `targeted-fixes/module-02-high-projector.jpg`; `targeted-fixes/module-02-oxidizing-guide-projector.jpg` | Species and units render consistently; the acceptor control is defined beside the widget; one default-off limiting guide can be shown without crowding or altering exact solved curves. | **Pass** |
+| 03 | `targeted-fixes/module-03-msd-default-mobile.jpg`; `targeted-fixes/module-03-default-laptop.jpg`; `targeted-fixes/module-03-low-laptop.jpg`; `targeted-fixes/module-03-high-projector.jpg`; `targeted-fixes/module-03-msd-default-laptop.jpg` | Fixed hop-space trajectories no longer change with physical parameters. A separate physical-time MSD figure follows $\langle x^2\rangle=2Dt$ and retains readable labels at all sizes. | **Pass** |
+| 04 | `targeted-fixes/module-04-default-mobile.jpg`; `targeted-fixes/module-04-default-laptop.jpg`; `targeted-fixes/module-04-low-laptop.jpg`; `targeted-fixes/module-04-high-projector.jpg` | Gouy--Chapman and Mott--Schottky controls stay in their valid potential domains. The large-field ideal-model warning is visible, and $C_{\rm sc}$ is distinguished from the series GCS capacitance. | **Pass** |
+| 05 | `targeted-fixes/module-05-default-mobile.jpg`; `targeted-fixes/module-05-default-laptop.jpg`; `targeted-fixes/module-05-early-laptop.jpg`; `targeted-fixes/module-05-late-projector.jpg` | The representative transient family makes profile evolution visible, the selector highlights rather than adds a curve, both blocking faces are labelled, and the voltage response remains separate. | **Pass** |
+| 06 | `targeted-fixes/module-06-pulse-default-mobile.jpg`; `targeted-fixes/module-06-contacts-projector.jpg`; `targeted-fixes/module-06-pulse-default-laptop.jpg`; `targeted-fixes/module-06-pulse-low-laptop.jpg`; `targeted-fixes/module-06-pulse-high-projector.jpg`; `targeted-fixes/module-06-ocv-default-laptop.jpg`; `targeted-fixes/module-06-gitt-pulse-laptop.jpg`; `targeted-fixes/module-06-gitt-ocv-projector.jpg` | The public coordinate is consistent from ion electrolyte to current collector. Pulse and OCV stages show truthful profile families for both PITT and GITT, with no misleading numerical-method narrative. | **Pass** |
+| 07 | `targeted-fixes/module-07-wave-default-laptop.jpg`; `targeted-fixes/module-07-wave-low-laptop.jpg`; `targeted-fixes/module-07-wave-high-projector.jpg`; `targeted-fixes/module-07-ideal-elements-mobile.jpg`; `targeted-fixes/module-07-ideal-elements-laptop.jpg`; `targeted-fixes/module-07-parallel-rc-projector.jpg`; `targeted-fixes/module-07-warburg-default-laptop.jpg`; `targeted-fixes/module-07-warburg-blocked-projector.jpg`; `targeted-fixes/module-07-tlm-cross-low-laptop.jpg`; `targeted-fixes/module-07-tlm-cross-high-projector.jpg`; `targeted-fixes/module-07-tlm-schematic-projector.jpg` | Frequency changes cycle count on a seconds axis; ideal elements precede the parallel-RC semicircle; every Nyquist view preserves equal scale and visible padding; finite Warburg and the two visible TLM contact cases remain readable; capacitor strokes do not cross the $c_{\rm chem}$ label. | **Pass** |
+
+The complete targeted screenshot set remains under the ignored
+`dist/visual-qa/targeted-fixes/` directory. Low/default/high states were
+exercised for each changed core interaction; the table lists the most useful
+acceptance views rather than every generated file.

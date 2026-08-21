@@ -267,7 +267,7 @@ def _(mo):
         stop=10.0,
         step=0.25,
         value=3.0,
-        label="Formation entropy (kB per defect)",
+        label="Non-configurational formation entropy",
         show_value=True,
     )
     lattice_sites = mo.ui.slider(
@@ -320,9 +320,11 @@ def _(advanced_controls, controls, mo):
             mo.md("## Explore the competition"),
             controls,
             mo.md(r"""
-            Change one quantity at a time. Higher temperature or a more
-            positive formation entropy lowers the effective defect cost and
-            should move equilibrium toward a larger defect fraction.
+            Change one quantity at a time. The entropy control sets
+            $\Delta s_f^0/k_B$; a value of 3 means $3k_B$ per defect. Higher
+            temperature or a more positive formation entropy lowers the
+            effective defect cost and should move equilibrium toward a larger
+            defect fraction.
 
             The default is intentionally easy to see; it is a teaching state,
             not a claim that oxide defects are usually this concentrated.
@@ -631,7 +633,7 @@ def _(
     )
     _multiplicity_axis.axvline(finite_x_eq, color="#40464D", ls=":", lw=1.2)
     _multiplicity_axis.set(
-        xlabel="Defect fraction, x = n/N",
+        xlabel=r"Defect fraction, $x=n/N$",
         ylabel=r"$\ln\Omega$",
         title="How many arrangements are possible?",
         xlim=(0.0, 1.0),
@@ -657,7 +659,7 @@ def _(
     )
     _entropy_axis.axvline(finite_x_eq, color="#40464D", ls=":", lw=1.2)
     _entropy_axis.set(
-        xlabel="Defect fraction, x = n/N",
+        xlabel=r"Defect fraction, $x=n/N$",
         ylabel=r"Configurational entropy per site, $s_{\rm config}/k_B$",
         title="Mixing creates configurational entropy",
         xlim=(0.0, 1.0),

@@ -69,7 +69,11 @@ Every Nyquist plot must:
 - remain geometrically faithful when resized;
 - indicate frequency direction with a few clean markers or arrows;
 - never use a distorted viewport that turns a semicircle into an ellipse or
-  changes a 45-degree line.
+  changes a 45-degree line;
+- leave visible padding on every side of the data, including a small negative
+  real-axis margin when a capacitive response lies at $Z'=0$;
+- give a one-point ideal-element plot a meaningful teaching viewport and
+  suppress misleading scientific-offset text.
 
 ## Controls and visible-effect testing
 

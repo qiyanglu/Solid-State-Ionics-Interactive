@@ -139,3 +139,42 @@ generated binaries—are versioned in [VISUAL_QA.md](VISUAL_QA.md).
   an experimental spectrum.
 - Public GitHub Pages content changes only after the committed main branch is
   pushed and the Pages workflow completes.
+
+# Targeted notebook correction pass — 2026-08-21
+
+This follow-up pass implements the focused correction brief without changing
+the seven-module roadmap, routes, dependencies, or documented model scope.
+
+- Module 01 names and defines the non-configurational formation entropy.
+- Module 02 uses consistent defect notation and offers one optional limiting
+  guide at a time while preserving the full equilibrium solver.
+- Module 03 separates fixed hop geometry from the physical clock and length
+  scale used to interpret diffusivity.
+- Module 04 separates valid Gouy--Chapman and Mott--Schottky potential domains,
+  warns about ideal-dilute high-field limits, and distinguishes $C_{\rm sc}$
+  from total GCS capacitance.
+- Module 05 restores a compact representative transient profile family and
+  keeps the electrical response in a separate figure.
+- Module 06 aligns the displayed coordinate with the selective contacts and
+  shows pulse and OCV-rest profile families for both PITT and GITT.
+- Module 07 adds ideal-element foundations, preserves equal-scale padded
+  Nyquist geometry everywhere, clarifies finite Warburg controls, and keeps
+  two meaningful visible TLM contact cases while retaining the reversible
+  limit as a regression check.
+
+## Targeted release gate
+
+| Gate | Final result |
+|---|---|
+| Python compilation | All seven notebooks passed. |
+| Strict marimo check | All seven passed with no findings. |
+| Clean static execution | All seven exported successfully; no cell-error marker was found. |
+| Embedded physics results | 52 PASS, 0 CHECK. |
+| WASM export and route assets | All seven Pages routes rebuilt; every route contains `index.html` and its dynamic `run-page` module. |
+| Responsive browser QA | Fresh mobile, laptop, and projector views plus contrasting states passed; no clipping or visually confirmed overlap remains. |
+| Patch integrity | `git diff --check` passed. |
+
+There are no separate pytest test files in this teaching repository; the
+notebooks' collapsed physical-consistency tables are the executable regression
+suite. Generated HTML, WASM bundles, and screenshots remain ignored under
+`dist/`; their evidence paths and findings are versioned in `VISUAL_QA.md`.
