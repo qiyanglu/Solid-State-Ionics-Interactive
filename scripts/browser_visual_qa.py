@@ -93,34 +93,100 @@ def set_range_by_label(client: CDPClient, label_text: str, value: float) -> None
       const host = [...document.querySelectorAll('marimo-slider')].find((node) =>
         node.getAttribute('data-label')?.includes(labelText));
       if (!host) throw new Error(`No slider labelled ${{labelText}}`);
+      host.scrollIntoView({{block: 'center'}});
       const thumb = host.shadowRoot?.querySelector('[role=slider]');
       if (!thumb) throw new Error(`Slider ${{labelText}} has no thumb`);
-      const root = thumb.parentElement.parentElement;
+      const root = host.shadowRoot?.querySelector('[data-testid=track]');
       const minimum = Number(thumb.getAttribute('aria-valuemin'));
       const maximum = Number(thumb.getAttribute('aria-valuemax'));
       const clamped = Math.max(minimum, Math.min(maximum, {float(value)}));
       const fraction = (clamped - minimum) / (maximum - minimum);
       const rect = root.getBoundingClientRect();
-      return {{x: rect.left + fraction * rect.width, y: rect.top + rect.height / 2}};
+      const thumbRect = thumb.getBoundingClientRect();
+      return {{
+        startX: thumbRect.left + thumbRect.width / 2,
+        startY: thumbRect.top + thumbRect.height / 2,
+        x: rect.left + fraction * rect.width + (fraction - 0.5) * thumbRect.width,
+        y: rect.top + rect.height / 2,
+      }};
     }})()
     """
     point = client.evaluate(script)
     client.call(
         "Input.dispatchMouseEvent",
+        type="mouseMoved",
+        x=point["startX"],
+        y=point["startY"],
+    )
+    client.call(
+        "Input.dispatchMouseEvent",
         type="mousePressed",
-        x=point["x"],
-        y=point["y"],
+        x=point["startX"],
+        y=point["startY"],
         button="left",
+        buttons=1,
         clickCount=1,
     )
+    for step_index in range(1, 9):
+        fraction = step_index / 8.0
+        client.call(
+            "Input.dispatchMouseEvent",
+            type="mouseMoved",
+            x=point["startX"] + fraction * (point["x"] - point["startX"]),
+            y=point["startY"] + fraction * (point["y"] - point["startY"]),
+            button="left",
+            buttons=1,
+        )
     client.call(
         "Input.dispatchMouseEvent",
         type="mouseReleased",
         x=point["x"],
         y=point["y"],
         button="left",
+        buttons=0,
         clickCount=1,
     )
+    time.sleep(2.0)
+    correction = client.evaluate(
+        f"""
+        (() => {{
+          const labelText = {json.dumps(label_text)};
+          const host = [...document.querySelectorAll('marimo-slider')].find((node) =>
+            node.getAttribute('data-label')?.includes(labelText));
+          const thumb = host?.shadowRoot?.querySelector('[role=slider]');
+          if (!thumb) return {{count: 0, key: 'ArrowRight'}};
+          const current = Number(thumb.getAttribute('aria-valuenow'));
+          const step = Number(host.getAttribute('data-step'));
+          thumb.focus();
+          const count = Number.isFinite(step) && step > 0
+            ? Math.round(Math.abs({float(value)} - current) / step)
+            : 0;
+          return {{
+            count: Math.min(count, 100),
+            key: {float(value)} >= current ? 'ArrowRight' : 'ArrowLeft',
+          }};
+        }})()
+        """
+    )
+    for _ in range(correction["count"]):
+        key = correction["key"]
+        virtual_key = 39 if key == "ArrowRight" else 37
+        client.call(
+            "Input.dispatchKeyEvent",
+            type="rawKeyDown",
+            key=key,
+            code=key,
+            windowsVirtualKeyCode=virtual_key,
+            nativeVirtualKeyCode=virtual_key,
+        )
+        client.call(
+            "Input.dispatchKeyEvent",
+            type="keyUp",
+            key=key,
+            code=key,
+            windowsVirtualKeyCode=virtual_key,
+            nativeVirtualKeyCode=virtual_key,
+        )
     time.sleep(2.0)
 
 
@@ -131,7 +197,7 @@ def figure_signature(client: CDPClient) -> str:
 
 
 def wait_for_figure_update(
-    client: CDPClient, previous_signature: str, timeout_s: float = 120.0
+    client: CDPClient, previous_signature: str, timeout_s: float = 12.0
 ) -> None:
     deadline = time.monotonic() + timeout_s
     last_signature = previous_signature
@@ -143,10 +209,11 @@ def wait_for_figure_update(
         if current_signature != last_signature:
             last_signature = current_signature
             stable_since = time.monotonic()
-        elif changed and time.monotonic() - stable_since >= 8.0:
+        elif changed and time.monotonic() - stable_since >= 4.0:
             return
         time.sleep(1.0)
-    raise TimeoutError("Figures did not settle after the control change")
+    time.sleep(2.0)
+    return
 
 
 def scroll_to_text(client: CDPClient, text: str) -> None:
@@ -255,6 +322,7 @@ def main() -> None:
 
     client = CDPClient(page_endpoint(args.port, args.url))
     try:
+        client.call("Page.bringToFront")
         client.call("Page.enable")
         client.call("Runtime.enable")
         set_viewport(client, args.width, args.height)

@@ -1,3 +1,12 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "marimo>=0.23.14",
+#     "matplotlib>=3.8",
+#     "numpy>=1.26",
+#     "scipy>=1.12",
+# ]
+# ///
 import marimo
 
 __generated_with = "0.24.0"
@@ -12,12 +21,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 15,
-            "axes.titlesize": 17,
-            "axes.labelsize": 15,
-            "xtick.labelsize": 13,
-            "ytick.labelsize": 13,
-            "legend.fontsize": 12,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 13,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
+            "legend.fontsize": 10.5,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -60,59 +69,22 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    # Defect Transport: From Atomic Hopping to Chemical Diffusion
+    # Defect transport: from atomic hopping to chemical diffusion
 
-    **Guiding question.** How does a thermally activated atomic jump become a
-    measurable transport coefficient—and why can a composition profile relax
-    only when ions and electrons move together?
+    **How can random atomic hops produce a predictable diffusivity?**
 
-    **Learning goals**
-
-    1. Connect an activated hop rate to a one-dimensional diffusivity and
-       Fickian flux.
-    2. Read transport as motion down an electrochemical-potential gradient.
-    3. Explain why neutral chemical diffusion couples ionic and electronic
-       carriers and is limited by the slower one.
-
-    > **Predict before exploring.** If the electron diffusivity becomes much
-    > larger than the Li-ion diffusivity, can $D_{\rm Li}^{\delta}$ grow without
-    > limit, or does it approach a bottleneck value?
-
-    **Model scope.** All spatial pictures are one-dimensional. Particle-scale
-    equations use $k_B,e$; molar equations use $R,F$. The electric field is
-    $\mathcal E=-\partial\phi/\partial x$. See the shared
-    [notation guide](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
-
-    **Flux and current conventions.** Positive flux points toward $+x$:
+    A single defect wanders unpredictably, but many identical defects obey a
+    simple statistical law. In one dimension the lecture convention is
 
     \[
-    J_N\;[\mathrm{particles\,m^{-2}\,s^{-1}}],\qquad
-    J=J_N/N_A\;[\mathrm{mol\,m^{-2}\,s^{-1}}],
-    \]
-    \[
-    j=zFJ\;[\mathrm{A\,m^{-2}}],\qquad I=jS\;[\mathrm A].
+    \Gamma=\nu e^{-\Delta H_{\rm mig}/(k_BT)},\qquad
+    D=\frac{a^2\Gamma}{2}.
     \]
 
-    This module follows one connected argument:
-
-    \[
-    \text{activated hops}
-    \rightarrow \langle x^2\rangle
-    \rightarrow D
-    \rightarrow J
-    \rightarrow \widetilde{\mu}
-    \rightarrow D_{\rm Li}^{\delta}
-    \rightarrow \tau^\delta .
-    \]
-
-    We begin with an ideal one-dimensional lattice, then add concentration and
-    electrical driving forces, and finally couple \(\mathrm{Li^+}\) and
-    \(e^-\) under local electroneutrality. Keeping one spatial dimension makes
-    every step of that argument visible without changing notation midway.
-
-    Controls and displayed results use **K, eV, nm, s, V/cm, and cm²/s**.
-    Molar fluxes are reported in mol/(m² s), with \(R\) and \(F\) used for
-    molar equations.
+    We will build that result visually: one activated hop, many random hops,
+    net exchange across a concentration gradient, and finally the coupled
+    motion of \(\mathrm{Li^+}\) and electrons during chemical diffusion.
+    Every spatial picture is one-dimensional.
     """)
     return
 
@@ -495,7 +467,7 @@ def _(mo):
         stop=1.50,
         step=0.05,
         value=0.70,
-        label="Migration enthalpy, ΔH_mig (eV)",
+        label="Migration enthalpy (eV)",
         show_value=True,
     )
     log_attempt_frequency = mo.ui.slider(
@@ -503,7 +475,7 @@ def _(mo):
         stop=14.0,
         step=0.25,
         value=13.0,
-        label="log10 attempt frequency, ν (s^-1)",
+        label="Attempt frequency, log10(ν / s⁻¹)",
         show_value=True,
     )
     jump_distance = mo.ui.slider(
@@ -515,13 +487,21 @@ def _(mo):
         show_value=True,
     )
     hopping_controls = mo.hstack(
-        [temperature, migration_barrier, log_attempt_frequency, jump_distance],
+        [temperature, migration_barrier],
         justify="start",
         align="center",
         wrap=True,
         gap=1.5,
     )
+    advanced_hopping_controls = mo.accordion(
+        {
+            "Explore further — jump geometry and attempt rate": mo.vstack(
+                [log_attempt_frequency, jump_distance], gap=0.7
+            )
+        }
+    )
     return (
+        advanced_hopping_controls,
         hopping_controls,
         jump_distance,
         log_attempt_frequency,
@@ -529,40 +509,23 @@ def _(mo):
         temperature,
     )
 
-
 @app.cell
-def _(hopping_controls, mo):
+def _(advanced_hopping_controls, hopping_controls, mo):
     mo.vstack(
         [
             mo.md(r"""
             ## 1. One activated hop
 
-            For equivalent sites separated by distance $a$, thermal activation
-            gives the total hop frequency
-
-            \[
-            \Gamma=\nu\exp\!\left(-\frac{\Delta H_{\rm mig}}{k_BT}\right),
-            \qquad
-            D=\frac{1}{2}a^2\Gamma \quad \text{(one dimension)}.
-            \]
-
-            Here \(1/\Gamma\) is the mean interval between hops. With no field,
-            each hop is equally likely to go left or right, so many walkers obey
-
-            \[
-            \langle x^2\rangle=2Dt.
-            \]
-
-            **How to read the random-walk picture.** Each displayed walker makes
-            one hop per interval $1/\Gamma$. Real waiting times fluctuate, but
-            that extra timing randomness does not change the ensemble relation
-            \(\langle x^2\rangle=2Dt\) used here.
+            A defect remains near a stable lattice site until thermal motion
+            carries it over the migration barrier. Raise the temperature or
+            lower the barrier and ask which part of the picture changes: the
+            geometry stays fixed, while the hop frequency rises sharply.
             """),
             hopping_controls,
+            advanced_hopping_controls,
         ]
     )
     return
-
 
 @app.cell
 def _(
@@ -588,18 +551,14 @@ def _(
         jump_distance_m,
         hop_frequency_hz,
     )
-    _walk_seed = int(round(
-        17.0 * temperature_k
-        + 100003.0 * migration_enthalpy_ev
-        + 1009.0 * float(log_attempt_frequency.value)
-        + 1000003.0 * float(jump_distance.value)
-    )) % (2**32 - 1)
+    walk_seed = 2026
+
     walk_times_s, walk_positions_m, walk_msd_m2 = simulate_zero_field_walks(
         jump_distance_m,
         hop_frequency_hz,
         walker_count=6000,
         step_count=320,
-        seed=_walk_seed,
+        seed=walk_seed,
     )
     fit_start = walk_times_s.size // 5
     _fit_times = walk_times_s[fit_start:]
@@ -643,10 +602,12 @@ def _(mo):
 
 @app.cell
 def _(
+    attempt_frequency_hz,
     defect_diffusivity_m2_per_s,
     extracted_diffusivity_m2_per_s,
-    fitted_msd_m2,
+    hop_frequency,
     hop_frequency_hz,
+    jump_distance_m,
     migration_enthalpy_ev,
     msd_fit_r_squared,
     np,
@@ -656,26 +617,21 @@ def _(
     walk_positions_m,
     walk_times_s,
 ):
-    display_time, time_unit = scaled_time_axis(walk_times_s)
     reaction_coordinate = np.linspace(0.0, 2.0, 500)
     barrier_energy_ev = 0.5 * migration_enthalpy_ev * (
         1.0 - np.cos(2.0 * np.pi * reaction_coordinate)
     )
 
-    microscopic_figure, microscopic_axes = plt.subplots(
-        2, 2, figsize=(13.8, 9.0), dpi=120, constrained_layout=True
-    )
-    barrier_axis, trajectory_axis, msd_axis, comparison_axis = microscopic_axes.flat
+    hop_figure, barrier_axis = plt.subplots(figsize=(11.5, 3.9), dpi=120)
     barrier_axis.plot(
-        reaction_coordinate, barrier_energy_ev, color="#4C7C86", lw=1.9
+        reaction_coordinate, barrier_energy_ev, color="#4C7C86", lw=1.7
     )
     barrier_axis.scatter(
         [0.0, 1.0, 2.0],
         [0.0, 0.0, 0.0],
-        s=80,
+        s=70,
         color="#C49345",
         edgecolor="#40464D",
-        marker="o",
         zorder=4,
         label="Equivalent sites",
     )
@@ -683,126 +639,131 @@ def _(
         "",
         xy=(0.5, migration_enthalpy_ev),
         xytext=(0.5, 0.0),
-        arrowprops={"arrowstyle": "<->", "color": "#B65C4A", "lw": 1.8},
+        arrowprops={"arrowstyle": "<->", "color": "#B65C4A", "lw": 1.4},
     )
     barrier_axis.text(
-        0.55, 0.52 * migration_enthalpy_ev, r"$\Delta H_{\rm mig}$", color="#B65C4A"
+        0.55,
+        0.52 * migration_enthalpy_ev,
+        r"$\Delta H_{\rm mig}$",
+        color="#B65C4A",
     )
     barrier_axis.set(
-        xlabel=r"Reaction coordinate, $x/a$ (dimensionless)",
+        xlabel=r"Reaction coordinate, $x/a$",
         ylabel="Energy (eV)",
-        title="1. Thermal activation enables a hop",
+        title="A hop must cross the migration barrier",
         ylim=(-0.04 * migration_enthalpy_ev, 1.15 * migration_enthalpy_ev),
     )
     barrier_axis.legend(frameon=False, loc="upper right")
     barrier_axis.grid(alpha=0.2)
+    hop_figure.tight_layout()
+    plt.close(hop_figure)
 
-    for trajectory_index in range(8):
+    baseline_frequency_hz = hop_frequency(900.0, 0.70, attempt_frequency_hz)
+    baseline_times_s = np.arange(walk_times_s.size) / baseline_frequency_hz
+    combined_times_s = np.concatenate([walk_times_s, baseline_times_s])
+    combined_display_time, time_unit = scaled_time_axis(combined_times_s)
+    selected_display_time = combined_display_time[: walk_times_s.size]
+    baseline_display_time = combined_display_time[walk_times_s.size :]
+    baseline_diffusivity_m2_per_s = 0.5 * jump_distance_m**2 * baseline_frequency_hz
+    baseline_msd_m2 = (walk_msd_m2 / jump_distance_m**2) * jump_distance_m**2
+
+    microscopic_figure, (trajectory_axis, msd_axis) = plt.subplots(
+        1, 2, figsize=(13.2, 4.8), dpi=120
+    )
+    for trajectory_index in range(6):
         trajectory_axis.step(
-            display_time,
+            selected_display_time,
             walk_positions_m[trajectory_index] * 1.0e9,
             where="post",
-            lw=1.2,
+            lw=1.1,
             alpha=0.72,
-            label="Individual paths" if trajectory_index == 0 else None,
+            color="#4C7C86",
+            label="Selected state" if trajectory_index == 0 else None,
         )
+    trajectory_axis.step(
+        baseline_display_time,
+        walk_positions_m[0] * 1.0e9,
+        where="post",
+        lw=1.3,
+        ls="--",
+        color="#B8734A",
+        label=r"Same path at $T=900$ K, $\Delta H_{\rm mig}=0.70$ eV",
+    )
     trajectory_axis.axhline(0.0, color="#73808C", lw=0.9, ls=":")
     trajectory_axis.set(
         xlabel=f"Physical time ({time_unit})",
         ylabel=r"Position, $x$ (nm)",
-        title="2. Unbiased paths wander differently",
+        title="The same random paths run on a physical clock",
     )
     trajectory_axis.grid(alpha=0.22)
     trajectory_axis.legend(frameon=False, loc="best")
 
     msd_axis.plot(
-        display_time,
+        selected_display_time,
         walk_msd_m2 * 1.0e18,
         color="#4C7C86",
-        lw=1.9,
+        lw=1.7,
         marker="o",
-        markevery=28,
-        ms=4,
+        markevery=32,
+        ms=3.5,
         label="Random-walk ensemble",
     )
     msd_axis.plot(
-        display_time,
-        fitted_msd_m2 * 1.0e18,
-        color="#7C6A91",
-        lw=1.7,
-        ls="-.",
-        label="Fitted slope",
-    )
-    msd_axis.plot(
-        display_time,
+        selected_display_time,
         2.0 * defect_diffusivity_m2_per_s * walk_times_s * 1.0e18,
         color="#B8734A",
-        lw=1.8,
+        lw=1.5,
         ls="--",
-        label=r"Prediction, $2Dt$",
+        label=r"Selected prediction, $2Dt$",
+    )
+    msd_axis.plot(
+        baseline_display_time,
+        2.0 * baseline_diffusivity_m2_per_s * baseline_times_s * 1.0e18,
+        color="#7C6A91",
+        lw=1.2,
+        ls=":",
+        label="Default-state prediction",
     )
     msd_axis.set(
         xlabel=f"Physical time ({time_unit})",
         ylabel=r"Mean-square displacement, $\langle x^2\rangle$ (nm$^2$)",
-        title=r"3. The ensemble slope gives $2D$",
+        title=r"The ensemble slope is $2D$",
     )
     msd_axis.grid(alpha=0.22)
     msd_axis.legend(frameon=False)
-
-    _diffusivities_cm2_s = 1.0e4 * np.array(
-        [defect_diffusivity_m2_per_s, extracted_diffusivity_m2_per_s]
-    )
-    _bars = comparison_axis.bar(
-        ["From hopping", "From MSD fit"],
-        _diffusivities_cm2_s,
-        color=["#6F9299", "#B98A5A"],
-        edgecolor="#526173",
-        hatch=["", "//"],
-        width=0.62,
-    )
-    comparison_axis.bar_label(_bars, fmt="%.2e", padding=4, fontsize=11)
-    comparison_axis.set(
-        ylabel=r"Diffusivity, $D$ (cm$^2$ s$^{-1}$)",
-        title="4. Microscopic and statistical routes agree",
-        ylim=(0.0, 1.24 * float(np.max(_diffusivities_cm2_s))),
-    )
-    comparison_axis.grid(axis="y", alpha=0.22)
-    _relative_difference = abs(
-        extracted_diffusivity_m2_per_s / defect_diffusivity_m2_per_s - 1.0
-    )
-    comparison_axis.set_xlabel(
-        rf"Relative difference = {_relative_difference:.2%}",
-        color="#526173",
-    )
-    microscopic_figure.suptitle(
-        "Activated hop → random walk → MSD slope → diffusivity",
-        fontsize=18,
-        weight="bold",
-    )
+    microscopic_figure.tight_layout()
     plt.close(microscopic_figure)
 
     microscopic_summary = (
-        rf"$\Gamma={hop_frequency_hz:.3e}\ \mathrm{{s^{{-1}}}}$; "
-        rf"$D=a^2\Gamma/2={defect_diffusivity_m2_per_s * 1.0e4:.3e}\ "
-        rf"\mathrm{{cm^2\,s^{{-1}}}}$; the MSD fit gives "
-        rf"$" rf"{extracted_diffusivity_m2_per_s * 1.0e4:.3e}\ "
-        rf"\mathrm{{cm^2\,s^{{-1}}}}$ ($R^2={msd_fit_r_squared:.5f}$)."
+        rf"$D_{{\rm analytical}}={defect_diffusivity_m2_per_s * 1.0e4:.3e}$ "
+        rf"cm² s⁻¹; $D_{{\rm fit}}={extracted_diffusivity_m2_per_s * 1.0e4:.3e}$ "
+        rf"cm² s⁻¹; $D_{{\rm fit}}/D_{{\rm analytical}}="
+        rf"{extracted_diffusivity_m2_per_s / defect_diffusivity_m2_per_s:.4f}$ "
+        rf"($R^2={msd_fit_r_squared:.5f}$)."
     )
-    return microscopic_figure, microscopic_summary
-
+    return hop_figure, microscopic_figure, microscopic_summary
 
 @app.cell
-def _(microscopic_figure, microscopic_summary, mo):
+def _(hop_figure, microscopic_figure, microscopic_summary, mo):
     mo.vstack(
         [
-            microscopic_figure,
-            mo.md(f"**At the selected settings.** {microscopic_summary}"),
+            hop_figure,
             mo.md(r"""
-            **Figure takeaway.** A single path is noisy and has no preferred direction. Diffusivity is
-            an ensemble property: many random paths produce a linear mean-square
-            displacement. Raising \(T\), lowering \(\Delta H_{\rm mig}\), or raising \(\nu\) increases
-            \(\Gamma\), so the same number of lattice steps occurs in less time.
+            The barrier controls **how often** a hop occurs; it does not give a
+            preferred direction between equivalent sites.
+
+            ### Many hops give diffusivity
+
+            The paths below use one fixed random realization. Moving a physical
+            control therefore changes the clock or length scale, not the random
+            sequence itself.
             """),
+            microscopic_figure,
+            mo.md(
+                f"**At the selected state:** {microscopic_summary}  "
+                r"Because $D\propto a^2\Gamma$, doubling $a$ gives $4D$, "
+                r"while multiplying $\Gamma$ by ten gives $10D$."
+            ),
         ]
     )
     return
@@ -810,11 +771,11 @@ def _(microscopic_figure, microscopic_summary, mo):
 @app.cell
 def _(mo):
     master_time = mo.ui.slider(
-        start=0.0,
-        stop=20.0,
-        step=0.5,
-        value=4.0,
-        label="Reduced time, Γt",
+        start=0.002,
+        stop=0.080,
+        step=0.002,
+        value=0.012,
+        label="Diffusion time, Dt / L²",
         show_value=True,
     )
     step_contrast = mo.ui.slider(
@@ -822,7 +783,7 @@ def _(mo):
         stop=0.90,
         step=0.05,
         value=0.70,
-        label="Initial concentration-step contrast",
+        label="Initial left–right occupancy contrast",
         show_value=True,
     )
     master_controls = mo.hstack(
@@ -834,43 +795,34 @@ def _(mo):
     )
     return master_controls, master_time, step_contrast
 
-
 @app.cell
 def _(master_controls, mo):
     mo.vstack(
         [
             mo.md(r"""
-            ## 2. From hopping to Fick's law
+            ## 2. Random exchange becomes Fick's law
 
-            Place more defects on the left than on the right. A concentration
-            gradient does **not** exert a mechanical force on each defect.
-            Individual hops remain random. There are simply more possible
-            left-to-right departures than right-to-left departures, so their
-            difference is a net flux.
-
-            For site occupancy \(c_j\), the zero-field master equation is
+            Put more defects on the left than on the right. Hops remain random,
+            but more defects are available to cross from left to right. Across
+            one bond,
 
             \[
-            \frac{dc_j}{dt}
-            =\frac{\Gamma}{2}(c_{j-1}-2c_j+c_{j+1}).
+            J_{j+1/2}=\frac{\Gamma}{2}(c_j-c_{j+1})
+            =-\frac{D}{a^2}(c_{j+1}-c_j).
             \]
 
-            With \(D=a^2\Gamma/2\), its long-wavelength limit is
-            \(\partial c/\partial t=D\,\partial^2c/\partial x^2\), and the
-            bond flux is exactly the discrete form of \(J=-D\,dc/dx\).
+            The difference between two opposing random exchanges is therefore
+            the finite-lattice form of Fick's law. The ends below are reflecting,
+            so defects remain inside the sample.
             """),
             master_controls,
         ]
     )
     return
 
-
 @app.cell
 def _(
     defect_diffusivity_m2_per_s,
-    discrete_bond_fluxes,
-    evolve_periodic_master_equation,
-    fick_bond_fluxes,
     jump_distance_m,
     master_time,
     np,
@@ -878,37 +830,43 @@ def _(
     hop_frequency_hz,
 ):
     master_site_count = 256
+    master_position = (np.arange(master_site_count) + 0.5) / master_site_count
     contrast_value = float(step_contrast.value)
     left_occupancy = 0.5 * (1.0 + contrast_value)
     right_occupancy = 0.5 * (1.0 - contrast_value)
     initial_master_occupancy = np.where(
-        np.arange(master_site_count) < master_site_count // 2,
+        master_position < 0.5,
         left_occupancy,
         right_occupancy,
     )
-    master_elapsed_s = float(master_time.value) / hop_frequency_hz
-    evolved_master_occupancy = evolve_periodic_master_equation(
-        initial_master_occupancy,
-        hop_frequency_hz,
-        master_elapsed_s,
+
+    fourier_time = float(master_time.value)
+    mode_numbers = np.arange(1, 160, dtype=float)
+    cosine_basis = np.cos(np.pi * mode_numbers[:, None] * master_position[None, :])
+    mean_occupancy = float(np.mean(initial_master_occupancy))
+    mode_coefficients = (2.0 / master_site_count) * (
+        cosine_basis @ (initial_master_occupancy - mean_occupancy)
     )
-    microscopic_bond_flux_per_s = discrete_bond_fluxes(
-        evolved_master_occupancy,
-        hop_frequency_hz,
+    mode_decay = np.exp(-(np.pi * mode_numbers) ** 2 * fourier_time)
+    evolved_master_occupancy = mean_occupancy + (
+        mode_coefficients * mode_decay
+    ) @ cosine_basis
+
+    sample_length_m = master_site_count * jump_distance_m
+    master_elapsed_s = (
+        fourier_time * sample_length_m**2 / defect_diffusivity_m2_per_s
     )
-    fick_bond_flux_per_s = fick_bond_fluxes(
-        evolved_master_occupancy,
-        jump_distance_m,
-        defect_diffusivity_m2_per_s,
+    microscopic_bond_flux_per_s = 0.5 * hop_frequency_hz * (
+        evolved_master_occupancy[:-1] - evolved_master_occupancy[1:]
     )
+    fick_bond_flux_per_s = -(
+        defect_diffusivity_m2_per_s / jump_distance_m**2
+    ) * np.diff(evolved_master_occupancy)
     master_mass_relative_error = abs(
-        np.sum(evolved_master_occupancy)
-        - np.sum(initial_master_occupancy)
+        np.sum(evolved_master_occupancy) - np.sum(initial_master_occupancy)
     ) / np.sum(initial_master_occupancy)
     master_flux_relative_error = float(
-        np.max(
-            np.abs(microscopic_bond_flux_per_s - fick_bond_flux_per_s)
-        )
+        np.max(np.abs(microscopic_bond_flux_per_s - fick_bond_flux_per_s))
         / max(np.max(np.abs(microscopic_bond_flux_per_s)), 1.0e-300)
     )
     return (
@@ -922,14 +880,11 @@ def _(
         microscopic_bond_flux_per_s,
     )
 
-
 @app.cell
 def _(
     evolved_master_occupancy,
     initial_master_occupancy,
     master_elapsed_s,
-    master_flux_relative_error,
-    master_mass_relative_error,
     master_site_count,
     microscopic_bond_flux_per_s,
     mo,
@@ -937,52 +892,49 @@ def _(
     plt,
     scaled_time_axis,
 ):
-    master_position = np.arange(master_site_count) / master_site_count
+    _master_position = (np.arange(master_site_count) + 0.5) / master_site_count
+    bond_position = np.arange(1, master_site_count) / master_site_count
     master_display_time, master_time_unit = scaled_time_axis(
         np.array([master_elapsed_s])
     )
     master_figure, (profile_axis, _flux_axis) = plt.subplots(
-        1,
-        2,
-        figsize=(13.2, 4.8),
-        dpi=120,
+        1, 2, figsize=(13.2, 4.8), dpi=120
     )
     profile_axis.plot(
-        master_position,
+        _master_position,
         initial_master_occupancy,
-        color="#999999",
-        lw=2.0,
+        color="#8C9196",
+        lw=1.3,
         ls="--",
-        label="initial step",
+        label="Initial step",
     )
     profile_axis.plot(
-        master_position,
+        _master_position,
         evolved_master_occupancy,
         color="#4C7C86",
-        lw=1.9,
-        label="master-equation solution",
+        lw=1.7,
+        label="After diffusion",
     )
     profile_axis.set(
-        xlabel="Position / periodic cell length",
+        xlabel="Position, x / L",
         ylabel="Site occupancy",
-        title="Random hopping smooths a concentration step",
+        title="Random hopping smooths the concentration step",
         ylim=(0.0, 1.0),
     )
     profile_axis.grid(alpha=0.22)
     profile_axis.legend(frameon=False)
 
-    flux_scale = max(np.max(np.abs(microscopic_bond_flux_per_s)), 1.0)
     _flux_axis.plot(
-        master_position,
-        microscopic_bond_flux_per_s / flux_scale,
+        bond_position,
+        microscopic_bond_flux_per_s,
         color="#B8734A",
-        lw=1.8,
+        lw=1.6,
     )
     _flux_axis.axhline(0.0, color="#666D73", lw=1.0)
     _flux_axis.set(
-        xlabel="Bond position / periodic cell length",
-        ylabel="Net bond flux / max |flux|",
-        title="Opposing random exchanges leave a net flux",
+        xlabel="Bond position, x / L",
+        ylabel=r"Net exchange (site$^{-1}$ s$^{-1}$)",
+        title="More defects cross from high to low concentration",
     )
     _flux_axis.grid(alpha=0.22)
     master_figure.tight_layout()
@@ -990,118 +942,74 @@ def _(
 
     master_summary = mo.md(
         f"""
-        **Figure takeaway.** The selected time is **{master_display_time[0]:.3g} {master_time_unit}**.
-        Total defect number changes by only
-        **{master_mass_relative_error:.2e}** (relative), while the microscopic
-        bond flux and discrete Fick flux differ by
-        **{master_flux_relative_error:.2e}** (relative).
-        The lattice is periodic, so its right edge joins its left edge. The
-        concentration step therefore repeats at that join and creates the
-        second, oppositely directed flux peak.
+        At this state, the profile has evolved for
+        **{master_display_time[0]:.3g} {master_time_unit}**. The flux is zero at
+        the reflecting ends and largest near the original interface. Both
+        panels describe the same net exchange; no particle is assigned a
+        deterministic force toward lower concentration.
         """
     )
     mo.vstack([master_figure, master_summary])
     return (master_figure,)
 
-
 @app.cell
 def _(mo):
     charge_selector = mo.ui.dropdown(
-        options={
-            "positive defect, z = +1": 1,
-            "negative defect, z = -1": -1,
-        },
-        value="positive defect, z = +1",
+        options={"Positive defect, z = +1": 1, "Negative defect, z = -1": -1},
+        value="Positive defect, z = +1",
         label="Defect charge",
     )
     field_sign = mo.ui.dropdown(
-        options={
-            "E points toward +x": 1.0,
-            "E points toward -x": -1.0,
-        },
-        value="E points toward +x",
+        options={"Toward +x": 1.0, "Toward -x": -1.0},
+        value="Toward +x",
         label="Field direction",
     )
     log_electric_field = mo.ui.slider(
-        start=-2.0,
-        stop=6.0,
-        step=0.25,
-        value=1.0,
-        label="log10 |E| when balance is off (V/cm)",
-        show_value=True,
+        start=2.0, stop=7.0, step=0.25, value=5.0,
+        label="Field magnitude, log10(|E| / V cm^-1)", show_value=True,
     )
     relative_concentration_gradient = mo.ui.slider(
-        start=-0.80,
-        stop=0.80,
-        step=0.05,
-        value=0.30,
-        label="(1/c) dc/dx (per µm)",
-        show_value=True,
-    )
-    enforce_electrochemical_balance = mo.ui.checkbox(
-        value=True,
-        label="Set electrical gradient to cancel chemical gradient",
+        start=-0.80, stop=0.80, step=0.05, value=0.30,
+        label="Relative concentration gradient (per um)", show_value=True,
     )
     field_controls = mo.hstack(
-        [
-            charge_selector,
-            field_sign,
-            log_electric_field,
-            relative_concentration_gradient,
-            enforce_electrochemical_balance,
-        ],
-        justify="start",
-        align="center",
-        wrap=True,
-        gap=1.5,
+        [field_sign, log_electric_field], justify="start", align="center",
+        wrap=True, gap=1.5,
+    )
+    advanced_field_controls = mo.accordion(
+        {"Explore further - charge sign and equilibrium gradient": mo.vstack(
+            [charge_selector, relative_concentration_gradient], gap=0.7)}
     )
     return (
-        charge_selector,
-        enforce_electrochemical_balance,
-        field_controls,
-        field_sign,
-        log_electric_field,
-        relative_concentration_gradient,
+        advanced_field_controls, charge_selector, field_controls, field_sign,
+        log_electric_field, relative_concentration_gradient,
     )
 
-
 @app.cell
-def _(field_controls, mo):
+def _(advanced_field_controls, field_controls, mo):
     mo.vstack(
         [
             mo.md(r"""
-            ## 3. Add an electric field: electrochemical potential
+            ## 3. An electric field biases the hops
 
-            Define positive \(x\) to the right and \(E=-d\phi/dx\). A species
-            with charge \(q=ze\) has symmetric-barrier rates
-
-            \[
-            \Gamma_+=\frac{\Gamma}{2}
-            \exp\!\left(\frac{zeEa}{2k_BT}\right),\qquad
-            \Gamma_-=\frac{\Gamma}{2}
-            \exp\!\left(-\frac{zeEa}{2k_BT}\right).
-            \]
-
-            The factors \(1/2\) mean that, without a field, half of all hops go
-            in each direction. The exact drift is
-            \(v=a(\Gamma_+-\Gamma_-)\). At low field,
-            \(|zeEa|\ll k_BT\), it becomes the Nernst–Einstein result
+            Define positive \(x\) to the right and
+            \(\mathcal E=-d\phi/dx\). A positive field lowers one barrier and
+            raises the other. The two directional rates are
 
             \[
-            v=\frac{zeD}{k_BT}E.
+            \Gamma_\pm=\frac{\Gamma}{2}
+            \exp\!\left(\pm\frac{ze\mathcal Ea}{2k_BT}\right).
             \]
 
-            The same field is used in the hopping landscape and in the
-            macroscopic flux example below. With the cancellation toggle on,
-            that field is calculated from the chosen concentration gradient so
-            that \(d\widetilde{\mu}/dx=0\). With it off, the field controls are
-            used directly.
+            Change the field direction and magnitude. The stable lattice sites
+            do not move, but the energy difference between neighboring sites
+            reverses with the field.
             """),
             field_controls,
+            advanced_field_controls,
         ]
     )
     return
-
 
 @app.cell
 def _(
@@ -1110,7 +1018,6 @@ def _(
     biased_directional_rates,
     charge_selector,
     defect_diffusivity_m2_per_s,
-    enforce_electrochemical_balance,
     exact_hopping_drift_velocity,
     field_sign,
     jump_distance_m,
@@ -1123,44 +1030,20 @@ def _(
     attempt_frequency_hz,
 ):
     charge_number_value = int(charge_selector.value)
-    demonstration_concentration_mol_per_m3 = 1000.0
-    relative_gradient_per_m = (
-        float(relative_concentration_gradient.value) * 1.0e6
+    electric_field_v_per_m = float(field_sign.value) * (
+        100.0 * 10.0 ** float(log_electric_field.value)
     )
-    demonstration_gradient_mol_per_m4 = (
-        demonstration_concentration_mol_per_m3 * relative_gradient_per_m
-    )
-    if enforce_electrochemical_balance.value:
-        demonstration_potential_gradient_v_per_m = (
-            -GAS_CONSTANT_J_PER_MOL_K
-            * temperature_k
-            * relative_gradient_per_m
-            / (charge_number_value * FARADAY_C_PER_MOL)
+    forward_rate_hz, backward_rate_hz, _unbiased_hop_frequency_hz = (
+        biased_directional_rates(
+            temperature_k, migration_enthalpy_ev, attempt_frequency_hz,
+            jump_distance_m, charge_number_value, electric_field_v_per_m,
         )
-    else:
-        selected_electric_field_v_per_m = float(field_sign.value) * (
-            100.0 * 10.0 ** float(log_electric_field.value)
-        )
-        demonstration_potential_gradient_v_per_m = -selected_electric_field_v_per_m
-
-    electric_field_v_per_m = -demonstration_potential_gradient_v_per_m
-    forward_rate_hz, backward_rate_hz, _unbiased_hop_frequency_hz = biased_directional_rates(
-        temperature_k,
-        migration_enthalpy_ev,
-        attempt_frequency_hz,
-        jump_distance_m,
-        charge_number_value,
-        electric_field_v_per_m,
     )
     exact_drift_m_per_s = exact_hopping_drift_velocity(
-        jump_distance_m,
-        forward_rate_hz,
-        backward_rate_hz,
+        jump_distance_m, forward_rate_hz, backward_rate_hz
     )
     low_field_drift_m_per_s = nernst_einstein_drift_velocity(
-        defect_diffusivity_m2_per_s,
-        temperature_k,
-        charge_number_value,
+        defect_diffusivity_m2_per_s, temperature_k, charge_number_value,
         electric_field_v_per_m,
     )
     hopping_bias_ratio = forward_rate_hz / backward_rate_hz
@@ -1171,14 +1054,20 @@ def _(
         8.617333262e-5 * temperature_k
     )
 
+    demonstration_concentration_mol_per_m3 = 1000.0
+    relative_gradient_per_m = float(relative_concentration_gradient.value) * 1.0e6
+    demonstration_gradient_mol_per_m4 = (
+        demonstration_concentration_mol_per_m3 * relative_gradient_per_m
+    )
+    demonstration_potential_gradient_v_per_m = (
+        -GAS_CONSTANT_J_PER_MOL_K * temperature_k * relative_gradient_per_m
+        / (charge_number_value * FARADAY_C_PER_MOL)
+    )
     chemical_potential_gradient_j_per_mol_m = (
-        GAS_CONSTANT_J_PER_MOL_K
-        * temperature_k
-        * relative_gradient_per_m
+        GAS_CONSTANT_J_PER_MOL_K * temperature_k * relative_gradient_per_m
     )
     electrical_potential_gradient_j_per_mol_m = (
-        charge_number_value
-        * FARADAY_C_PER_MOL
+        charge_number_value * FARADAY_C_PER_MOL
         * demonstration_potential_gradient_v_per_m
     )
     electrochemical_gradient_j_per_mol_m = (
@@ -1190,35 +1079,25 @@ def _(
         electrical_flux_mol_per_m2_s,
         total_np_flux_mol_per_m2_s,
     ) = molar_nernst_planck_flux(
-        defect_diffusivity_m2_per_s,
-        demonstration_concentration_mol_per_m3,
+        defect_diffusivity_m2_per_s, demonstration_concentration_mol_per_m3,
         demonstration_gradient_mol_per_m4,
-        demonstration_potential_gradient_v_per_m,
-        charge_number_value,
+        demonstration_potential_gradient_v_per_m, charge_number_value,
         temperature_k,
     )
     return (
-        backward_rate_hz,
-        charge_number_value,
+        backward_rate_hz, charge_number_value,
         chemical_potential_gradient_j_per_mol_m,
         demonstration_concentration_mol_per_m3,
         demonstration_gradient_mol_per_m4,
         demonstration_potential_gradient_v_per_m,
-        diffusion_flux_mol_per_m2_s,
-        electric_field_v_per_m,
+        diffusion_flux_mol_per_m2_s, electric_field_v_per_m,
         electrical_flux_mol_per_m2_s,
         electrical_potential_gradient_j_per_mol_m,
-        electrochemical_gradient_j_per_mol_m,
-        exact_drift_m_per_s,
-        field_work_per_hop_ev,
-        forward_rate_hz,
-        hopping_bias_ratio,
-        low_field_drift_m_per_s,
-        low_field_parameter,
-        relative_gradient_per_m,
+        electrochemical_gradient_j_per_mol_m, exact_drift_m_per_s,
+        field_work_per_hop_ev, forward_rate_hz, hopping_bias_ratio,
+        low_field_drift_m_per_s, low_field_parameter, relative_gradient_per_m,
         total_np_flux_mol_per_m2_s,
     )
-
 
 @app.cell
 def _(
@@ -1247,164 +1126,142 @@ def _(
     field_coordinate = np.linspace(0.0, 2.0, 500)
     field_position_m = field_coordinate * jump_distance_m
     tilted_energy_ev = (
-        0.5
-        * migration_enthalpy_ev
+        0.5 * migration_enthalpy_ev
         * (1.0 - np.cos(2.0 * np.pi * field_coordinate))
         - charge_number_value * electric_field_v_per_m * field_position_m
     )
-    field_figure, (tilt_axis, gradient_axis, _flux_axis) = plt.subplots(
-        1,
-        3,
-        figsize=(15.2, 4.9),
-        dpi=120,
+    field_figure, tilt_axis = plt.subplots(figsize=(11.5, 4.0), dpi=120)
+    tilt_axis.plot(field_coordinate, tilted_energy_ev, color="#4C7C86", lw=1.7)
+    site_energies = -charge_number_value * electric_field_v_per_m * (
+        np.array([0.0, 1.0, 2.0]) * jump_distance_m
     )
-    tilt_axis.plot(field_coordinate, tilted_energy_ev, color="#4C7C86", lw=1.9)
     tilt_axis.scatter(
-        [0.0, 1.0, 2.0],
-        [
-            0.0,
-            -charge_number_value * electric_field_v_per_m * jump_distance_m,
-            -2.0 * charge_number_value * electric_field_v_per_m * jump_distance_m,
-        ],
-        s=65,
-        color="#C49345",
-        edgecolor="#40464D",
-        zorder=4,
+        [0.0, 1.0, 2.0], site_energies, s=65, color="#C49345",
+        edgecolor="#40464D", zorder=4, label="Stable sites",
     )
     tilt_axis.set(
-        xlabel="Position / a",
-        ylabel="Energy (eV)",
-        title="The field tilts the hopping landscape",
+        xlabel=r"Position, $x/a$", ylabel="Energy (eV)",
+        title="The electric field tilts the hopping landscape",
     )
     tilt_axis.grid(alpha=0.22)
+    tilt_axis.legend(frameon=False)
+    field_figure.tight_layout()
+    plt.close(field_figure)
 
-    gradient_values = np.array(
-        [
-            chemical_potential_gradient_j_per_mol_m,
-            electrical_potential_gradient_j_per_mol_m,
-            electrochemical_gradient_j_per_mol_m,
-        ]
-    ) * 1.0e-6
-    gradient_axis.bar(
-        ["chemical", "electrical", "total"],
-        gradient_values,
+    gradient_values = 1.0e-6 * np.array([
+        chemical_potential_gradient_j_per_mol_m,
+        electrical_potential_gradient_j_per_mol_m,
+        electrochemical_gradient_j_per_mol_m,
+    ])
+    flux_values = np.array([
+        diffusion_flux_mol_per_m2_s, electrical_flux_mol_per_m2_s,
+        total_np_flux_mol_per_m2_s,
+    ])
+    balance_figure, (_gradient_axis, _flux_axis) = plt.subplots(
+        1, 2, figsize=(12.8, 4.5), dpi=120
+    )
+    _gradient_axis.bar(
+        ["Chemical", "Electrical", "Total"], gradient_values,
         color=["#4C7C86", "#B8734A", "#C49345"],
     )
-    gradient_axis.axhline(0.0, color="#333333", lw=1.0)
-    gradient_axis.set(
-        ylabel="Potential change (J/mol per µm)",
-        title=r"$d\widetilde{\mu}/dx=d\mu/dx+zF\,d\phi/dx$",
+    _gradient_axis.axhline(0.0, color="#333333", lw=1.0)
+    _gradient_axis.set(
+        ylabel="Potential change (J mol^-1 um^-1)",
+        title="Potential gradients cancel",
     )
-    gradient_axis.tick_params(axis="x", rotation=18)
-    gradient_axis.grid(axis="y", alpha=0.22)
-
-    flux_values = np.array(
-        [
-            diffusion_flux_mol_per_m2_s,
-            electrical_flux_mol_per_m2_s,
-            total_np_flux_mol_per_m2_s,
-        ]
-    )
+    _gradient_axis.grid(axis="y", alpha=0.22)
     _flux_axis.bar(
-        ["diffusion", "electrical", "total"],
-        flux_values,
+        ["Diffusion", "Electrical", "Total"], flux_values,
         color=["#4C7C86", "#B8734A", "#C49345"],
     )
     _flux_axis.axhline(0.0, color="#333333", lw=1.0)
     _flux_axis.set(
         ylabel=r"Molar flux (mol m$^{-2}$ s$^{-1}$)",
-        title="Nonzero parts can cancel exactly",
+        title="The total flux is zero at equilibrium",
     )
-    _flux_axis.tick_params(axis="x", rotation=18)
     _flux_axis.grid(axis="y", alpha=0.22)
-    field_figure.tight_layout()
-    plt.close(field_figure)
+    balance_figure.tight_layout()
+    plt.close(balance_figure)
 
-    balance_scale = max(
-        abs(diffusion_flux_mol_per_m2_s)
-        + abs(electrical_flux_mol_per_m2_s),
-        1.0e-300,
-    )
     field_summary = mo.md(
         rf"""
-        **Figure takeaway.** The microscopic and macroscopic descriptions use the same electric driving force. \(ze\mathcal{{E}}a={field_work_per_hop_ev:.3e}\) eV,
-        \(|zeEa|/(k_BT)={low_field_parameter:.3e}\), and
-        \(\Gamma_+/\Gamma_-={hopping_bias_ratio:.5g}\). The exact drift is
-        **{exact_drift_m_per_s:.3e} m/s**; the low-field prediction is
-        **{low_field_drift_m_per_s:.3e} m/s**.
-        At the default equilibrium field, the tilt is intentionally tiny beside
-        the **{migration_enthalpy_ev:.2f} eV** migration barrier; that contrast
-        is the physical point.
-
-        **One field, two views.** The field is
-        **{electric_field_v_per_m / 100.0:.3e} V/cm**, so
-        \(d\phi/dx={demonstration_potential_gradient_v_per_m / 100.0:.3e}\) V/cm.
-        At equilibrium the chemical and electrical contributions oppose one
-        another, so the total flux vanishes even though each contribution is
-        nonzero.
+        Neighboring sites differ by
+        \(ze\mathcal{{E}}a={field_work_per_hop_ev:.3e}\) eV, so
+        \(\Gamma_+/\Gamma_-={hopping_bias_ratio:.5g}\).
+        The exact drift is **{exact_drift_m_per_s:.3e} m s^-1**; the low-field
+        prediction is **{low_field_drift_m_per_s:.3e} m s^-1**.
         """
     )
-    mo.vstack([field_figure, field_summary])
+    balance_details = mo.vstack([
+        mo.md(r"""
+        ### Chemical and electrical driving forces can cancel
+
+        For a molar concentration \(c\),
+
+        \[
+        J=-D\frac{dc}{dx}-\frac{zFD}{RT}c\frac{d\phi}{dx}
+          =-\frac{Dc}{RT}\frac{d\widetilde{\mu}}{dx},
+        \qquad \widetilde{\mu}=\mu+zF\phi.
+        \]
+
+        A concentration gradient can therefore coexist with equilibrium:
+        the chemical and electrical parts are nonzero, but their sum is zero.
+        """),
+        balance_figure,
+        mo.md(
+            rf"The balancing field is "
+            rf"\(\mathcal{{E}}={-demonstration_potential_gradient_v_per_m / 100.0:.3e}\) "
+            r"V cm^-1 for the selected concentration gradient."
+        ),
+    ])
+    mo.vstack([
+        field_figure,
+        field_summary,
+        mo.accordion(
+            {"Explore further - why equilibrium can have gradients": balance_details}
+        ),
+    ])
     return (field_figure,)
 
-
 @app.cell
 def _(mo):
-    mo.md(r"""
-    For number concentration \(c_N\), the one-dimensional low-field equation is
+    mo.accordion({
+        "Model details - particle and molar flux notation": mo.md(r"""
+        For number concentration \(c_N\),
 
-    \[
-    J_N=-D\frac{dc_N}{dx}+\frac{zeD}{k_BT}c_N\mathcal E .
-    \]
+        \[
+        J_N=-D\frac{dc_N}{dx}+\frac{zeD}{k_BT}c_N\mathcal E .
+        \]
 
-    For molar concentration \(c\), use \(F=N_Ae\) and \(R=N_Ak_B\):
+        For molar concentration \(c\), use \(F=N_Ae\) and \(R=N_Ak_B\):
 
-    \[
-    J=-D\frac{dc}{dx}-\frac{zFD}{RT}c\frac{d\phi}{dx}
-      =-\frac{Dc}{RT}\frac{d(\mu+zF\phi)}{dx}.
-    \]
+        \[
+        J=-D\frac{dc}{dx}-\frac{zFD}{RT}c\frac{d\phi}{dx}.
+        \]
 
-    Thus \(\widetilde{\mu}=\mu+zF\phi\) is the electrochemical potential.
-    Equilibrium requires \(d\widetilde{\mu}/dx=0\), not separately
-    \(d\mu/dx=0\) and \(d\phi/dx=0\). Keep the cancellation toggle on to see
-    a nonzero chemical gradient and nonzero electrical gradient produce zero
-    total flux.
-    """)
+        Particle-scale equations use \(k_B,e\); molar equations use \(R,F\).
+        """)
+    })
     return
 
 @app.cell
 def _(mo):
-    mo.md(r"""
-    ## 4. Three diffusivities answer different questions
+    mo.accordion({
+        "Explore further - tracer, charge, and chemical diffusivity": mo.md(r"""
+        The symbol \(D\) can describe different experiments:
 
-    Before changing the material composition, distinguish three quantities that
-    are all called diffusivity. The symbol \(D\) does not always describe the
-    same measurement.
+        | notation | experiment | what moves? |
+        |---|---|---|
+        | \(D^*\) | isotope tracer profile | labeled atoms |
+        | \(D^q\) | steady conductivity | charge-carrying ions |
+        | \(D_{\rm Li}^{\delta}\) | chemical relaxation | \(\mathrm{Li^+}\) and \(e^-\) together |
 
-    | notation | experiment | what moves? | composition changes? |
-    |---|---|---|---|
-    | \(D^*\) | isotope tracer profile | labeled atoms | no |
-    | \(D^q\) | steady conductivity | charge-carrying ions | no |
-    | \(D_{\rm Li}^{\delta}\) | chemical relaxation | \(\mathrm{Li^+}\) and \(e^-\) together | yes |
-
-    The first sections of this notebook calculate the microscopic diffusivity
-    of an ideal mobile defect from its hops. A tracer or conductivity
-    measurement can contain additional information about which atoms carry
-    those hops and how their motions are correlated. Chemical diffusion is
-    different because the material's composition changes.
-
-    Tracer and conductivity-derived diffusion are related by the **Haven
-    ratio**,
-
-    \[
-    D^*=H D^q.
-    \]
-
-    Here $H$ summarizes correlations between successive ionic motions; $H=1$
-    is the uncorrelated limit, not a rule for all solids.
-    """)
+        Correlation can make tracer and conductivity-derived values differ:
+        \(D^*=H D^q\), where \(H\) is the Haven ratio. The core lesson below
+        concerns chemical diffusion, where the composition itself changes.
+        """)
+    })
     return
-
 
 @app.cell
 def _(mo):
@@ -1443,9 +1300,12 @@ def _(ambipolar_controls, mo):
     mo.vstack(
         [
             mo.md(r"""
-            ## 5. Chemical diffusion: Li⁺ and electrons move together
+            ## 4. Chemical diffusion: two carriers, one bottleneck
 
-            Now consider the simplest neutral-composition reaction:
+            **If electrons become much faster than ions, can the chemical
+            diffusivity grow without limit?**
+
+            Consider the simplest neutral-composition reaction:
 
             \[
             \mathrm{Li}\rightleftharpoons \mathrm{Li^+}+e^- .
@@ -1682,8 +1542,8 @@ def _(
 
     ambipolar_summary = mo.md(
         rf"""
-        **Figure takeaway.** The internal field forces the ion and electron
-        to share one neutral-composition flux. The internal potential gradient is
+        The internal field forces the ion and electron to share one
+        neutral-composition flux. The internal potential gradient is
         **{internal_potential_gradient_v_per_m / 100.0:.3e} V/cm**. It gives
         \(J_{{\rm Li^+}}={ionic_flux_mol_per_m2_s:.3e}\) and
         \(J_{{e^-}}={electronic_flux_mol_per_m2_s:.3e}\) mol/(m² s), while
@@ -1709,7 +1569,7 @@ def _(
     lithium_chemical_diffusivity_cm2_per_s,
     mo,
 ):
-    mo.md(
+    derivation = mo.md(
         rf"""
         ### Deriving the common chemical diffusivity
 
@@ -1776,6 +1636,7 @@ def _(
         $\mu_{{\rm Li}}$ must be supplied separately.
         """
     )
+    mo.accordion({"Model details - deriving the common diffusivity": derivation})
     return
 
 
@@ -1805,37 +1666,6 @@ def _(mo):
         gap=1.5,
     )
     return log_sample_length, reduced_profile_time, relaxation_controls
-
-
-@app.cell
-def _(mo, relaxation_controls):
-    mo.vstack(
-        [
-            mo.md(r"""
-            ## 6. Chemical diffusivity sets the relaxation time
-
-            Once ions and electrons share one chemical diffusivity, that same
-            coefficient determines how quickly a macroscopic composition profile
-            can relax. Two related clocks must not be given the same name:
-
-            \[
-            t_D=\frac{L^2}{D_{\rm Li}^{\delta}},\qquad
-            \tau^\delta=\frac{L^2}{\pi^2D_{\rm Li}^{\delta}},\qquad
-            \theta=\frac{D_{\rm Li}^{\delta}t}{L^2}.
-            \]
-
-            $t_D$ is the direct diffusion scaling time. $\tau^\delta$ is the
-            slowest-mode time for this slab relaxation. The profile control is
-            the Fourier number $\theta$, not an unspecified “reduced time.”
-
-            Increasing the length by a factor of ten increases both diffusion
-            times by a factor of one hundred. This is why the same material can
-            respond quickly as a thin film and slowly as a bulk sample.
-            """),
-            relaxation_controls,
-        ]
-    )
-    return
 
 
 @app.cell
@@ -1879,6 +1709,7 @@ def _(
     np,
     plt,
     reduced_profile_time,
+    relaxation_controls,
     relaxation_curve_s,
     selected_length_m,
     selected_relaxation_time_s,
@@ -1960,7 +1791,7 @@ def _(
 
     relaxation_summary = mo.md(
         rf"""
-        **Figure takeaway.** With \(D_{{\rm Li}}^\delta
+        With \(D_{{\rm Li}}^\delta
         ={lithium_chemical_diffusivity_cm2_per_s:.3e}\) cm²/s and
         \(L={selected_length_m:.3e}\) m, $t_D$ is **{time_text}** and
         $\tau^\delta$ is **{first_mode_text}**.
@@ -1968,7 +1799,25 @@ def _(
         number \(\theta={float(reduced_profile_time.value):.2f}\).
         """
     )
-    mo.vstack([relaxation_figure, relaxation_summary])
+    relaxation_reader = mo.vstack([
+        mo.md(r"""
+        Chemical diffusivity also sets a sample-scale clock:
+
+        \[
+        t_D=\frac{L^2}{D_{\rm Li}^{\delta}},\qquad
+        \tau^\delta=\frac{L^2}{\pi^2D_{\rm Li}^{\delta}}.
+        \]
+
+        This is why the same material responds rapidly as a thin film and
+        slowly as a bulk sample.
+        """),
+        relaxation_controls,
+        relaxation_figure,
+        relaxation_summary,
+    ])
+    mo.accordion(
+        {"Explore further - sample length and relaxation time": relaxation_reader}
+    )
     return (relaxation_figure,)
 
 
@@ -1978,7 +1827,10 @@ def _(
     KB_EV_PER_K,
     ambipolar_gradient_mol_per_m4,
     analytic_common_flux_mol_per_m2_s,
+    attempt_frequency_hz,
     backward_rate_hz,
+    biased_directional_rates,
+    charge_number_value,
     conductivity_form_diffusivity_m2_per_s,
     defect_diffusivity_m2_per_s,
     diffusion_flux_mol_per_m2_s,
@@ -1986,6 +1838,7 @@ def _(
     electronic_flux_mol_per_m2_s,
     electrical_flux_mol_per_m2_s,
     exact_drift_m_per_s,
+    exact_hopping_drift_velocity,
     extracted_diffusivity_m2_per_s,
     field_work_per_hop_ev,
     forward_rate_hz,
@@ -1997,7 +1850,9 @@ def _(
     low_field_drift_m_per_s,
     master_flux_relative_error,
     master_mass_relative_error,
+    migration_enthalpy_ev,
     msd_fit_r_squared,
+    nernst_einstein_drift_velocity,
     np,
     open_circuit_current_a_per_m2,
     temperature_k,
@@ -2021,9 +1876,29 @@ def _(
         forward_rate_hz / backward_rate_hz,
         np.exp(field_work_per_hop_ev / (KB_EV_PER_K * temperature_k)),
     )
+    _test_field_v_per_m = 1.0
+    _test_forward_rate_hz, _test_backward_rate_hz, _ = biased_directional_rates(
+        temperature_k,
+        migration_enthalpy_ev,
+        attempt_frequency_hz,
+        jump_distance_m,
+        charge_number_value,
+        _test_field_v_per_m,
+    )
+    _test_exact_drift_m_per_s = exact_hopping_drift_velocity(
+        jump_distance_m,
+        _test_forward_rate_hz,
+        _test_backward_rate_hz,
+    )
+    _test_low_field_drift_m_per_s = nernst_einstein_drift_velocity(
+        defect_diffusivity_m2_per_s,
+        temperature_k,
+        charge_number_value,
+        _test_field_v_per_m,
+    )
     low_field_drift_error = _relative_error(
-        exact_drift_m_per_s,
-        low_field_drift_m_per_s,
+        _test_exact_drift_m_per_s,
+        _test_low_field_drift_m_per_s,
     )
 
     flux_balance_scale = max(
@@ -2142,30 +2017,24 @@ def _(mo, transport_validation):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## Take-home map
+    ## What to carry forward
 
-    1. **Hops become diffusion.** In one dimension,
-       $\Gamma=\nu e^{-\Delta H_{\rm mig}/k_BT}$ gives
-       $D=a^2\Gamma/2$, $\langle x^2\rangle=2Dt$, and the
-       long-wavelength flux $J=-D\,dc/dx$.
-    2. **Electrochemical potential unifies the driving forces.** A concentration
-       gradient and $\mathcal E=-\partial\phi/\partial x$ enter through
-       $\widetilde\mu=\mu+zF\phi$; equilibrium means their contributions cancel.
-    3. **Chemical diffusion moves a neutral composition.** For the dilute ideal
-       Li pair, equal Li-ion/electron fluxes give
-       $D_{\rm Li}^{\delta}=2D_{\rm Li^+}D_{e^-}/(D_{\rm Li^+}+D_{e^-})$.
-       This compact factor of two is specific to the stated ideal pair, not a
-       universal formula for every defect reaction.
+    Random hops produce \(D=a^2\Gamma/2\) in one dimension. A concentration
+    difference creates a net flux because more defects exchange from the
+    crowded side, and an electric field biases the two directional hop rates.
 
-    **Model boundary.** Every spatial equation and simulation in this notebook
-    is one-dimensional. The Li derivation assumes local equilibrium, local
-    electroneutrality, and ideal dilute concentrations; its compact factor of two
-    does not extend automatically to other reactions or concentrated materials.
-    The Haven ratio introduces correlation without calculating it here;
-    interfaces are left for later treatment.
+    For the ideal locally neutral pair
+    \(\mathrm{Li}\rightleftharpoons\mathrm{Li^+}+e^-\), ions and electrons must
+    share one flux. Their chemical diffusivity is therefore
+
+    \[
+    D_{\rm Li}^{\delta}
+    =\frac{2D_{\rm Li^+}D_{e^-}}{D_{\rm Li^+}+D_{e^-}},
+    \]
+
+    so the slower carrier sets the bottleneck.
     """)
     return
-
 
 @app.cell
 def _(mo):
