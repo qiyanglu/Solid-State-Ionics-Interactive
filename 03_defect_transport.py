@@ -179,34 +179,25 @@ def _(np):
             / (KB_J_PER_K * temperature)
         )
 
-    def simulate_zero_field_walks(
-        jump_distance_m,
-        hop_frequency_hz,
-        walker_count=6000,
-        step_count=320,
-        seed=2026,
-    ):
-        """Simulate unbiased 1D walks with mean interval 1/Gamma.
+    def simulate_zero_field_walks(walker_count=6000, step_count=320, seed=2026):
+        """Return one fixed ensemble of unbiased one-dimensional lattice walks.
 
-        Each observation interval contains one jump, chosen toward +x or -x
-        with equal probability.
+        The output is expressed only in hop number and lattice-site units.
+        Physical distance and time are applied later through a and Gamma.
         """
-        distance = require_positive("jump_distance_m", jump_distance_m)
-        frequency = require_positive("hop_frequency_hz", hop_frequency_hz)
         walkers = int(walker_count)
         steps = int(step_count)
         if walkers < 2 or steps < 2:
             raise ValueError("walker_count and step_count must be at least 2")
         rng = np.random.default_rng(int(seed))
         increments = rng.choice((-1.0, 1.0), size=(walkers, steps))
-        lattice_positions = np.concatenate(
+        positions_in_lattice_steps = np.concatenate(
             [np.zeros((walkers, 1)), np.cumsum(increments, axis=1)],
             axis=1,
         )
-        positions_m = distance * lattice_positions
-        times_s = np.arange(steps + 1, dtype=float) / frequency
-        msd_m2 = np.mean(positions_m**2, axis=0)
-        return times_s, positions_m, msd_m2
+        hop_numbers = np.arange(steps + 1, dtype=float)
+        mean_square_steps = np.mean(positions_in_lattice_steps**2, axis=0)
+        return hop_numbers, positions_in_lattice_steps, mean_square_steps
 
     def evolve_periodic_master_equation(initial_occupancy, hop_frequency_hz, time_s):
         """Evolve dc_j/dt=(Gamma/2)(c_{j-1}-2c_j+c_{j+1}) in 1D."""
@@ -475,7 +466,7 @@ def _(mo):
         stop=14.0,
         step=0.25,
         value=13.0,
-        label="Attempt frequency, log10(ν / s⁻¹)",
+        label="Attempt-frequency exponent (base 10, per second)",
         show_value=True,
     )
     jump_distance = mo.ui.slider(
@@ -551,15 +542,16 @@ def _(
         jump_distance_m,
         hop_frequency_hz,
     )
-    walk_seed = 2026
-
-    walk_times_s, walk_positions_m, walk_msd_m2 = simulate_zero_field_walks(
-        jump_distance_m,
-        hop_frequency_hz,
-        walker_count=6000,
-        step_count=320,
-        seed=walk_seed,
+    walk_hop_numbers, walk_positions_in_steps, walk_msd_in_steps2 = (
+        simulate_zero_field_walks(
+            walker_count=6000,
+            step_count=320,
+            seed=2026,
+        )
     )
+    walk_times_s = walk_hop_numbers / hop_frequency_hz
+    walk_positions_m = jump_distance_m * walk_positions_in_steps
+    walk_msd_m2 = jump_distance_m**2 * walk_msd_in_steps2
     fit_start = walk_times_s.size // 5
     _fit_times = walk_times_s[fit_start:]
     _fit_msd = walk_msd_m2[fit_start:]
@@ -582,8 +574,10 @@ def _(
         migration_enthalpy_ev,
         msd_fit_r_squared,
         temperature_k,
+        walk_hop_numbers,
         walk_msd_m2,
         walk_positions_m,
+        walk_positions_in_steps,
         walk_times_s,
         hop_frequency_hz,
     )
@@ -602,10 +596,8 @@ def _(mo):
 
 @app.cell
 def _(
-    attempt_frequency_hz,
     defect_diffusivity_m2_per_s,
     extracted_diffusivity_m2_per_s,
-    hop_frequency,
     hop_frequency_hz,
     jump_distance_m,
     migration_enthalpy_ev,
@@ -613,8 +605,9 @@ def _(
     np,
     plt,
     scaled_time_axis,
+    walk_hop_numbers,
     walk_msd_m2,
-    walk_positions_m,
+    walk_positions_in_steps,
     walk_times_s,
 ):
     reaction_coordinate = np.linspace(0.0, 2.0, 500)
@@ -658,46 +651,34 @@ def _(
     hop_figure.tight_layout()
     plt.close(hop_figure)
 
-    baseline_frequency_hz = hop_frequency(900.0, 0.70, attempt_frequency_hz)
-    baseline_times_s = np.arange(walk_times_s.size) / baseline_frequency_hz
-    combined_times_s = np.concatenate([walk_times_s, baseline_times_s])
-    combined_display_time, time_unit = scaled_time_axis(combined_times_s)
-    selected_display_time = combined_display_time[: walk_times_s.size]
-    baseline_display_time = combined_display_time[walk_times_s.size :]
-    baseline_diffusivity_m2_per_s = 0.5 * jump_distance_m**2 * baseline_frequency_hz
-    baseline_msd_m2 = (walk_msd_m2 / jump_distance_m**2) * jump_distance_m**2
-
-    microscopic_figure, (trajectory_axis, msd_axis) = plt.subplots(
-        1, 2, figsize=(13.2, 4.8), dpi=120
+    trajectory_figure, trajectory_axis = plt.subplots(
+        figsize=(8.6, 4.5), dpi=120
     )
-    for trajectory_index in range(6):
+    for trajectory_index, (_color, _style) in enumerate(
+        zip(("#4C7C86", "#B8734A", "#7C6A91"), ("-", "--", "-."))
+    ):
         trajectory_axis.step(
-            selected_display_time,
-            walk_positions_m[trajectory_index] * 1.0e9,
+            walk_hop_numbers,
+            walk_positions_in_steps[trajectory_index],
             where="post",
-            lw=1.1,
-            alpha=0.72,
-            color="#4C7C86",
-            label="Selected state" if trajectory_index == 0 else None,
+            lw=1.5,
+            color=_color,
+            ls=_style,
+            label=f"Walker {trajectory_index + 1}",
         )
-    trajectory_axis.step(
-        baseline_display_time,
-        walk_positions_m[0] * 1.0e9,
-        where="post",
-        lw=1.3,
-        ls="--",
-        color="#B8734A",
-        label=r"Same path at $T=900$ K, $\Delta H_{\rm mig}=0.70$ eV",
-    )
     trajectory_axis.axhline(0.0, color="#73808C", lw=0.9, ls=":")
     trajectory_axis.set(
-        xlabel=f"Physical time ({time_unit})",
-        ylabel=r"Position, $x$ (nm)",
-        title="The same random paths run on a physical clock",
+        xlabel="Hop number",
+        ylabel=r"Position, $x/a$ (lattice steps)",
+        title="A random walk is geometry before it is a clock",
     )
     trajectory_axis.grid(alpha=0.22)
     trajectory_axis.legend(frameon=False, loc="best")
+    trajectory_figure.tight_layout()
+    plt.close(trajectory_figure)
 
+    selected_display_time, time_unit = scaled_time_axis(walk_times_s)
+    msd_figure, msd_axis = plt.subplots(figsize=(8.6, 4.5), dpi=120)
     msd_axis.plot(
         selected_display_time,
         walk_msd_m2 * 1.0e18,
@@ -706,7 +687,7 @@ def _(
         marker="o",
         markevery=32,
         ms=3.5,
-        label="Random-walk ensemble",
+        label="Fixed random-walk ensemble",
     )
     msd_axis.plot(
         selected_display_time,
@@ -714,15 +695,7 @@ def _(
         color="#B8734A",
         lw=1.5,
         ls="--",
-        label=r"Selected prediction, $2Dt$",
-    )
-    msd_axis.plot(
-        baseline_display_time,
-        2.0 * baseline_diffusivity_m2_per_s * baseline_times_s * 1.0e18,
-        color="#7C6A91",
-        lw=1.2,
-        ls=":",
-        label="Default-state prediction",
+        label=r"Analytical $2Dt$",
     )
     msd_axis.set(
         xlabel=f"Physical time ({time_unit})",
@@ -731,8 +704,8 @@ def _(
     )
     msd_axis.grid(alpha=0.22)
     msd_axis.legend(frameon=False)
-    microscopic_figure.tight_layout()
-    plt.close(microscopic_figure)
+    msd_figure.tight_layout()
+    plt.close(msd_figure)
 
     microscopic_summary = (
         rf"$D_{{\rm analytical}}={defect_diffusivity_m2_per_s * 1.0e4:.3e}$ "
@@ -741,10 +714,10 @@ def _(
         rf"{extracted_diffusivity_m2_per_s / defect_diffusivity_m2_per_s:.4f}$ "
         rf"($R^2={msd_fit_r_squared:.5f}$)."
     )
-    return hop_figure, microscopic_figure, microscopic_summary
+    return hop_figure, msd_figure, microscopic_summary, trajectory_figure
 
 @app.cell
-def _(hop_figure, microscopic_figure, microscopic_summary, mo):
+def _(hop_figure, msd_figure, microscopic_summary, mo, trajectory_figure):
     mo.vstack(
         [
             hop_figure,
@@ -758,7 +731,14 @@ def _(hop_figure, microscopic_figure, microscopic_summary, mo):
             control therefore changes the clock or length scale, not the random
             sequence itself.
             """),
-            microscopic_figure,
+            trajectory_figure,
+            mo.md(r"""
+            Temperature and migration barrier do not change these paths in hop
+            space. They change only how quickly the same hop sequence is
+            traversed. The next figure applies the selected physical clock,
+            $t=N_{\rm hop}/\Gamma$, and length scale, $x=a(x/a)$.
+            """),
+            msd_figure,
             mo.md(
                 f"**At the selected state:** {microscopic_summary}  "
                 r"Because $D\propto a^2\Gamma$, doubling $a$ gives $4D$, "
@@ -916,7 +896,7 @@ def _(
         label="After diffusion",
     )
     profile_axis.set(
-        xlabel="Position, x / L",
+        xlabel=r"Position, $x/L$",
         ylabel="Site occupancy",
         title="Random hopping smooths the concentration step",
         ylim=(0.0, 1.0),
@@ -932,7 +912,7 @@ def _(
     )
     _flux_axis.axhline(0.0, color="#666D73", lw=1.0)
     _flux_axis.set(
-        xlabel="Bond position, x / L",
+        xlabel=r"Bond position, $x/L$",
         ylabel=r"Net exchange (site$^{-1}$ s$^{-1}$)",
         title="More defects cross from high to low concentration",
     )
@@ -966,11 +946,11 @@ def _(mo):
     )
     log_electric_field = mo.ui.slider(
         start=2.0, stop=7.0, step=0.25, value=5.0,
-        label="Field magnitude, log10(|E| / V cm^-1)", show_value=True,
+        label="Field-magnitude exponent (base 10, volts per centimeter)", show_value=True,
     )
     relative_concentration_gradient = mo.ui.slider(
         start=-0.80, stop=0.80, step=0.05, value=0.30,
-        label="Relative concentration gradient (per um)", show_value=True,
+        label="Relative concentration gradient (per micrometer)", show_value=True,
     )
     field_controls = mo.hstack(
         [field_sign, log_electric_field], justify="start", align="center",
@@ -1166,7 +1146,7 @@ def _(
     )
     _gradient_axis.axhline(0.0, color="#333333", lw=1.0)
     _gradient_axis.set(
-        ylabel="Potential change (J mol^-1 um^-1)",
+        ylabel=r"Potential gradient (J mol$^{-1}$ $\mu$m$^{-1}$)",
         title="Potential gradients cancel",
     )
     _gradient_axis.grid(axis="y", alpha=0.22)
@@ -1270,7 +1250,7 @@ def _(mo):
         stop=-6.0,
         step=0.25,
         value=-10.0,
-        label="log10 D_Li⁺ (cm²/s)",
+        label="Lithium-ion diffusivity exponent",
         show_value=True,
     )
     log_electronic_to_ionic_ratio = mo.ui.slider(
@@ -1278,7 +1258,7 @@ def _(mo):
         stop=4.0,
         step=0.25,
         value=3.0,
-        label="log10(D_e⁻ / D_Li⁺)",
+        label="Electron/ion diffusivity-ratio exponent",
         show_value=True,
     )
     ambipolar_controls = mo.hstack(
@@ -1552,7 +1532,7 @@ def _(
 
         The common flux corresponds to
         \(D_{{\rm Li}}^{{\delta}}
-        ={lithium_chemical_diffusivity_cm2_per_s:.3e}\) cm²/s.
+        ={lithium_chemical_diffusivity_cm2_per_s:.3e}\) cm² s⁻¹.
         """
     )
     mo.vstack([ambipolar_figure, ambipolar_summary])
@@ -1622,14 +1602,14 @@ def _(
         \]
 
         At the selected values,
-        $D_{{\rm Li^+}}={ionic_diffusivity_cm2_per_s:.3e}$ cm²/s and
-        $D_{{e^-}}={electronic_diffusivity_cm2_per_s:.3e}$ cm²/s, with
+        $D_{{\rm Li^+}}={ionic_diffusivity_cm2_per_s:.3e}$ cm² s⁻¹ and
+        $D_{{e^-}}={electronic_diffusivity_cm2_per_s:.3e}$ cm² s⁻¹, with
         $\sigma_{{\rm Li^+}}={ionic_conductivity_s_per_m:.3e}$ S/m and
         $\sigma_{{e^-}}={electronic_conductivity_s_per_m:.3e}$ S/m.
         The conductivity form gives
-        **{conductivity_form_diffusivity_m2_per_s * 1.0e4:.3e} cm²/s**, matching
+        **{conductivity_form_diffusivity_m2_per_s * 1.0e4:.3e} cm² s⁻¹**, matching
         $D_{{\rm Li}}^\delta
-        ={lithium_chemical_diffusivity_cm2_per_s:.3e}$ cm²/s.
+        ={lithium_chemical_diffusivity_cm2_per_s:.3e}$ cm² s⁻¹.
 
         The factor of two belongs to this ideal, dilute, locally neutral pair.
         Outside that limit, the composition dependence of
@@ -1647,7 +1627,7 @@ def _(mo):
         stop=-2.0,
         step=0.25,
         value=-5.0,
-        label="log10 sample length, L (m)",
+        label="Sample-length exponent (base 10, meters)",
         show_value=True,
     )
     reduced_profile_time = mo.ui.slider(
@@ -1655,7 +1635,7 @@ def _(mo):
         stop=0.50,
         step=0.01,
         value=0.08,
-        label=r"Fourier number, theta = D_Li^delta t / L²",
+        label="Reduced diffusion time",
         show_value=True,
     )
     relaxation_controls = mo.hstack(
@@ -1747,7 +1727,7 @@ def _(
         label="selected $t_D$",
     )
     time_axis.set(
-        xlabel="Sample length, L (m)",
+        xlabel=r"Sample length, $L$ (m)",
         ylabel="Characteristic time (s)",
         title="Diffusion time grows as length squared",
     )
@@ -1761,7 +1741,7 @@ def _(
         lw=1.9,
     )
     relaxation_profile_axis.set(
-        xlabel="Position, x / L",
+        xlabel=r"Position, $x/L$",
         ylabel="Remaining normalized composition change",
         title="One-dimensional slab relaxation",
         ylim=(-0.03, 1.03),
@@ -1792,7 +1772,7 @@ def _(
     relaxation_summary = mo.md(
         rf"""
         With \(D_{{\rm Li}}^\delta
-        ={lithium_chemical_diffusivity_cm2_per_s:.3e}\) cm²/s and
+        ={lithium_chemical_diffusivity_cm2_per_s:.3e}\) cm² s⁻¹ and
         \(L={selected_length_m:.3e}\) m, $t_D$ is **{time_text}** and
         $\tau^\delta$ is **{first_mode_text}**.
         The right panel shows the remaining composition change at Fourier
