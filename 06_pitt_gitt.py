@@ -161,7 +161,7 @@ def _(mo):
     Write the selectable neutral species as
     $$M \rightleftharpoons M^+ + e^-, \qquad c_i=c_e=c(x,t).$$
 
-    Following the articles, the **ion electrolyte is at $x=0$** and the
+    Use **$x=0$ at the ion electrolyte** and
     **electronic current collector is at $x=L$**.
 
     - At $x=0$, the electrolyte passes $M^+$ and blocks electrons: $J_e(0,t)=0$.
@@ -766,10 +766,7 @@ def _(
             [log_ratio_06, pulse_duration_06, rest_duration_06],
             justify="start", align="center", wrap=True, gap=1.2,
         ),
-        mo.hstack(
-            [log_diffusivity_06, potential_time_06],
-            justify="start", align="center", wrap=True, gap=1.2,
-        ),
+        log_diffusivity_06,
     ])
     mo.vstack([
         mo.md(r"""
@@ -1139,6 +1136,7 @@ def _(
     plt,
     positions_06,
     potential_case_06,
+    potential_time_06,
     selected_potentials_06,
     selected_q_06,
     selected_reduced_time_06,
@@ -1214,6 +1212,7 @@ def _(
         "Explore further - composition and electrochemical-potential profiles":
         mo.vstack(
             [
+                potential_time_06,
                 _fig,
                 mo.md(
                     r"The $+F\phi$ and $-F\phi$ lines show the same electrostatic "
@@ -1445,9 +1444,10 @@ def _(mo):
     $$c(x,t_r)-c_{\rm eq}\propto\exp(-t_r/\tau^\delta),$$
 
     where $c_{\rm eq}=\langle c\rangle$ is the uniform concentration reached
-    after that pulse; it is generally not the initial value $c_0$. The notebook
-    carries the complete end-of-pulse profile into the OCV stage,
-    so it does not need either approximation to generate the relaxation curves.
+    after that pulse; it is generally not the initial value $c_0$.
+    The full calculation carries the complete end-of-pulse profile into the
+    OCV stage, so it does not need either approximation to generate the
+    relaxation curves.
     """)
     mo.accordion({"Advanced analysis - fitting windows and OCV limits": fitting_reader})
     return
@@ -1596,7 +1596,7 @@ def _(
         title="Current separates diffusion and reaction control",
     )
     _axes[1].set(
-        xlabel=r"Article coordinate, $x/L$",
+        xlabel=r"Position, $x/L$",
         ylabel=r"Illustrative $c/c_0$",
         title=rf"Profiles at $\theta={selected_finite_theta_06:.3g}$",
     )
@@ -1684,7 +1684,7 @@ def _(mo):
     mo.md(r"""
     ## 6. What can PITT and GITT determine?
 
-    Under the assumptions of this notebook, the measurements separate two
+    Under the assumptions used here, the measurements separate two
     kinds of information:
 
     - **Thermodynamics:** the long-rest OCV gives the equilibrium potential at
@@ -2001,7 +2001,7 @@ def _(mo):
     - Q. Lu, [Solid State Ionics tutorials](https://ssi-westlake.com/tutorial/),
       including [PITT/GITT Part I](https://mp.weixin.qq.com/s/ktu9MiGhfYrE6l563pE38g)
       and [Part II](https://mp.weixin.qq.com/s/AzyRL3cZv6heEcB40wZplg), which
-      motivated this English notebook.
+      motivated the English-language treatment above.
     - W. Weppner and R. A. Huggins, “Determination of the Kinetic Parameters of
       Mixed-Conducting Electrodes and Application to the System Li3Sb,”
       *Journal of The Electrochemical Society* **124** (1977),
@@ -2016,9 +2016,8 @@ def _(mo):
       [open article and record](https://www.osti.gov/biblio/1838037).
     - BioLogic, [Application Note 70: diffusion coefficients by EIS, PITT, and GITT](https://www.biologic.net/documents/determination-diffusion-coefficient-inserted-species-host-electrode-eis-pitt-gitt-techniques-an70/).
 
-    The online sources were used as evidence, not copied as instructions. All
-    equations here were rederived for the selective-contact geometry and sign
-    convention stated in this notebook.
+    The equations above were independently rederived for the selective-contact
+    geometry and sign convention stated above.
     """)
     return
 

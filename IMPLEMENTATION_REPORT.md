@@ -178,3 +178,32 @@ There are no separate pytest test files in this teaching repository; the
 notebooks' collapsed physical-consistency tables are the executable regression
 suite. Generated HTML, WASM bundles, and screenshots remain ignored under
 `dist/`; their evidence paths and findings are versioned in `VISUAL_QA.md`.
+
+
+# Full interactive-control and readability audit — 2026-08-21
+
+This release-wide pass focused on student-visible behavior rather than adding
+new physics. It removed stale lecture/notebook meta-language, co-located
+secondary controls with the figures they change, and made conditional controls
+truly conditional.
+
+- Module 03 now keeps all three field controls together and moves the optional
+  concentration gradient into the cancellation exploration.
+- Module 04 opens with Gouy–Chapman over a wide potential range, compares the
+  exact solution with its Debye–Hückel limit, updates advanced labels with the
+  selected model, and keeps the GCS controls and result in one section.
+- Module 05 swaps the active current/potential strength instead of showing an
+  inactive drive widget.
+- Module 06 moves stage progress beside the advanced spatial profiles.
+- Module 07 conditionally reveals second-RC controls and places the TLM phase
+  control beside the internal state it changes.
+- Across all modules, source descriptions were made self-contained and the
+  remaining prompt- or implementation-facing phrases were removed.
+
+Final gates: all seven notebooks compile, pass strict marimo checks, execute in
+static export, and build as WASM apps. The reactive audit covers 83 controls
+with zero missing value consumers. Browser execution reports 53 PASS, 0 CHECK;
+all seven routes contain their dynamic `run-page` asset; and final mobile,
+laptop, and projector evidence is recorded in `VISUAL_QA.md`. The earlier
+52-PASS release tables predate Module 04's additional approximation-domain
+check; the current total is 53.

@@ -74,7 +74,7 @@ def _(mo):
     **How can random atomic hops produce a predictable diffusivity?**
 
     A single defect wanders unpredictably, but many identical defects obey a
-    simple statistical law. In one dimension the lecture convention is
+    simple statistical law. In one dimension we use the convention
 
     \[
     \Gamma=\nu e^{-\Delta H_{\rm mig}/(k_BT)},\qquad
@@ -128,7 +128,7 @@ def _(np):
     ):
         """Return Gamma_+, Gamma_-, and zero-field Gamma in s^-1.
 
-        Gamma is the total zero-field hop frequency used throughout this notebook.
+        Gamma is the total zero-field hop frequency used throughout this module.
         At zero field, half of the hops go toward +x and half toward -x.
         """
         temperature = require_positive("temperature_k", temperature_k)
@@ -953,20 +953,19 @@ def _(mo):
         label="Relative concentration gradient (per micrometer)", show_value=True,
     )
     field_controls = mo.hstack(
-        [field_sign, log_electric_field], justify="start", align="center",
-        wrap=True, gap=1.5,
-    )
-    advanced_field_controls = mo.accordion(
-        {"Explore further - charge sign and equilibrium gradient": mo.vstack(
-            [charge_selector, relative_concentration_gradient], gap=0.7)}
+        [charge_selector, field_sign, log_electric_field],
+        justify="start",
+        align="center",
+        wrap=True,
+        gap=1.5,
     )
     return (
-        advanced_field_controls, charge_selector, field_controls, field_sign,
+        charge_selector, field_controls, field_sign,
         log_electric_field, relative_concentration_gradient,
     )
 
 @app.cell
-def _(advanced_field_controls, field_controls, mo):
+def _(field_controls, mo):
     mo.vstack(
         [
             mo.md(r"""
@@ -986,7 +985,6 @@ def _(advanced_field_controls, field_controls, mo):
             reverses with the field.
             """),
             field_controls,
-            advanced_field_controls,
         ]
     )
     return
@@ -1101,6 +1099,7 @@ def _(
     mo,
     np,
     plt,
+    relative_concentration_gradient,
     total_np_flux_mol_per_m2_s,
 ):
     field_coordinate = np.linspace(0.0, 2.0, 500)
@@ -1187,6 +1186,7 @@ def _(
         A concentration gradient can therefore coexist with equilibrium:
         the chemical and electrical parts are nonzero, but their sum is zero.
         """),
+        relative_concentration_gradient,
         balance_figure,
         mo.md(
             rf"The balancing field is "
@@ -1986,7 +1986,7 @@ def _(mo, transport_validation):
         | {_check_mark(transport_validation['analytic_chemical_flux_pass'] and transport_validation['conductivity_form_pass'])} | the two forms of \(D_{{\rm Li}}^\delta\) agree | transport and conductivity descriptions are consistent |
         | {_check_mark(transport_validation['positive_pass'] and transport_validation['finite_pass'])} | all rates and diffusivities are positive and finite | every displayed quantity is physical |
 
-        These checks follow the notebook's main chain from atomic hopping to
+        These checks follow the main physical chain from atomic hopping to
         coupled chemical diffusion; they do not add new assumptions.
         """
     )

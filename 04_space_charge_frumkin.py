@@ -98,7 +98,7 @@ def _(mo):
     not model the atomic structure of the core; its potential \(\phi_0\) is the
     boundary condition for the continuum region.
 
-    This reader follows the lecture's one-dimensional path:
+    The one-dimensional argument follows this chain:
 
     \[
     \widetilde\mu_i=\mu_i+z_i e\phi=\text{constant}
@@ -111,13 +111,13 @@ def _(mo):
     \rightarrow \text{Frumkin effect}.
     \]
 
-    We compare the two limits used in the space-charge lecture:
+    We compare two limiting screening pictures:
 
     - **Gouy–Chapman:** both positive and negative defects are mobile.
     - **Mott–Schottky:** the majority negative dopants are frozen, while the
       positive defects remain mobile.
 
-    | symbol | meaning in this notebook |
+    | symbol | meaning used here |
     |---|---|
     | \(x\) | distance from the core; \(x=0\) at the interface |
     | \(c_{i,\infty}\) | bulk number concentration of each charge carrier |
@@ -127,7 +127,7 @@ def _(mo):
     | \(C_{\rm sc}\), \(C_s\) | diffuse-layer and Stern-layer differential capacitances per area |
 
     The bulk is the reference, \(\phi_\infty=0\), and the main profile sections
-    use a positively charged core, as in the slides. Inputs are shown in
+    use a positively charged core. Inputs are shown in
     **K, V, cm⁻³, nm, and μF/cm²**; calculations use SI internally. We use
     \(k_B,e\) for energies per defect and \(R,F\) for the equivalent molar
     kinetic equations.
@@ -304,7 +304,7 @@ def _(np):
         epsilon_r,
         charge_magnitude,
     ):
-        """Lecture depletion profile with a Boltzmann mobile positive defect."""
+        """Depletion profile with a Boltzmann mobile positive defect."""
         distance = np.asarray(distance_m, dtype=float)
         temperature = _positive("temperature_k", temperature_k)
         z_value = _positive("charge_magnitude", charge_magnitude)
@@ -513,7 +513,7 @@ def _(np):
 def _(mo):
     profile_model_control = mo.ui.dropdown(
         options=["Gouy-Chapman", "Mott-Schottky", "Compare both"],
-        value="Compare both",
+        value="Gouy-Chapman",
         label="Space-charge model",
     )
     temperature_control = mo.ui.slider(
@@ -533,7 +533,7 @@ def _(mo):
         label="Defect charge magnitude", show_value=True,
     )
     gc_surface_potential_control = mo.ui.slider(
-        start=-0.50, stop=0.50, step=0.01, value=0.16,
+        start=-1.00, stop=1.00, step=0.01, value=0.20,
         label="Gouy-Chapman core potential (V)", show_value=True,
     )
     ms_surface_potential_control = mo.ui.slider(
@@ -541,8 +541,8 @@ def _(mo):
         label="Mott-Schottky depletion potential (V)", show_value=True,
     )
     show_linear_control = mo.ui.checkbox(
-        value=False,
-        label="Show the low-potential Gouy-Chapman approximation",
+        value=True,
+        label="Show the Debye–Hückel low-potential guide",
     )
     return (
         charge_control,
@@ -596,28 +596,42 @@ def _(
         [profile_model_control, active_potential_control, log_concentration_control],
         justify="start", align="center", wrap=True, gap=1.2,
     )
+    _advanced_profile_items = [
+        temperature_control,
+        epsilon_r_control,
+        charge_control,
+    ]
+    if profile_model_control.value in ("Gouy-Chapman", "Compare both"):
+        _advanced_profile_items.append(show_linear_control)
     advanced_profile_controls = mo.hstack(
-        [temperature_control, epsilon_r_control, charge_control, show_linear_control],
+        _advanced_profile_items,
         justify="start", align="center", wrap=True, gap=1.2,
+    )
+    advanced_profile_title = (
+        "Explore further — temperature, permittivity, charge, and linear guide"
+        if profile_model_control.value in ("Gouy-Chapman", "Compare both")
+        else "Explore further — temperature, permittivity, and charge"
     )
     mo.vstack([
         mo.md(r"""
-        ## 1. Compare two ways to screen the same positive core
+        ## 1. Start with mobile charge, then compare screening pictures
 
-        Choose a model, core potential, and bulk concentration. Ask first which
-        species can move. Then look for the consequences in both the potential
-        profile and the defect redistribution.
+        Begin with Gouy–Chapman and vary the core potential over a wide range.
+        The solid curve is exact; the dashed Debye–Hückel exponential is the
+        low-potential approximation. Then switch to Mott–Schottky or compare
+        both models and ask which species can move.
         """),
         core_profile_controls,
         mo.md(r"""
         The concentration control sets
         $c_{i,\infty}=10^x\,\mathrm{cm^{-3}}$. Gouy–Chapman permits either sign
-        of $\phi_0$; the Mott–Schottky depletion approximation uses only the
-        positive branch, $0.01\leq\phi_0\leq0.50\ \mathrm{V}$.
+        over $-1.00\leq\phi_0\leq1.00\ \mathrm{V}$. This intentionally wide
+        teaching range exposes the breakdown of the low-potential limit. The
+        Mott–Schottky depletion approximation uses only the positive branch,
+        $0.01\leq\phi_0\leq0.50\ \mathrm{V}$.
         """),
         mo.accordion({
-            "Explore further — temperature, permittivity, charge, and linear guide":
-            advanced_profile_controls,
+            advanced_profile_title: advanced_profile_controls,
             "Model details — Boltzmann distribution and Poisson equation": derivation,
         }),
     ])
@@ -726,6 +740,7 @@ def _(
     profile_model_control,
     selected_debye_length_m,
     selected_ms_width_m,
+    show_linear_control,
     surface_reduced_potential,
 ):
     model = profile_model_control.value
@@ -740,8 +755,17 @@ def _(
     if show_gc:
         potential_axis.plot(
             gc_x_nm, gc_profile["potential_v"], color="#4C7C86", lw=1.9,
-            label="Gouy-Chapman",
+            label="Exact Gouy-Chapman",
         )
+        if bool(show_linear_control.value):
+            potential_axis.plot(
+                gc_x_nm,
+                gc_profile["linear_potential_v"],
+                color="#C49345",
+                lw=1.6,
+                ls="--",
+                label="Debye–Hückel low-potential limit",
+            )
         potential_axis.axvline(
             selected_debye_length_m * 1.0e9, color="#4C7C86", lw=1.1, ls=":"
         )
@@ -756,7 +780,7 @@ def _(
     if show_ms:
         potential_axis.plot(
             ms_x_nm, ms_profile["potential_v"], color="#7C6A91", lw=1.9,
-            ls="--" if show_gc else "-", label="Mott-Schottky",
+            ls="-." if show_gc else "-", label="Mott-Schottky",
         )
         potential_axis.axvline(
             selected_ms_width_m * 1.0e9, color="#7C6A91", lw=1.1, ls=":"
@@ -773,7 +797,11 @@ def _(
     potential_axis.set(
         xlabel=r"Distance from core, $x$ (nm)",
         ylabel=r"Electrostatic potential, $\phi$ (V)",
-        title="How far does the core potential extend?",
+        title=(
+            "When does the low-potential limit fail?"
+            if model == "Gouy-Chapman"
+            else "How far does the core potential extend?"
+        ),
     )
     concentration_axis.axhline(1.0, color="#858B90", lw=1.0, ls=":")
     concentration_axis.set(
@@ -789,7 +817,8 @@ def _(
     explanation = {
         "Gouy-Chapman": (
             "Both signs are mobile: positive co-ions leave the core region while "
-            "negative counter-ions accumulate. The dotted marker is the Debye length."
+            "negative counter-ions accumulate. The solid potential is exact; the "
+            "dashed exponential is the low-potential limit."
         ),
         "Mott-Schottky": (
             "The negative dopants stay fixed. Depleting the mobile positive defects "
@@ -800,6 +829,14 @@ def _(
             "GC continuously redistributes both signs; MS exposes frozen dopants over a depletion width."
         ),
     }[model]
+    if show_gc:
+        approximation_note = (
+            fr" Here $|ze\phi_0/(k_BT)|={abs(surface_reduced_potential):.2f}$. "
+            "Values much smaller than one give nearly identical curves; values "
+            "of order one or larger reveal the nonlinear Gouy-Chapman response."
+        )
+    else:
+        approximation_note = ""
     if show_gc and abs(surface_reduced_potential) > 5.0:
         validity_note = mo.callout(
             mo.md(r"""
@@ -815,7 +852,7 @@ def _(
     mo.vstack([
         profile_figure,
         mo.md(
-            explanation
+            explanation + approximation_note
             + f" Selected lengths: $\\lambda_D={selected_debye_length_m * 1.0e9:.2f}$ nm "
             + f"and $\\lambda={selected_ms_width_m * 1.0e9:.2f}$ nm."
         ),
@@ -1071,7 +1108,7 @@ def _(
         {{ze c_{{i,\infty}}}}}}.
         \]
 
-        Global charge compensation gives the second lecture relation
+        Global charge compensation gives the companion relation
 
         \[
         Q_{{\rm core}}=-Q_{{\rm sc}}\approx ze c_{{i,\infty}}\lambda.
@@ -1312,10 +1349,8 @@ def _(mo):
 
 
 @app.cell
-def _(interface_controls, mo):
-    _gcs_intro = mo.vstack(
-        [
-            mo.md(r"""
+def _(mo):
+    gcs_intro = mo.md(r"""
             ## 3. From charge to capacitance: Gouy–Chapman–Stern
 
             Gauss's law converts the Gouy–Chapman potential gradient into the
@@ -1360,12 +1395,8 @@ def _(interface_controls, mo):
             only to make the two regions visible. The physical compact-layer
             input is \(C_s\); an independent thickness would require a separate
             Stern permittivity.
-            """),
-            interface_controls,
-        ]
-    )
-    mo.accordion({"Advanced — Gouy–Chapman–Stern capacitance": _gcs_intro})
-    return
+            """)
+    return (gcs_intro,)
 
 
 @app.cell
@@ -1495,6 +1526,8 @@ def _(
     gcs_diffuse_profile,
     gcs_potential_sweep_v,
     gcs_total_capacitance_sweep,
+    gcs_intro,
+    interface_controls,
     mo,
     plt,
     pzc_diffuse_capacitance_f_per_m2,
@@ -1630,7 +1663,9 @@ def _(
         """
     )
     mo.accordion({
-        "Advanced — GCS figure and interpretation": mo.vstack([gcs_figure, gcs_summary])
+        "Advanced — Gouy–Chapman–Stern capacitance": mo.vstack(
+            [gcs_intro, interface_controls, gcs_figure, gcs_summary]
+        )
     })
     return (gcs_figure,)
 
@@ -1814,7 +1849,7 @@ def _(
         The **Butler-Volmer transfer coefficient** \(\alpha\) is a dimensionless
         kinetic parameter between 0 and 1. It describes how an interfacial
         overpotential changes the activation barriers of the two reaction
-        directions. In the lecture's anodic branch, the potential sensitivity
+        directions. For the anodic branch used here, the potential sensitivity
         is proportional to \(1-\alpha\):
 
         \[
@@ -1837,7 +1872,7 @@ def _(
         changes the kinetic potential factor and total Frumkin factor, while the
         GCS potential and capacitance remain unchanged.
 
-        The exchange current introduced in the lecture also uses reaction-plane
+        The corresponding exchange current also uses reaction-plane
         concentrations,
 
         \[
@@ -1867,7 +1902,7 @@ def _(
         naive curve. Either enhancement or suppression is possible because the
         concentration and potential contributions can compete.
 
-        **Figure takeaway.** The reaction rate samples both local reactant
+        The reaction rate samples both local reactant
         concentration and local potential at $x_1$; $\alpha$ changes kinetics
         but does not change the equilibrium GCS capacitance.
         """
@@ -1937,6 +1972,30 @@ def _(
     )
     gc_solution_residual = np.max(np.abs(gc_tanh_identity - gc_tanh_reference))
 
+    reduced_distance = np.linspace(0.0, 6.0, 500)
+
+    def exact_reduced_gc_potential(surface_reduced):
+        return 4.0 * np.arctanh(
+            np.tanh(surface_reduced / 4.0) * np.exp(-reduced_distance)
+        )
+
+    low_reduced_potential = 1.0e-3
+    high_reduced_potential = 6.0
+    low_linear_profile = low_reduced_potential * np.exp(-reduced_distance)
+    high_linear_profile = high_reduced_potential * np.exp(-reduced_distance)
+    gc_low_potential_relative_error = np.max(
+        np.abs(
+            exact_reduced_gc_potential(low_reduced_potential)
+            - low_linear_profile
+        )
+    ) / low_reduced_potential
+    gc_high_potential_relative_separation = np.max(
+        np.abs(
+            exact_reduced_gc_potential(high_reduced_potential)
+            - high_linear_profile
+        )
+    ) / high_reduced_potential
+
     permittivity = EPSILON_0_F_PER_M * epsilon_r
     gc_surface_field_v_per_m = (
         2.0
@@ -1978,7 +2037,7 @@ def _(
         analytic_ms_curvature - expected_ms_curvature
     ) / expected_ms_curvature
     ms_charge_from_width = ms_surface_charge_c_per_m2(
-        surface_potential_v,
+        ms_surface_potential_v,
         bulk_concentration_cm3,
         epsilon_r,
         charge_magnitude,
@@ -2104,6 +2163,8 @@ def _(
         ]),
         np.asarray(gcs_diffuse_capacitance_sweep),
         np.asarray(gcs_total_capacitance_sweep),
+        np.asarray(gc_profile["positive_ratio"]),
+        np.asarray(gc_profile["negative_ratio"]),
     ])
     expanded_finite_pass = bool(
         np.all(np.isfinite(gcs_phi1_sweep_v))
@@ -2116,6 +2177,12 @@ def _(
         "gc_electrochemical_pass": gc_electrochemical_residual_ev < 1.0e-14,
         "gc_solution_residual": gc_solution_residual,
         "gc_solution_pass": gc_solution_residual < 2.0e-13,
+        "gc_low_potential_relative_error": gc_low_potential_relative_error,
+        "gc_low_potential_pass": gc_low_potential_relative_error < 1.0e-6,
+        "gc_high_potential_relative_separation": gc_high_potential_relative_separation,
+        "gc_high_potential_separation_pass": (
+            gc_high_potential_relative_separation > 0.10
+        ),
         "gc_gauss_residual": gc_gauss_residual,
         "gc_gauss_pass": gc_gauss_residual < 2.0e-13,
         "gc_capacitance_residual": gc_capacitance_residual,
@@ -2165,6 +2232,7 @@ def _(mo, module04_validation):
         | status | physical statement | why it matters |
         |---:|---|---|
         | {_status(module04_validation['gc_boltzmann_pass'] and module04_validation['gc_electrochemical_pass'] and module04_validation['gc_solution_pass'])} | the Gouy–Chapman concentration and potential profiles obey Boltzmann equilibrium | chemical and electrical energies balance throughout the diffuse layer |
+        | {_status(module04_validation['gc_low_potential_pass'] and module04_validation['gc_high_potential_separation_pass'])} | the Debye–Hückel exponential converges to the exact profile at low potential and separates from it at high potential | the overlay teaches an approximation and its domain, not a second model input |
         | {_status(module04_validation['gc_gauss_pass'] and module04_validation['gc_capacitance_pass'])} | the diffuse-layer charge agrees with Gauss's law and its slope gives \(C_{{\rm sc}}\) | charge, field, and capacitance are three views of the same interface |
         | {_status(module04_validation['ms_boundary_pass'] and module04_validation['ms_poisson_pass'] and module04_validation['ms_charge_pass'] and module04_validation['ms_electrochemical_pass'])} | the Mott–Schottky profile obeys its boundary potentials, frozen charge, and flat electrochemical potential | the depletion approximation remains self-consistent |
         | {_status(module04_validation['gcs_charge_pass'] and module04_validation['gcs_voltage_pass'] and module04_validation['gcs_series_capacitance_pass'] and module04_validation['gcs_capacitance_pass'] and module04_validation['gcs_pzc_space_charge_pass'] and module04_validation['gcs_pzc_capacitance_pass'])} | Stern and diffuse layers carry the same charge and add as series capacitances | the GCS voltage split and pZC limit agree |

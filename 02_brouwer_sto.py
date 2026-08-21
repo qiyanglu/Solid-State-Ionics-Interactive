@@ -140,7 +140,8 @@ def _(mo):
 
         We keep only oxygen vacancies $V=[V_{\mathrm{O}}^{\bullet\bullet}]$,
         electrons $n=[e']$, holes $p=[h^\bullet]$, and fixed ionized acceptors
-        $A=[A_{\mathrm{Ti}}']$. At every oxygen pressure the notebook solves
+        $A=[A_{\mathrm{Ti}}']$. At every oxygen pressure, the full equations
+        are solved:
 
         $$K_{red}=Vn^2p_{\mathrm{O_2}}^{1/2},\qquad K_{eh}=np,$$
 

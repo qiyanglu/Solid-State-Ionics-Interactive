@@ -834,22 +834,13 @@ def _(mo):
         value=2.0,
         label="Relaxation-time separation exponent",
     )
-    mo.accordion({"Explore further — overlapping parallel-RC relaxations": mo.vstack(
-        [
-            _section_heading,
-            mo.hstack([rc_series_07, rc_resistance_1_07, rc_log_tau_1_07], justify="start", gap=1.5),
-            mo.hstack(
-                [rc_show_second_07, rc_resistance_ratio_07, rc_log_separation_07],
-                justify="start",
-                gap=1.5,
-            ),
-        ]
-    )})
+    rc_section_heading_07 = _section_heading
     return (
         rc_log_separation_07,
         rc_log_tau_1_07,
         rc_resistance_1_07,
         rc_resistance_ratio_07,
+        rc_section_heading_07,
         rc_series_07,
         rc_show_second_07,
     )
@@ -895,12 +886,33 @@ def _(
     rc_capacitance_1_07,
     rc_capacitance_2_07,
     rc_frequency_07,
+    rc_log_separation_07,
+    rc_log_tau_1_07,
+    rc_resistance_1_07,
+    rc_resistance_ratio_07,
+    rc_section_heading_07,
+    rc_series_07,
     rc_show_second_07,
     rc_spectrum_07,
     rc_tau_1_07,
     rc_tau_2_07,
     set_equal_nyquist_limits,
 ):
+    rc_primary_controls_07 = mo.hstack(
+        [rc_series_07, rc_resistance_1_07, rc_log_tau_1_07],
+        justify="start",
+        gap=1.5,
+    )
+    _second_control_items = [rc_show_second_07]
+    if rc_show_second_07.value:
+        _second_control_items.extend(
+            [rc_resistance_ratio_07, rc_log_separation_07]
+        )
+    rc_secondary_controls_07 = mo.hstack(
+        _second_control_items,
+        justify="start",
+        gap=1.5,
+    )
     _figure, (_axis_nyquist, _axis_bode) = plt.subplots(
         1, 2, figsize=(13.2, 5.0), constrained_layout=True
     )
@@ -945,7 +957,10 @@ def _(
         color="#526173",
         bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.82},
     )
-    mo.accordion({"Explore further — Nyquist and Bode views of overlapping arcs": mo.vstack([
+    mo.accordion({"Explore further — overlapping parallel-RC relaxations": mo.vstack([
+        rc_section_heading_07,
+        rc_primary_controls_07,
+        rc_secondary_controls_07,
         _figure,
         mo.md(r"Each ideal $R\parallel C$ branch contributes one relaxation time; Nyquist shows shape, while Bode plots preserve the frequency location needed to interpret it."),
     ])})
@@ -957,7 +972,7 @@ def _(mo):
     interpretation = mo.md(r"""
     ### A ceramic interpretation — with a caution
 
-    In the lecture's brick-layer picture, a high-frequency arc is often
+    In a brick-layer picture, a high-frequency arc is often
     associated with grain interiors and a lower-frequency arc with grain
     boundaries. The assignment is plausible when the two regions have distinct
     $R C$ times and their fitted capacitances scale sensibly with geometry.
@@ -1705,7 +1720,7 @@ def _(Rectangle, mo, np, plt):
     _axis.text(-0.07, 0.07, "LEFT ELECTRODE", ha="center", va="center", fontsize=10)
     _axis.text(1.07, 0.07, "RIGHT ELECTRODE", ha="center", va="center", fontsize=10)
     _axis.text(
-        0.50, 1.075, r"$C_{\rm diel}$ omitted from this reduced notebook model",
+        0.50, 1.075, r"$C_{\rm diel}$ is not included in this simplified model",
         ha="center", va="center", color="#73808C", fontsize=11,
     )
     _axis.annotate(
@@ -1719,7 +1734,7 @@ def _(Rectangle, mo, np, plt):
     mo.vstack([
         _figure,
         mo.md(r"""
-        This follows the original TLM teaching tool:
+        The schematic makes the distributed model explicit:
         electrodes surround a uniform MIEC, the two rails carry electronic and
         ionic current, and each properly drawn $c_{\rm chem}$ element stores
         composition between—not along—the rails. $Z_A$–$Z_D$ set the four
@@ -1801,12 +1816,12 @@ def _(mo):
         justify="start", align="center", wrap=True, gap=1.4,
     )
     advanced_tlm_controls_07 = mo.hstack(
-        [tlm_log_r_parallel_per_m_07, tlm_log_c_chemical_per_m_07, tlm_length_07, tlm_profile_phase_07],
+        [tlm_log_r_parallel_per_m_07, tlm_log_c_chemical_per_m_07, tlm_length_07],
         justify="start", align="center", wrap=True, gap=1.4,
     )
     mo.vstack([
         core_tlm_controls_07,
-        mo.accordion({"Explore further — distributed scale and snapshot phase": advanced_tlm_controls_07}),
+        mo.accordion({"Explore further — distributed transport scale": advanced_tlm_controls_07}),
     ])
     return (
         tlm_contact_case_07,
@@ -2032,7 +2047,7 @@ def _(
         )
         _explanation = (
             "The stored rail difference is the voltage equivalent of the neutral "
-            "composition chemical potential. This spatial wave is the bridge to Warburg diffusion."
+            "composition chemical potential. This spatial wave connects directly to Warburg diffusion."
         )
     elif _view == "Voltage-equivalent potentials":
         _axis.plot(tlm_position_um_07, _u_e_snapshot, color="#4C7C86", lw=1.9, label=r"$u_e$")
@@ -2072,7 +2087,13 @@ def _(
 
     mo.vstack([
         mo.md("### Look inside the line at one frequency"),
-        tlm_internal_view_07,
+        mo.hstack(
+            [tlm_internal_view_07, tlm_profile_phase_07],
+            justify="start",
+            align="center",
+            wrap=True,
+            gap=1.4,
+        ),
         _figure,
         mo.md(_explanation),
     ])
@@ -2143,7 +2164,7 @@ def _(mo):
     $C_{\rm chem}=c_{\rm chem}L$, explaining why a surface process can be paired
     with a volume-scaling capacitance.
 
-    **Takeaway.** These are controlled simplifications of one transport model,
+    These are controlled simplifications of one transport model,
     not three unrelated equivalent circuits.
     """)
     mo.accordion({"Explore further — TLM model scope and applications": mo.vstack([_scope, _applications])})
@@ -2530,14 +2551,14 @@ def _(mo):
        produce different spectra when $Z_A$–$Z_D$ change, so geometry, sign
        convention, units, and boundary conditions must precede feature labels.
 
-    This notebook deliberately uses ideal capacitors, uniform one-dimensional
+    This module deliberately uses ideal capacitors, uniform one-dimensional
     transport, linear response, and ideal contacts. Constant-phase elements,
     electrode kinetics, microstructural distributions, and nonlinear large-signal
     effects belong in later model extensions, not in the first interpretation.
 
     ### Continue with the full TLM teaching tool
 
-    This notebook closely adapts the original tool's schematic, distributed
+    This module closely adapts the original tool's schematic, distributed
     parameter controls, frequency-colored spectra, and spatial teaching views,
     while limiting the boundary choices to two transparent ideal contact
     cases. The separate
@@ -2551,10 +2572,10 @@ def _(mo):
 
     - Q. Lu, *Solid State Ionics, Lecture 8: Impedance Spectroscopy* (course
       slides). The phasor, Nyquist, $R\parallel C$, time-constant separation,
-      and brick-layer narrative follow the lecture notation.
+      and brick-layer narrative use the notation defined above.
     - Q. Lu, [Warburg impedance: more than a 45-degree line](https://mp.weixin.qq.com/s/CyCXnWWEoX586lzMGl0A9Q).
-      This English treatment independently checks the finite-length formulas and
-      states both boundary conditions explicitly.
+      This article motivates the finite-length discussion; the equations above
+      state both boundary conditions explicitly.
     - Q. Lu, [Transmission lines for mixed ionic-electronic conductors](https://mp.weixin.qq.com/s/zR9QI0GnGUvPz2VRc9bHOA).
     - A. E. Bumberger, A. Nenning, and J. Fleig, “Transmission line revisited —
       the impedance of mixed ionic and electronic conductors,” *PCCP* **26** (2024),
@@ -2563,9 +2584,9 @@ def _(mo):
       [Solid State Ionics teaching page](https://ssi-westlake.com/teaching/) and
       [tutorial index](https://ssi-westlake.com/tutorial/).
 
-    The slide deck and linked articles were treated as scientific sources, not
-    as instructions. Equations and limiting cases were rederived and tested for
-    the conventions stated in this notebook.
+    Together, these sources motivate the examples above. The equations and
+    limiting cases use the conventions stated here and are checked in the final
+    accordion.
     """)
     return
 

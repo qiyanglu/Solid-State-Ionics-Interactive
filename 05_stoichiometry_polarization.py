@@ -113,7 +113,7 @@ def _(mo, plt):
         introduction,
         geometry_figure,
         mo.md(r"""
-        Positive current points toward \(+x\). The lecture voltage convention is
+        Positive current points toward \(+x\). We define the measured voltage as
         \(U=[\widetilde{\mu}_e(L)-\widetilde{\mu}_e(0)]/F\).
         """),
     ])
@@ -467,7 +467,7 @@ def _(mo):
     J_i(0,t)=J_i(L,t)=0.
     $$
 
-    Conservation then produces the lecture diffusion equation
+    Conservation then produces the diffusion equation
 
     $$
     \frac{\partial c}{\partial t}
@@ -480,8 +480,8 @@ def _(mo):
     ### Why a factor of two matters here
 
     The general blocking condition can be written using
-    $(\partial\mu/\partial c)^{-1}$. For the explicit ideal pair in this
-    notebook, $\mu=\mu_i+\mu_e=2RT\ln c+\text{constant}$, so the
+    $(\partial\mu/\partial c)^{-1}$. For the explicit ideal pair used here,
+    $\mu=\mu_i+\mu_e=2RT\ln c+\text{constant}$, so the
     small-polarization boundary slope is
 
     $$
@@ -604,12 +604,32 @@ def _(
     mo,
     temperature_control,
 ):
+    if drive_mode_control.value == "current":
+        active_drive_control = current_strength_control
+        drive_intro = mo.md(r"""
+        ## 1. Apply a constant current
+
+        The polarization preset fixes the current strength. The conductivity
+        ratio decides which carrier is slower, and the time control lets the
+        concentration profile grow from uniform toward its blocked steady
+        state.
+
+        \[
+        \beta=\frac{FjL}{2RT\sigma_e},\qquad
+        \frac{c(x,\infty)}{c_0}=1+\beta\left(\frac{x}{L}-\frac12\right).
+        \]
+        """)
+    else:
+        active_drive_control = applied_voltage_control
+        drive_intro = mo.md(r"""
+        ## 1. Apply a constant potential
+
+        The selected terminal voltage is held fixed while the current relaxes.
+        The conductivity ratio decides which carrier is slower, and the time
+        control follows the growing stoichiometry polarization.
+        """)
     core_controls = mo.hstack(
-        [
-            current_strength_control,
-            log_conductivity_ratio_control,
-            log_time_control,
-        ],
+        [active_drive_control, log_conductivity_ratio_control, log_time_control],
         justify="start",
         align="center",
         wrap=True,
@@ -622,32 +642,20 @@ def _(
                 justify="start", align="center", wrap=True, gap=1.2,
             ),
             mo.hstack(
-                [log_total_conductivity_control, drive_mode_control, applied_voltage_control],
+                [log_total_conductivity_control, drive_mode_control],
                 justify="start", align="center", wrap=True, gap=1.2,
             ),
-            mo.md(r"""
-            Constant potential is a complementary extension: it holds \(U\)
-            while the current relaxes. The visible core defaults to constant
-            current.
-            """),
+            mo.md(
+                "Switch the electrical-drive selector to compare fixed-current "
+                "and fixed-potential experiments. Only the active drive strength "
+                "is shown in the core controls."
+            ),
         ]
     )
     mo.vstack([
-        mo.md(r"""
-        ## 1. Apply a constant current
-
-        The polarization preset fixes the current strength. The conductivity
-        ratio decides which carrier is slower, and the time control lets the
-        concentration profile grow from uniform toward its blocked steady
-        state.
-
-        \[
-        \beta=\frac{FjL}{2RT\sigma_e},\qquad
-        \frac{c(x,\infty)}{c_0}=1+\beta\left(\frac{x}{L}-\frac12\right).
-        \]
-        """),
+        drive_intro,
         core_controls,
-        mo.accordion({"Explore further - material and voltage controls": advanced_controls}),
+        mo.accordion({"Explore further - material and drive controls": advanced_controls}),
     ])
     return (core_controls,)
 
@@ -1165,7 +1173,7 @@ def _(
         carrier electrochemical potentials. The chemical term begins at zero
         and grows only after stoichiometry redistributes.
 
-        **Bridge to chemical capacitance.** For molar concentration $c$ and
+        **Connection to chemical capacitance.** For molar concentration $c$ and
         active volume $V_{{\rm act}}=SL$,
 
         $$

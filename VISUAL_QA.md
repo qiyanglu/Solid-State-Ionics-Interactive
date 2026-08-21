@@ -90,3 +90,65 @@ The complete targeted screenshot set remains under the ignored
 `dist/visual-qa/targeted-fixes/` directory. Low/default/high states were
 exercised for each changed core interaction; the table lists the most useful
 acceptance views rather than every generated file.
+
+
+## Module 04 Gouy–Chapman range follow-up — 2026-08-21
+
+The core reader now opens with Gouy–Chapman over
+$-1.00\leq\phi_0\leq1.00\ \mathrm{V}$ and overlays the exact planar solution
+with the Debye–Hückel low-potential exponential by default. The Mott–Schottky
+control remains restricted to its positive depletion branch.
+
+| State | Evidence | Finding | Status |
+|---|---|---|---:|
+| Default, $\phi_0=0.20$ V | `module-04-gc-range/default-laptop.jpg` | The two potential curves have begun to separate, while controls, legends, and both panels remain unclipped. | **Pass** |
+| Low potential, $\phi_0=0.01$ V | `module-04-gc-range/low-potential-mobile.jpg`; `module-04-gc-range/low-potential-laptop.jpg` | Exact and Debye–Hückel potential profiles are visually coincident, as required by $|ze\phi_0/(k_BT)|\ll1$. The mobile menu-button overlap warning is a visually adjudicated false positive; the button clears the heading. | **Pass** |
+| High potential, $\phi_0=1.00$ V | `module-04-gc-range/high-potential-projector.jpg`; `module-04-gc-range/high-potential-caution-projector.jpg` | The exact profile screens much more sharply than the exponential guide, counter-ion enrichment spans many decades, and the ideal-dilute-model caution is fully visible. | **Pass** |
+
+All captures used the exported WASM app in a real Chromium browser. Layout
+checks reported no clipping, and the executed notebook rendered 7 PASS and
+0 CHECK physical-consistency rows, including explicit low-potential convergence
+and high-potential separation tests.
+
+
+## Full interactive-control and readability audit — 2026-08-21
+
+All seven final WASM apps were rebuilt, served over HTTP, and executed one at a
+time in Chromium. Sequential loading avoids mistaking a resource-contended
+Pyodide hourglass state for a finished notebook. Acceptance captures were taken
+only after the actual matplotlib outputs were present.
+
+A source-level reactive audit found **83 controls and zero controls without a
+value consumer**. Browser checks then exercised the conditional and relocated
+controls most likely to appear as ghost widgets:
+
+- Module 03 shows charge sign, field direction, and field magnitude beside the
+  hopping figure; the concentration-gradient slider is beside the advanced
+  cancellation figure it changes.
+- Module 04 shows the Debye–Hückel guide only for Gouy–Chapman states. In a pure
+  Mott–Schottky state, both the checkbox and the words “linear guide” disappear.
+- Module 05 shows only the active current or potential strength in the core
+  controls and updates the section narrative with the drive mode.
+- Module 06 places stage progress directly above the composition and potential
+  profiles it changes.
+- Module 07 hides the second-relaxation ratio and separation sliders until the
+  second parallel-RC branch is enabled; the TLM snapshot phase sits beside its
+  internal-view selector and figure.
+
+| Audit view | Final evidence | Finding | Status |
+|---|---|---|---:|
+| Rebuilt default state, all modules | `full-audit-2026-08-21/01-final-default-laptop.jpg` through `07-final-default-laptop.jpg` | Every app finished executing with its controls and figures present. No confirmed clipping or overlap remains. | **Pass** |
+| Module 03 field and cancellation controls | `full-audit-2026-08-21/03-field-default-laptop.jpg`; `03-field-low-mobile.jpg`; `03-field-high-projector.jpg`; `03-gradient-laptop.jpg` | Field magnitude changes the hopping bias, and the advanced gradient control is co-located with the equal-and-opposite driving-force plot. | **Pass** |
+| Module 04 model-dependent controls and GCS | `full-audit-2026-08-21/04-gcs-laptop.jpg`; `04-ms-projector.jpg`; `module-04-gc-range/low-potential-mobile.jpg`; `module-04-gc-range/high-potential-projector.jpg` | The exact and low-potential GC curves coincide at low field and separate at high field. Pure MS has no inapplicable linear-guide widget. GCS controls, equations, and figure form one continuous advanced section. | **Pass** |
+| Module 05 drive modes | `full-audit-2026-08-21/05-current-laptop.jpg`; `05-potential-projector.jpg` | Switching drive mode replaces the active strength widget and narrative; no inactive current or voltage widget remains in the core row. | **Pass** |
+| Module 06 OCV potentials | `full-audit-2026-08-21/06-ocv-potentials-projector.jpg` | Stage progress is visibly attached to the three advanced profiles; the OCV state retains zero terminal current while internal chemical relaxation remains visible. | **Pass** |
+| Module 07 optional RC and TLM states | `full-audit-2026-08-21/07-rc-second-on-laptop.jpg`; `07-rc-second-off-mobile.jpg`; `07-tlm-phase0-mobile.jpg`; `07-tlm-phase300-projector.jpg`; `07-final-tlm-schematic-projector.jpg` | Disabled second-arc controls disappear, the phase slider changes the selected spatial state, and the final two-rail schematic has clean capacitor connections and no line through the $c_{\rm chem}$ label. | **Pass** |
+
+The lightweight mobile overlap scan flagged two slider value bubbles near their
+section headings. Direct inspection of `03-field-low-mobile.jpg` and
+`07-tlm-phase0-mobile.jpg` confirmed clear vertical separation, so both were
+false positives. All other final layout scans reported no clipping or overlap.
+
+The final browser-executed physical checks report **53 PASS and 0 CHECK**:
+Modules 01–07 contribute 6, 3, 7, 7, 6, 12, and 12 passing rows. Every exported
+route also contains its entry bundle and dynamically imported `run-page` asset.
