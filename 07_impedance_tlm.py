@@ -154,9 +154,47 @@ def _(np):
             1.0 + 1j * 2.0 * np.pi * frequencies * resistance * capacitance
         )
 
-    def format_nyquist_axis_07(axis):
-        """Apply the shared Nyquist convention and equal data scaling."""
+    def set_equal_nyquist_limits(axis, real_values, minus_imaginary_values, margin=0.08):
+        """Set equal numerical spans with data margins on every Nyquist axis."""
+        real = np.asarray(real_values, dtype=float).ravel()
+        minus_imaginary = np.asarray(minus_imaginary_values, dtype=float).ravel()
+        finite = np.isfinite(real) & np.isfinite(minus_imaginary)
+        if not np.any(finite):
+            raise ValueError("Nyquist data must contain at least one finite point")
+        real = real[finite]
+        minus_imaginary = minus_imaginary[finite]
+        x_min, x_max = float(real.min()), float(real.max())
+        y_min, y_max = float(minus_imaginary.min()), float(minus_imaginary.max())
+        absolute_scale = max(
+            float(np.max(np.abs(real))),
+            float(np.max(np.abs(minus_imaginary))),
+            1.0,
+        )
+        raw_span = max(x_max - x_min, y_max - y_min)
+        data_span = (
+            max(0.25 * absolute_scale, 1.0e-6)
+            if raw_span <= 1.0e-9 * absolute_scale
+            else raw_span
+        )
+        full_span = (1.0 + 2.0 * float(margin)) * data_span
+        near_zero_real = abs(x_min) <= max(0.02 * data_span, 1.0e-10 * absolute_scale)
+        if near_zero_real:
+            x_lower = min(x_min - margin * data_span, -0.04 * data_span)
+            x_limits = (x_lower, x_lower + full_span)
+        else:
+            x_center = 0.5 * (x_min + x_max)
+            x_limits = (x_center - 0.5 * full_span, x_center + 0.5 * full_span)
+        y_center = 0.5 * (y_min + y_max)
+        y_limits = (y_center - 0.5 * full_span, y_center + 0.5 * full_span)
+        axis.set_xlim(*x_limits)
+        axis.set_ylim(*y_limits)
         axis.set_aspect("equal", adjustable="box")
+        return x_limits, y_limits
+
+    def format_nyquist_axis_07(axis):
+        """Apply labels-independent Nyquist geometry and grid styling."""
+        axis.set_aspect("equal", adjustable="box")
+        axis.ticklabel_format(axis="both", style="plain", useOffset=False)
         axis.grid(True, alpha=0.24)
         return axis
 
@@ -501,6 +539,7 @@ def _(np):
         rc_impedance_07,
         resistor_impedance_07,
         series_rc_impedance_07,
+        set_equal_nyquist_limits,
         tlm_distributed_parameters_07,
         tlm_parameters_07,
         tlm_profile_07,
@@ -541,10 +580,10 @@ def _(mo):
 @app.cell
 def _(mo):
     waveform_frequency_07 = mo.ui.slider(
-        start=-0.3, stop=1.0, step=0.1, value=0.0, label="Wave frequency, log10(f / Hz)"
+        start=-0.3, stop=1.0, step=0.1, value=0.0, label="Wave-frequency exponent"
     )
     waveform_lead_07 = mo.ui.slider(
-        start=0, stop=90, step=5, value=45, label="current lead (degrees)"
+        start=0, stop=90, step=5, value=45, label="Current lead (degrees)"
     )
     mo.hstack([waveform_frequency_07, waveform_lead_07], justify="start", gap=2.0)
     return waveform_frequency_07, waveform_lead_07
@@ -643,94 +682,126 @@ def _(mo):
 
 @app.cell
 def _(
+    capacitor_impedance_07,
+    format_nyquist_axis_07,
+    mo,
+    np,
+    plt,
+    resistor_impedance_07,
+    set_equal_nyquist_limits,
+):
+    _frequency_hz = np.logspace(-1.0, 5.0, 500)
+    resistor = resistor_impedance_07(_frequency_hz, 500.0)
+    capacitor = capacitor_impedance_07(_frequency_hz, 10.0e-6)
+    figure, (resistor_axis, capacitor_axis) = plt.subplots(
+        1, 2, figsize=(12.4, 5.0), constrained_layout=True
+    )
+    resistor_axis.scatter(
+        resistor.real[:1], -resistor.imag[:1], s=95,
+        color="#4C7C86", edgecolor="white", zorder=4,
+    )
+    resistor_axis.set(
+        xlabel=r"$Z'$ ($\Omega$)", ylabel=r"$-Z''$ ($\Omega$)",
+        title="Ideal resistor: one point",
+    )
+    set_equal_nyquist_limits(
+        resistor_axis,
+        np.array([0.0, resistor.real[0]]),
+        np.zeros(2),
+    )
+    format_nyquist_axis_07(resistor_axis)
+
+    capacitor_axis.plot(
+        capacitor.real, -capacitor.imag, color="#B8734A", lw=2.0
+    )
+    capacitor_axis.set(
+        xlabel=r"$Z'$ ($\Omega$)", ylabel=r"$-Z''$ ($\Omega$)",
+        title="Ideal capacitor: vertical line at $Z'=0$",
+    )
+    set_equal_nyquist_limits(capacitor_axis, capacitor.real, -capacitor.imag)
+    format_nyquist_axis_07(capacitor_axis)
+    plt.close(figure)
+    mo.vstack([
+        mo.md(r"""
+        ### Start with the two ideal elements
+
+        A resistor has no phase lag, so all frequencies collapse to one real-axis
+        point. A capacitor has zero real impedance and a frequency-dependent
+        negative imaginary part, so it traces a vertical Nyquist line. The small
+        negative real-axis margin keeps that line visible instead of hiding it
+        under the plot spine.
+        """),
+        figure,
+    ])
+    return (figure,)
+
+
+@app.cell
+def _(
     format_nyquist_axis_07,
     mo,
     np,
     parallel_rc_impedance_07,
     plt,
     series_rc_impedance_07,
+    set_equal_nyquist_limits,
 ):
     _frequency_hz = np.logspace(-1.0, 5.0, 600)
-    _resistance_ohm = 500.0
-    _capacitance_f = 10.0e-6
-    _tau_s = _resistance_ohm * _capacitance_f
-    _z_series = series_rc_impedance_07(
-        _frequency_hz, _resistance_ohm, _capacitance_f
-    )
-    _z_parallel = parallel_rc_impedance_07(
-        _frequency_hz, _resistance_ohm, _capacitance_f
-    )
-    _apex_frequency_hz = 1.0 / (2.0 * np.pi * _tau_s)
-    _apex_index = int(
-        np.argmin(np.abs(np.log(_frequency_hz / _apex_frequency_hz)))
-    )
-    _series_visible = -_z_series.imag <= 600.0
+    resistance_ohm = 500.0
+    capacitance_f = 10.0e-6
+    tau_s = resistance_ohm * capacitance_f
+    z_parallel = parallel_rc_impedance_07(_frequency_hz, resistance_ohm, capacitance_f)
+    z_series = series_rc_impedance_07(_frequency_hz, resistance_ohm, capacitance_f)
+    apex_frequency_hz = 1.0 / (2.0 * np.pi * tau_s)
+    apex_index = int(np.argmin(np.abs(np.log(_frequency_hz / apex_frequency_hz))))
 
-    _figure, (_axis_series, _axis_parallel) = plt.subplots(
-        1, 2, figsize=(12.8, 5.2), constrained_layout=True
-    )
-    _axis_series.plot(
-        _z_series.real[_series_visible],
-        -_z_series.imag[_series_visible],
-        color="#4C7C86",
-        lw=1.9,
-    )
-    _axis_series.scatter(
-        _z_series.real[_apex_index],
-        -_z_series.imag[_apex_index],
-        s=80,
-        marker="o",
-        color="#C49345",
-        edgecolor="white",
-        zorder=4,
+    parallel_figure, parallel_axis = plt.subplots(figsize=(8.2, 5.4), constrained_layout=True)
+    parallel_axis.plot(z_parallel.real, -z_parallel.imag, color="#4C7C86", lw=2.0)
+    parallel_axis.scatter(
+        z_parallel.real[apex_index], -z_parallel.imag[apex_index],
+        s=90, color="#C49345", edgecolor="white", zorder=4,
         label=r"$\omega RC=1$",
     )
-    _axis_series.set(
-        xlim=(0.0, 620.0),
-        ylim=(0.0, 620.0),
+    parallel_axis.set(
         xlabel=r"Real impedance, $Z'$ ($\Omega$)",
         ylabel=r"Negative imaginary impedance, $-Z''$ ($\Omega$)",
-        title=r"Series RC: $Z'=R$",
+        title=r"A parallel $R\parallel C$ branch gives a semicircle",
     )
-    _axis_series.legend(loc="upper left")
-    format_nyquist_axis_07(_axis_series)
+    set_equal_nyquist_limits(parallel_axis, z_parallel.real, -z_parallel.imag)
+    format_nyquist_axis_07(parallel_axis)
+    parallel_axis.legend(loc="best")
+    plt.close(parallel_figure)
 
-    _axis_parallel.plot(
-        _z_parallel.real,
-        -_z_parallel.imag,
-        color="#B8734A",
-        lw=1.9,
+    series_visible = -z_series.imag <= np.percentile(-z_series.imag, 75.0)
+    series_figure, series_axis = plt.subplots(figsize=(6.8, 5.0), constrained_layout=True)
+    series_axis.plot(
+        z_series.real[series_visible], -z_series.imag[series_visible],
+        color="#B8734A", lw=2.0,
     )
-    _axis_parallel.scatter(
-        _z_parallel.real[_apex_index],
-        -_z_parallel.imag[_apex_index],
-        s=80,
-        marker="s",
-        color="#C49345",
-        edgecolor="white",
-        zorder=4,
-        label=r"$\omega RC=1$",
+    series_axis.set(
+        xlabel=r"$Z'$ ($\Omega$)", ylabel=r"$-Z''$ ($\Omega$)",
+        title=r"Series RC keeps $Z'=R$",
     )
-    _axis_parallel.set(
-        xlim=(-20.0, 530.0),
-        ylim=(-20.0, 530.0),
-        xlabel=r"Real impedance, $Z'$ ($\Omega$)",
-        ylabel=r"Negative imaginary impedance, $-Z''$ ($\Omega$)",
-        title=r"Parallel RC: semicircle",
+    set_equal_nyquist_limits(
+        series_axis, z_series.real[series_visible], -z_series.imag[series_visible]
     )
-    _axis_parallel.legend(loc="upper right")
-    format_nyquist_axis_07(_axis_parallel)
-    plt.close(_figure)
+    format_nyquist_axis_07(series_axis)
+    plt.close(series_figure)
 
     mo.vstack([
-        _figure,
+        parallel_figure,
         mo.md(r"""
-        The same ideal $R$ and $C$ produce different
-        Nyquist shapes because their connection changes the current paths.
-        Series RC fixes $Z'=R$ and adds a capacitive vertical branch; parallel
-        RC connects the resistive endpoints through a semicircle whose top
-        occurs at $\omega RC=1$.
+        In parallel, current divides between the resistive and capacitive paths.
+        The arc top occurs at $\omega RC=1$, where the real and capacitive
+        responses are equally important.
         """),
+        mo.accordion({
+            "Explore further — the same resistor and capacitor in series":
+            mo.vstack([
+                series_figure,
+                mo.md(r"In series, the capacitor adds a vertical contribution while $Z'=R$ remains fixed."),
+            ])
+        }),
     ])
     return
 
@@ -750,9 +821,9 @@ def _(mo):
         start=100, stop=1500, step=50, value=600, label=r"$R_1$ ($\Omega$)"
     )
     rc_log_tau_1_07 = mo.ui.slider(
-        start=-4.0, stop=1.0, step=0.1, value=-1.7, label=r"$\log_{10}(\tau_1/\mathrm{s})$"
+        start=-4.0, stop=1.0, step=0.1, value=-1.7, label="First relaxation-time exponent"
     )
-    rc_show_second_07 = mo.ui.checkbox(value=True, label="show a second relaxation")
+    rc_show_second_07 = mo.ui.checkbox(value=True, label="Show a second relaxation")
     rc_resistance_ratio_07 = mo.ui.slider(
         start=0.25, stop=2.0, step=0.05, value=1.4, label=r"$R_2/R_1$"
     )
@@ -761,7 +832,7 @@ def _(mo):
         stop=4.0,
         step=0.1,
         value=2.0,
-        label=r"$\log_{10}(\tau_2/\tau_1)$",
+        label="Relaxation-time separation exponent",
     )
     mo.accordion({"Explore further — overlapping parallel-RC relaxations": mo.vstack(
         [
@@ -828,6 +899,7 @@ def _(
     rc_spectrum_07,
     rc_tau_1_07,
     rc_tau_2_07,
+    set_equal_nyquist_limits,
 ):
     _figure, (_axis_nyquist, _axis_bode) = plt.subplots(
         1, 2, figsize=(13.2, 5.0), constrained_layout=True
@@ -851,6 +923,7 @@ def _(
         ylabel=r"$-Z''$ ($\Omega$)",
         title="Nyquist: time-scale separation makes arcs visible",
     )
+    set_equal_nyquist_limits(_axis_nyquist, rc_spectrum_07.real, -rc_spectrum_07.imag)
     format_nyquist_axis_07(_axis_nyquist)
     _axis_nyquist.legend(loc="best")
 
@@ -997,32 +1070,32 @@ def _(mo):
             "Blocked far boundary: zero flux": "blocked",
         },
         value="Open far boundary: fixed composition",
-        label="profile boundary",
+        label="Far boundary condition",
     )
     warburg_log_frequency_07 = mo.ui.slider(
         start=-9.0,
         stop=3.0,
         step=0.25,
         value=-4.75,
-        label="Warburg frequency, log10(f / Hz)",
+        label="Warburg-frequency exponent",
     )
     warburg_phase_07 = mo.ui.dropdown(
         options={"0 cycle": 0.0, "1/4 cycle": 90.0, "1/2 cycle": 180.0, "3/4 cycle": 270.0},
         value="0 cycle",
-        label="snapshot phase",
+        label="Snapshot phase in cycle",
     )
     warburg_compare_boundaries_07 = mo.ui.checkbox(
-        value=False, label="compare both far boundaries"
+        value=False, label="Compare both far boundaries"
     )
     warburg_log_diffusivity_07 = mo.ui.slider(
         start=-12.0,
         stop=-5.0,
         step=0.25,
         value=-8.0,
-        label="Chemical diffusivity, log10(D-delta / cm2 s-1)",
+        label="Chemical-diffusivity exponent",
     )
     warburg_length_07 = mo.ui.slider(
-        start=10, stop=500, step=10, value=100, label=r"$L$ ($\mu$m)"
+        start=10, stop=500, step=10, value=100, label="Diffusion length (micrometers)"
     )
     warburg_temperature_07 = mo.ui.slider(
         start=400, stop=1400, step=50, value=800, label=r"$T$ (K)"
@@ -1140,6 +1213,7 @@ def _(
     mo,
     np,
     plt,
+    set_equal_nyquist_limits,
     warburg_impedance_07,
 ):
     _semi_reduced_omega = np.logspace(-4.0, 4.0, 500)
@@ -1186,12 +1260,11 @@ def _(
         ms=4,
     )
     _nyquist_axis.set(
-        xlim=(-0.02, 2.2),
-        ylim=(-0.02, 2.2),
         xlabel=r"Normalized real impedance, $\widetilde Z'$",
         ylabel=r"Normalized negative imaginary impedance, $-\widetilde Z''$",
         title=r"Diffusion gives $Z'=-Z''$",
     )
+    set_equal_nyquist_limits(_nyquist_axis, _semi_impedance.real, -_semi_impedance.imag)
     format_nyquist_axis_07(_nyquist_axis)
 
 
@@ -1225,6 +1298,7 @@ def _(
     warburg_selected_omega_07,
     warburg_selected_profile_07,
     warburg_spectra_07,
+    set_equal_nyquist_limits,
 ):
     _colors = {
         "open": "#4C7C86",
@@ -1332,19 +1406,28 @@ def _(
         )
     else:
         _axis_warburg.text(
-            0.04,
+            0.22,
             0.94,
             "Selected low-frequency point\nis above this viewport",
             transform=_axis_warburg.transAxes,
             va="top",
             color="#526173",
         )
+    plotted_warburg = np.concatenate([
+        warburg_spectra_07[boundary][
+            (-warburg_spectra_07[boundary].imag >= -1.0e-12)
+            & (-warburg_spectra_07[boundary].imag <= _nyquist_limit)
+            & (warburg_spectra_07[boundary].real <= _nyquist_limit)
+        ]
+        for boundary in _boundaries
+    ])
     _axis_warburg.set(
-        xlim=(-0.025 * _nyquist_limit, _nyquist_limit),
-        ylim=(-0.025 * _nyquist_limit, _nyquist_limit),
         xlabel=r"Real impedance, $Z'$ ($\Omega$)",
         ylabel=r"Negative imaginary impedance, $-Z''$ ($\Omega$)",
         title="Far boundary controls the low-frequency end",
+    )
+    set_equal_nyquist_limits(
+        _axis_warburg, plotted_warburg.real, -plotted_warburg.imag
     )
     format_nyquist_axis_07(_axis_warburg)
     _axis_warburg.legend(loc="best", fontsize=10.0)
@@ -1655,7 +1738,6 @@ def _(mo):
     |---|---|---|---|
     | electron-reversible, ions blocked | $u_e$ fixed; $I_i=0$ | $u_e$ fixed; $I_i=0$ | electronic dc path plus chemical polarization |
     | cross-selective | $u_e$ fixed; $I_i=0$ | $I_e=0$; $u_i$ fixed | no single carrier spans the specimen; blocking low-frequency response |
-    | both carriers reversible | $u_e=u_i$ fixed | $u_e=u_i$ fixed | no chemical rail difference; $R_e\parallel R_i$ |
 
     **Prediction.** Before changing the contact preset, decide whether a dc
     path remains and whether the contacts can drive $u_e-u_i$. Those two
@@ -1671,17 +1753,16 @@ def _(mo):
         options={
             "Electron-reversible contacts; ions blocked at both faces": "electron contacts, ions blocked",
             "Cross-selective: electron contact left; ion contact right": "cross-selective contacts",
-            "Both carriers reversible at both faces": "both carriers reversible",
         },
         value="Electron-reversible contacts; ions blocked at both faces",
-        label="contact boundary conditions",
+        label="Contact boundary conditions",
     )
     tlm_log_ratio_07 = mo.ui.slider(
         start=-3.0,
         stop=3.0,
         step=0.25,
         value=0.0,
-        label="Conductivity ratio, log10(sigma-e / sigma-i)",
+        label="Conductivity-ratio exponent",
     )
     tlm_log_r_parallel_per_m_07 = mo.ui.slider(
         start=3.0,
@@ -1698,17 +1779,17 @@ def _(mo):
         label=r"$\log_{10}(c_{\rm chem}/\mathrm{F\,m^{-1}})$",
     )
     tlm_length_07 = mo.ui.slider(
-        start=10, stop=500, step=10, value=100, label=r"$L$ ($\mu$m)"
+        start=10, stop=500, step=10, value=100, label="TLM length (micrometers)"
     )
     tlm_log_selected_frequency_07 = mo.ui.slider(
         start=-8.0,
         stop=6.0,
         step=0.25,
         value=0.5,
-        label="TLM frequency, log10(f / Hz)",
+        label="TLM-frequency exponent",
     )
     tlm_profile_phase_07 = mo.ui.slider(
-        start=0, stop=330, step=30, value=60, label=r"snapshot phase $\omega t$ (degrees)"
+        start=0, stop=330, step=30, value=60, label="Snapshot phase (degrees)"
     )
     tlm_internal_view_07 = mo.ui.dropdown(
         options=["Composition response", "Voltage-equivalent potentials", "Rail currents"],
@@ -1807,6 +1888,7 @@ def _(
     tlm_parameter_data_07,
     tlm_selected_frequency_hz_07,
     tlm_spectrum_data_07,
+    set_equal_nyquist_limits,
 ):
     _impedance = tlm_spectrum_data_07
     _real = _impedance.real
@@ -1846,18 +1928,12 @@ def _(
         zorder=4,
         label="selected frequency",
     )
-    _x_min, _x_max = float(_real.min()), float(_real.max())
-    _y_min, _y_max = float(_minus_imaginary.min()), float(_minus_imaginary.max())
-    _span = max(_x_max - _x_min, _y_max - _y_min, 1.0e-12)
-    _x_lower = max(0.0, _x_min - 0.04 * _span)
-    _y_center = 0.5 * (_y_min + _y_max)
     _nyquist_axis.set(
-        xlim=(_x_lower, _x_lower + 1.08 * _span),
-        ylim=(_y_center - 0.54 * _span, _y_center + 0.54 * _span),
         xlabel=r"Real impedance, $Z'$ ($\Omega$)",
         ylabel=r"Negative imaginary impedance, $-Z''$ ($\Omega$)",
         title="Distributed transport and storage create one spectrum",
     )
+    set_equal_nyquist_limits(_nyquist_axis, _real, _minus_imaginary)
     format_nyquist_axis_07(_nyquist_axis)
     _nyquist_axis.legend(frameon=False, loc="best")
 
@@ -2035,7 +2111,7 @@ def _(mo):
         mo.md(r"""
         **Scope of the interactive TLM model.** It includes uniform,
         one-dimensional electronic and ionic rails, distributed chemical
-        capacitance, and three ideal contact presets. It does **not** fit finite
+        capacitance, and two ideal contact presets. It does **not** fit finite
         $Z_A$–$Z_D$, dielectric/stray capacitance, surface reaction impedance,
         constant-phase elements, microstructural distributions, or nonlinear
         large-signal response. Those belong in a model only when the experiment
@@ -2084,6 +2160,7 @@ def _(
     plt,
     resistor_impedance_07,
     series_rc_impedance_07,
+    set_equal_nyquist_limits,
     tlm_distributed_parameters_07,
     tlm_parameters_07,
     tlm_profile_07,
@@ -2110,8 +2187,20 @@ def _(
         )),
     )
     _nyquist_test_figure, _nyquist_test_axis = plt.subplots()
+    _capacitor_y = -_check_capacitor.imag
+    _capacitor_limits = set_equal_nyquist_limits(
+        _nyquist_test_axis, _check_capacitor.real, _capacitor_y
+    )
     format_nyquist_axis_07(_nyquist_test_axis)
-    nyquist_equal_axis_error_07 = abs(float(_nyquist_test_axis.get_aspect()) - 1.0)
+    _x_limits, _y_limits = _capacitor_limits
+    nyquist_equal_axis_error_07 = abs(
+        (_x_limits[1] - _x_limits[0]) - (_y_limits[1] - _y_limits[0])
+    ) / (_y_limits[1] - _y_limits[0])
+    nyquist_capacitor_margin_pass_07 = bool(
+        _x_limits[0] < 0.0 < _x_limits[1]
+        and np.all(_capacitor_y > _y_limits[0])
+        and np.all(_capacitor_y < _y_limits[1])
+    )
     plt.close(_nyquist_test_figure)
     _check_series_rc = series_rc_impedance_07(_check_frequency, 37.0, 2.5e-6)
     series_rc_limit_error_07 = max(
@@ -2185,6 +2274,25 @@ def _(
         "cross-selective contacts",
         "both carriers reversible",
     )
+    _tlm_capacitive_line = tlm_spectrum_07(
+        _tlm_check_frequency, _tlm_check_parameters, "cross-selective contacts"
+    )
+    _tlm_margin_figure, _tlm_margin_axis = plt.subplots()
+    _tlm_x_limits, _tlm_y_limits = set_equal_nyquist_limits(
+        _tlm_margin_axis, _tlm_capacitive_line.real, -_tlm_capacitive_line.imag
+    )
+    nyquist_tlm_margin_pass_07 = bool(
+        _tlm_x_limits[0] < float(np.min(_tlm_capacitive_line.real))
+        and np.all(_tlm_capacitive_line.real > _tlm_x_limits[0])
+        and np.all(_tlm_capacitive_line.real < _tlm_x_limits[1])
+        and np.all(-_tlm_capacitive_line.imag > _tlm_y_limits[0])
+        and np.all(-_tlm_capacitive_line.imag < _tlm_y_limits[1])
+        and abs(
+            (_tlm_x_limits[1] - _tlm_x_limits[0])
+            - (_tlm_y_limits[1] - _tlm_y_limits[0])
+        ) < 1.0e-12 * (_tlm_y_limits[1] - _tlm_y_limits[0])
+    )
+    plt.close(_tlm_margin_figure)
     tlm_passivity_margin_07 = min(
         np.min(tlm_spectrum_07(_tlm_check_frequency, _tlm_check_parameters, _case).real)
         for _case in _tlm_cases
@@ -2255,7 +2363,9 @@ def _(
     )
     return (
         capacitor_limit_error_07,
+        nyquist_capacitor_margin_pass_07,
         nyquist_equal_axis_error_07,
+        nyquist_tlm_margin_pass_07,
         resistor_limit_error_07,
         phasor_sign_error_07,
         rc_circle_error_07,
@@ -2285,7 +2395,9 @@ def _(
     capacitor_limit_error_07,
     series_rc_limit_error_07,
     mo,
+    nyquist_capacitor_margin_pass_07,
     nyquist_equal_axis_error_07,
+    nyquist_tlm_margin_pass_07,
     resistor_limit_error_07,
     phasor_sign_error_07,
     rc_circle_error_07,
@@ -2314,9 +2426,9 @@ def _(
             r"The series example must equal the same resistor plus the same capacitive impedance at every frequency.",
         ),
         (
-            "Equal Nyquist scaling",
-            nyquist_equal_axis_error_07 < 1.0e-14,
-            "Equal data scale keeps angles, semicircles, and diffusion slopes geometrically honest.",
+            "Equal Nyquist scaling and visible capacitive axis",
+            nyquist_equal_axis_error_07 < 1.0e-14 and nyquist_capacitor_margin_pass_07 and nyquist_tlm_margin_pass_07,
+            "Equal data scale preserves geometry, and a small negative real-axis margin keeps a vertical capacitive line inside the axes.",
         ),
         (
             "Waveform frequency and phasor sign",
@@ -2365,7 +2477,7 @@ def _(
             "$u_e-u_i$ must be the stored chemical voltage, and distributed quantities must recover their totals after multiplication by $L$.",
         ),
         (
-            "Reversible-contact limit",
+            "Collapsed reversible-contact regression",
             tlm_reversible_error_07 < 2.0e-10,
             "Pinning both rails removes chemical polarization and leaves $R_e\\parallel R_i$.",
         ),
@@ -2427,7 +2539,7 @@ def _(mo):
 
     This notebook closely adapts the original tool's schematic, distributed
     parameter controls, frequency-colored spectra, and spatial teaching views,
-    while limiting the boundary choices to three transparent ideal contact
+    while limiting the boundary choices to two transparent ideal contact
     cases. The separate
     [TLM teaching tool](https://qiyanglu.github.io/TLM-teaching-tool/) exposes all
     four terminals, dielectric storage, and more general boundary impedances;
