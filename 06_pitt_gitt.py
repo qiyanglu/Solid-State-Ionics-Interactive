@@ -1,3 +1,12 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "marimo>=0.23.14",
+#     "matplotlib>=3.8",
+#     "numpy>=1.26",
+#     "scipy>=1.12",
+# ]
+# ///
 import marimo
 
 __generated_with = "0.24.0"
@@ -13,12 +22,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 15,
-            "axes.titlesize": 17,
-            "axes.labelsize": 15,
-            "xtick.labelsize": 13,
-            "ytick.labelsize": 13,
-            "legend.fontsize": 12,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 13,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
+            "legend.fontsize": 10.5,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -63,51 +72,26 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    # From Coulometric Titration to PITT and GITT
+    # From coulometric titration to PITT and GITT
 
-    **Guiding question.** How can a voltage or current pulse reveal both the
-    equilibrium composition and the rate of chemical diffusion in a mixed
-    ionic-electronic conductor (MIEC)?
+    **How can a short electrical pulse reveal both equilibrium composition and
+    chemical-diffusion speed?**
 
-    PITT and GITT use the same pulse--relaxation idea with different controls.
-    PITT is the **potentiostatic intermittent titration technique**; GITT is the
-    corresponding **galvanostatic intermittent titration technique**.
+    A titration step has two jobs. Integrated charge tells how much neutral
+    material entered or left the MIEC. After a long open-circuit rest, the
+    electrode potential \(E\) gives one equilibrium point. The transient
+    between those states reveals how quickly composition redistributes.
 
-    | technique | controlled during the pulse | measured response | especially useful for |
-    |---|---|---|---|
-    | **PITT** | voltage step | current decay | $D^\delta$, differential capacity |
-    | **GITT** | current step | voltage transient | OCV curve, $D^\delta$ |
+    - **PITT** applies a potential step and measures the current decay.
+    - **GITT** applies a current step and measures the potential response.
+    - **OCV rest** sets terminal current to zero while an inherited internal
+      concentration gradient may continue to relax.
 
-    **Learning goals**
-
-    1. Connect integrated charge to composition and long-rest electrode
-       potential to an equilibrium titration curve.
-    2. Distinguish PITT's fixed-potential boundary from GITT's fixed-flux
-       boundary and follow both into OCV relaxation.
-    3. Decide when diffusion-only formulas are trustworthy and when finite
-       surface kinetics biases an inferred $D^\delta$.
-
-    > **Predict before exploring.** After a small insertion step, where is the
-    > composition change largest first? When the circuit opens, can the internal
-    > concentration profile continue changing even though terminal current is zero?
-
-    **Notation and model scope.** The changing variable is the electrically
-    neutral composition species Li or H—not an isolated ion. Electrode potential
-    relative to a reference is $E$; total current is $I$ and $j=I/S$. The core
-    reader uses one-dimensional, small-step, ideal-pair chemical diffusion. See
-    the shared [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
-
-    After each pulse, the circuit is opened. The current becomes zero, but a
-    nonuniform composition can still relax internally. Repeating small steps
-    maps an equilibrium titration curve while the transients contain kinetic
-    information.
-
-    This notebook does more than draw the standard straight-line fits. It solves
-    the finite, one-dimensional diffusion problem first, then asks when the
-    familiar short- and long-time approximations are actually justified.
+    The core reader follows one experiment at a time. All profiles come from
+    the finite one-dimensional diffusion model; the familiar short- and
+    long-time formulas appear only in advanced analysis.
     """)
     return
-
 
 @app.cell
 def _(mo):
@@ -164,7 +148,7 @@ def _(mo, np, plt, species_label_06):
         information. The curve below is illustrative rather than a material fit.
         """),
         _figure,
-        mo.md("**Figure takeaway.** Coulometry answers *where equilibrium is*; PITT/GITT asks *how the solid approaches it*."),
+        mo.md("Coulometry answers *where equilibrium is*; PITT/GITT asks *how the solid approaches it*."),
     ])
     return
 
@@ -613,7 +597,7 @@ def _(mo, plt, species_label_06):
         [
             _fig,
             mo.md(
-                "**Figure takeaway.** The contacts are complementary: neither carrier can cross the whole "
+                "The contacts are complementary: neither carrier can cross the whole "
                 "cell by itself, yet the neutral pair can be inserted or extracted through "
                 "the external circuit."
             ),
@@ -624,7 +608,7 @@ def _(mo, plt, species_label_06):
 
 @app.cell
 def _(mo):
-    mo.md(r"""
+    derivation = mo.md(r"""
     ## 3. From carrier fluxes to one diffusion equation
 
     Let $c_0=c(x,0)$ be the initially uniform pair concentration, consistent
@@ -688,16 +672,22 @@ def _(mo):
     fixed and solves this relation for $\hat j(t)$. GITT holds $\hat j$ fixed and
     evaluates $\hat E(t)$. At OCV, $\hat j=0$ while the inherited concentration profile relaxes.
     """)
+    mo.accordion({"Model details - selective-contact diffusion equation": derivation})
     return
 
 
 @app.cell
 def _(mo):
+    experiment_mode_06 = mo.ui.dropdown(
+        options=["PITT", "GITT"],
+        value="PITT",
+        label="Experiment",
+    )
     temperature_06 = mo.ui.slider(
         600, 1200, value=800, step=25, label="Temperature T (K)", show_value=True
     )
     log_concentration_06 = mo.ui.slider(
-        17.0, 22.0, value=20.0, step=0.25, label="log10(c0 / cm^-3)", show_value=True
+        17.0, 22.0, value=20.0, step=0.25, label="Initial concentration, log10(c0 / cm^-3)", show_value=True
     )
     length_06 = mo.ui.dropdown(
         options={
@@ -707,25 +697,25 @@ def _(mo):
             "250 micrometers": 250.0,
         },
         value="100 micrometers",
-        label="MIEC thickness L",
+        label="MIEC thickness, L",
     )
     log_diffusivity_06 = mo.ui.slider(
-        -12.0, -6.0, value=-8.0, step=0.25, label="log10(D_delta / cm^2 s^-1)", show_value=True
+        -12.0, -6.0, value=-8.0, step=0.25, label="Chemical diffusivity, log10(D-delta / cm^2 s^-1)", show_value=True
     )
     log_ratio_06 = mo.ui.slider(
-        -1.0, 4.0, value=2.0, step=0.25, label="log10(sigma_e / sigma_i)", show_value=True
+        -1.0, 4.0, value=2.0, step=0.25, label="Conductivity ratio, log10(sigma_e / sigma_i)", show_value=True
     )
     pitt_voltage_06 = mo.ui.slider(
-        5.0, 35.0, value=15.0, step=1.0, label="PITT voltage step (mV, extraction)", show_value=True
+        5.0, 35.0, value=15.0, step=1.0, label="PITT potential step (mV, extraction)", show_value=True
     )
     gitt_current_06 = mo.ui.slider(
-        0.05, 0.60, value=0.30, step=0.025, label="GITT pulse strength, j0 L/(F D_delta c0)", show_value=True
+        0.05, 0.60, value=0.30, step=0.025, label="GITT current-step strength", show_value=True
     )
     pulse_duration_06 = mo.ui.slider(
-        0.20, 3.0, value=1.20, step=0.10, label="Pulse duration / tau_delta", show_value=True
+        0.20, 3.0, value=1.20, step=0.10, label="Pulse duration / tau-delta", show_value=True
     )
     rest_duration_06 = mo.ui.slider(
-        0.25, 5.0, value=2.50, step=0.25, label="OCV duration / tau_delta", show_value=True
+        0.25, 5.0, value=2.50, step=0.25, label="OCV rest duration / tau-delta", show_value=True
     )
     potential_case_06 = mo.ui.dropdown(
         options=[
@@ -735,12 +725,13 @@ def _(mo):
             "GITT: OCV relaxation",
         ],
         value="GITT: current step",
-        label="Potential-profile case",
+        label="Advanced profile case",
     )
     potential_time_06 = mo.ui.slider(
-        0, 100, value=65, step=5, label="Progress through selected stage (%)", show_value=True
+        0, 100, value=65, step=5, label="Stage progress (%)", show_value=True
     )
     return (
+        experiment_mode_06,
         gitt_current_06,
         length_06,
         log_concentration_06,
@@ -757,6 +748,7 @@ def _(mo):
 
 @app.cell
 def _(
+    experiment_mode_06,
     gitt_current_06,
     length_06,
     log_concentration_06,
@@ -770,19 +762,47 @@ def _(
     rest_duration_06,
     temperature_06,
 ):
-    control_panel_06 = mo.vstack(
-        [
-            mo.md("### Classroom controls"),
-            mo.hstack([temperature_06, log_concentration_06, length_06], justify="start", gap=1.2),
-            mo.hstack([log_diffusivity_06, log_ratio_06], justify="start", gap=1.2),
-            mo.hstack([pitt_voltage_06, gitt_current_06], justify="start", gap=1.2),
-            mo.hstack([pulse_duration_06, rest_duration_06], justify="start", gap=1.2),
-            mo.hstack([potential_case_06, potential_time_06], justify="start", gap=1.2),
-        ]
+    pulse_size_control = (
+        pitt_voltage_06 if experiment_mode_06.value == "PITT" else gitt_current_06
     )
-    control_panel_06
-    return
+    core_controls_06 = mo.hstack(
+        [
+            experiment_mode_06,
+            pulse_size_control,
+            pulse_duration_06,
+            log_diffusivity_06,
+        ],
+        justify="start",
+        align="center",
+        wrap=True,
+        gap=1.2,
+    )
+    advanced_controls_06 = mo.vstack([
+        mo.hstack(
+            [temperature_06, log_concentration_06, length_06],
+            justify="start", align="center", wrap=True, gap=1.2,
+        ),
+        mo.hstack(
+            [log_ratio_06, rest_duration_06],
+            justify="start", align="center", wrap=True, gap=1.2,
+        ),
+        mo.hstack(
+            [potential_case_06, potential_time_06],
+            justify="start", align="center", wrap=True, gap=1.2,
+        ),
+    ])
+    mo.vstack([
+        mo.md(r"""
+        ## 3. Choose one pulse experiment
 
+        Select PITT or GITT, then change the pulse size, duration, or chemical
+        diffusivity. A larger \(D^\delta\) shortens the physical response time;
+        it does not change the dimensionless boundary condition.
+        """),
+        core_controls_06,
+        mo.accordion({"Explore further - material and profile controls": advanced_controls_06}),
+    ])
+    return (core_controls_06,)
 
 @app.cell
 def _(
@@ -863,7 +883,7 @@ def _(current_scale_a_per_m2_06, mo, parameters_06):
         _time_text = f"{_tau:.1f} s"
     elif _tau >= 3600.0:
         _time_text = f"{_tau / 3600.0:.2f} h"
-    mo.md(
+    state_details = mo.md(
         f"""
         ### What the controls imply
 
@@ -884,32 +904,53 @@ def _(current_scale_a_per_m2_06, mo, parameters_06):
         Ohmic loss.
         """
     )
+    mo.accordion({"Model details - selected time and transport scales": state_details})
     return
 
 
 @app.cell
-def _(mo):
-    mo.md(r"""
-    ## 4. The three stages: pulse, interruption, relaxation
+def _(experiment_mode_06, mo, plt):
+    timeline_figure, timeline_axis = plt.subplots(figsize=(11.8, 2.6), dpi=120)
+    timeline_axis.set_xlim(0.0, 3.0)
+    timeline_axis.set_ylim(-0.15, 1.0)
+    timeline_axis.fill_between([0.0, 1.35], 0.15, 0.65, color="#D9E6E7")
+    timeline_axis.fill_between([1.35, 3.0], 0.15, 0.65, color="#EEE4D5")
+    timeline_axis.axvline(1.35, color="#6D747A", lw=1.3, ls="--")
+    timeline_axis.text(
+        0.675, 0.40,
+        "Potential step" if experiment_mode_06.value == "PITT" else "Current step",
+        ha="center", va="center", fontsize=14,
+    )
+    timeline_axis.text(1.35, 0.82, "Current interruption", ha="center")
+    timeline_axis.text(2.175, 0.40, "OCV rest", ha="center", va="center", fontsize=14)
+    timeline_axis.annotate(
+        "", xy=(2.95, 0.05), xytext=(0.05, 0.05),
+        arrowprops={"arrowstyle": "->", "lw": 1.4, "color": "#4C7C86"},
+    )
+    timeline_axis.text(1.50, -0.04, "Time", ha="center", va="top")
+    timeline_axis.axis("off")
+    timeline_axis.set_title("Pulse, interruption, and internal relaxation")
+    timeline_figure.tight_layout()
+    plt.close(timeline_figure)
+    mo.vstack([
+        mo.md(r"""
+        ## 4. Follow the pulse into OCV rest
 
-    The plots below use the **full finite-slab solution**.
-
-    1. During a PITT voltage step, $U$ is fixed and $j(t)$ adjusts.
-    2. During a GITT current step, $j$ is fixed and $U(t)$ adjusts.
-    3. At interruption, $j$ becomes exactly zero. The mean composition is then
-       conserved, while internal ion and electron fluxes flatten $c(x,t)$.
-
-    Solid concentration curves are during the pulse; dashed curves are during
-    the following OCV relaxation. The vertical line in each response plot marks
-    current interruption.
-    """)
-    return
-
+        Interruption sets terminal current to zero immediately. It does not
+        erase the end-of-pulse concentration profile. During OCV, equal ion and
+        electron fluxes can continue to flatten that profile without carrying
+        electrical current.
+        """),
+        timeline_figure,
+    ])
+    return (timeline_figure,)
 
 @app.cell
 def _(
     current_scale_a_per_m2_06,
+    experiment_mode_06,
     gitt_result_06,
+    mo,
     np,
     parameters_06,
     pitt_result_06,
@@ -919,130 +960,92 @@ def _(
     rest_times_06,
     voltage_scale_v_06,
 ):
-    _tau = parameters_06["tau_delta_s"]
-    _x_um = positions_06 * parameters_06["length_m"] * 1.0e6
-    _pulse_seconds = pulse_times_06 * _tau
-    _rest_seconds = (pulse_times_06[-1] + rest_times_06) * _tau
-    _profile_fractions = [0.08, 0.30, 1.0]
-    _rest_fractions = [0.08, 0.35, 1.0]
-    _pulse_indices = [
-        int(np.argmin(np.abs(pulse_times_06 - _fraction * pulse_times_06[-1])))
-        for _fraction in _profile_fractions
-    ]
-    _rest_indices = [
-        int(np.argmin(np.abs(rest_times_06 - _fraction * rest_times_06[-1])))
-        for _fraction in _rest_fractions
-    ]
-    _colors = ["#9DB8B7", "#729A9B", "#4F7881"]
-    _rest_colors = ["#D8B178", "#C18A68", "#A65E5E"]
-    _styles = ["--", "-.", "-"]
-    _rest_styles = [":", "--", (0, (5, 2))]
-
-    _fig, _axes = plt.subplots(2, 2, figsize=(14.2, 9.0), constrained_layout=True)
-    for _index, _color, _style in zip(_pulse_indices, _colors, _styles):
-        _axes[0, 0].plot(
-            _x_um,
-            pitt_result_06["pulse_profiles"][_index][::-1],
-            color=_color,
-            ls=_style,
-            lw=1.7,
-            label=rf"pulse $t/\tau^\delta={pulse_times_06[_index]:.2g}$",
-        )
-    for _index, _color, _style in zip(_rest_indices, _rest_colors, _rest_styles):
-        _axes[0, 0].plot(
-            _x_um,
-            pitt_result_06["rest_profiles"][_index][::-1],
-            color=_color,
-            lw=1.7,
-            ls=_style,
-            label=rf"OCV $t_r/\tau^\delta={rest_times_06[_index]:.2g}$",
-        )
-    _axes[0, 0].set_title("PITT: concentration profiles")
-    _axes[0, 0].set_xlabel("Position x (micrometers)")
-    _axes[0, 0].set_ylabel("c / c0")
-    _axes[0, 0].legend(fontsize=10.5, loc="best")
-
-    _pitt_voltage_mv = 1000.0 * voltage_scale_v_06 * pitt_result_06["pulse_u"]
-    _pitt_rest_voltage_mv = 1000.0 * voltage_scale_v_06 * pitt_result_06["rest_u"]
-    _pitt_current_milliamp_cm2 = 0.1 * current_scale_a_per_m2_06 * pitt_result_06["pulse_q"]
-    _pitt_current_rest = 0.1 * current_scale_a_per_m2_06 * pitt_result_06["rest_q"]
-    _axes[0, 1].plot(_pulse_seconds, _pitt_voltage_mv, color="#A65E5E", lw=1.8)
-    _axes[0, 1].plot(_rest_seconds, _pitt_rest_voltage_mv, color="#A65E5E", lw=1.8)
-    _axes[0, 1].axvline(_pulse_seconds[-1], color="0.45", ls=":", lw=1.7)
-    _axes[0, 1].set_title("PITT response: fixed voltage, relaxing current")
-    _axes[0, 1].set_xlabel("Time (s)")
-    _axes[0, 1].set_ylabel("Voltage change (mV)", color="#A65E5E")
-    _axes[0, 1].tick_params(axis="y", labelcolor="#A65E5E")
-    _current_axis = _axes[0, 1].twinx()
-    _current_axis.plot(_pulse_seconds, _pitt_current_milliamp_cm2, color="#4F7881", lw=1.7)
-    _current_axis.plot(_rest_seconds, _pitt_current_rest, color="#4F7881", lw=1.7)
-    _current_axis.set_ylabel("Current density (mA cm$^{-2}$)", color="#4F7881")
-    _current_axis.tick_params(axis="y", labelcolor="#4F7881")
-
-    for _index, _color, _style in zip(_pulse_indices, _colors, _styles):
-        _axes[1, 0].plot(
-            _x_um,
-            gitt_result_06["pulse_profiles"][_index][::-1],
-            color=_color,
-            ls=_style,
-            lw=1.7,
-            label=rf"pulse $t/\tau^\delta={pulse_times_06[_index]:.2g}$",
-        )
-    for _index, _color, _style in zip(_rest_indices, _rest_colors, _rest_styles):
-        _axes[1, 0].plot(
-            _x_um,
-            gitt_result_06["rest_profiles"][_index][::-1],
-            color=_color,
-            lw=1.7,
-            ls=_style,
-            label=rf"OCV $t_r/\tau^\delta={rest_times_06[_index]:.2g}$",
-        )
-    _axes[1, 0].set_title("GITT: concentration profiles")
-    _axes[1, 0].set_xlabel("Position x (micrometers)")
-    _axes[1, 0].set_ylabel("c / c0")
-    _axes[1, 0].legend(fontsize=10.5, loc="best")
-
-    _gitt_voltage_mv = 1000.0 * voltage_scale_v_06 * gitt_result_06["pulse_u"]
-    _gitt_rest_voltage_mv = 1000.0 * voltage_scale_v_06 * gitt_result_06["rest_u"]
-    _gitt_current_milliamp_cm2 = 0.1 * current_scale_a_per_m2_06 * gitt_result_06["pulse_q"]
-    _axes[1, 1].plot(_pulse_seconds, _gitt_voltage_mv, color="#A65E5E", lw=1.8)
-    _axes[1, 1].plot(_rest_seconds, _gitt_rest_voltage_mv, color="#A65E5E", lw=1.8)
-    _axes[1, 1].axvline(_pulse_seconds[-1], color="0.45", ls=":", lw=1.7)
-    _axes[1, 1].set_title("GITT response: fixed current, relaxing voltage")
-    _axes[1, 1].set_xlabel("Time (s)")
-    _axes[1, 1].set_ylabel("Voltage change (mV)", color="#A65E5E")
-    _axes[1, 1].tick_params(axis="y", labelcolor="#A65E5E")
-    _gitt_current_axis = _axes[1, 1].twinx()
-    _gitt_current_axis.plot(_pulse_seconds, _gitt_current_milliamp_cm2, color="#4F7881", lw=1.7)
-    _gitt_current_axis.plot(_rest_seconds, np.zeros_like(_rest_seconds), color="#4F7881", lw=1.7)
-    _gitt_current_axis.set_ylabel("Current density (mA cm$^{-2}$)", color="#4F7881")
-    _gitt_current_axis.tick_params(axis="y", labelcolor="#4F7881")
-
-    for _axis in _axes.flat:
-        _axis.grid(alpha=0.22)
-    _fig.suptitle(
-        "The same diffusion equation under voltage, current, and OCV control",
-        fontsize=16,
-        weight="bold",
+    selected_result = (
+        pitt_result_06 if experiment_mode_06.value == "PITT" else gitt_result_06
     )
-    _fig
-    return
+    tau_s = parameters_06["tau_delta_s"]
+    x_um = positions_06 * parameters_06["length_m"] * 1.0e6
+    pulse_seconds = pulse_times_06 * tau_s
+    rest_seconds = (pulse_times_06[-1] + rest_times_06) * tau_s
 
+    profile_figure, profile_axis = plt.subplots(figsize=(11.8, 4.2), dpi=120)
+    profile_axis.axhline(
+        1.0, color="#8D949A", lw=1.1, ls=":", label="Initial state"
+    )
+    profile_axis.plot(
+        x_um, selected_result["pulse_profiles"][-1][::-1],
+        color="#4C7C86", lw=1.7, label="At current interruption",
+    )
+    profile_axis.plot(
+        x_um, selected_result["rest_profiles"][-1][::-1],
+        color="#B8734A", lw=1.4, ls="--", label="After OCV rest",
+    )
+    profile_axis.set(
+        xlabel=r"Position, $x$ (micrometers)",
+        ylabel=r"Composition, $c/c_0$",
+        title=f"{experiment_mode_06.value}: the pulse creates a profile",
+    )
+    profile_axis.grid(alpha=0.22)
+    profile_axis.legend(frameon=False)
+    profile_figure.tight_layout()
+    plt.close(profile_figure)
 
-@app.cell
-def _(mo):
-    mo.md(r"""
-    **Figure takeaway.** PITT prescribes the surface composition and lets
-    current relax; GITT prescribes composition flux and lets electrode potential
-    evolve. During the following OCV rest, current is zero while the nonuniform
-    composition can continue to relax.
+    response_figure, response_axis = plt.subplots(figsize=(11.8, 4.2), dpi=120)
+    if experiment_mode_06.value == "PITT":
+        pulse_response = (
+            0.1 * current_scale_a_per_m2_06 * selected_result["pulse_q"]
+        )
+        rest_response = np.zeros_like(rest_seconds)
+        response_axis.plot(
+            pulse_seconds, pulse_response, color="#4C7C86", lw=1.7,
+            label="Measured current",
+        )
+        response_axis.plot(
+            rest_seconds, rest_response, color="#4C7C86", lw=1.4,
+        )
+        response_axis.set_ylabel(r"Current density, $j$ (mA cm$^{-2}$)")
+        response_axis.set_title("PITT current decays, then is interrupted")
+        explanation = (
+            "The imposed potential is held during the pulse, so the measured "
+            "current decays. At interruption the terminal current is exactly zero."
+        )
+    else:
+        pulse_response = 1.0e3 * voltage_scale_v_06 * selected_result["pulse_u"]
+        rest_response = 1.0e3 * voltage_scale_v_06 * selected_result["rest_u"]
+        response_axis.plot(
+            pulse_seconds, pulse_response, color="#4C7C86", lw=1.7,
+            label="During current pulse",
+        )
+        response_axis.plot(
+            rest_seconds, rest_response, color="#B8734A", lw=1.5, ls="--",
+            label="OCV relaxation",
+        )
+        response_axis.set_ylabel(r"Electrode-potential change, $\Delta E$ (mV)")
+        response_axis.set_title("GITT potential evolves and relaxes")
+        response_axis.legend(frameon=False)
+        explanation = (
+            "The current is fixed during the pulse. After interruption, the "
+            "potential relaxes toward the equilibrium value of the new mean composition."
+        )
+    response_axis.axvline(
+        pulse_seconds[-1], color="#6D747A", lw=1.2, ls=":",
+    )
+    response_axis.set_xlabel("Time (s)")
+    response_axis.grid(alpha=0.22)
+    response_figure.tight_layout()
+    plt.close(response_figure)
 
-    **Reading the electrolyte-side edge.** When $t_e$ is large, the
-    electron-blocking face at $x=0$ requires a stronger concentration
-    gradient. A steep but smooth bend near that face is therefore physical.
-    """)
-    return
-
+    mo.vstack([
+        mo.md(f"### {experiment_mode_06.value}: concentration first, response second"),
+        profile_figure,
+        mo.md(
+            "The solid line is the inherited end-of-pulse profile; the dashed "
+            "line shows how OCV rest flattens it while preserving its mean."
+        ),
+        response_figure,
+        mo.md(explanation),
+    ])
+    return profile_figure, response_figure
 
 @app.cell
 def _(mo):
@@ -1192,24 +1195,26 @@ def _(
         fontsize=14,
         weight="bold",
     )
-    mo.vstack(
-        [
-            _fig,
-            mo.md(
-                r"**Figure takeaway.** Move the **progress** slider or switch cases. "
-                r"The $+F\phi$ and $-F\phi$ lines show electrostatic potential in molar-energy form: $+F\phi$ for the ion "
-                r"and $-F\phi$ for the electron; divide by $F$ to express $\phi$ in volts. "
-                r"During OCV the electrical current is zero, but sloped electrochemical "
-                r"potentials can still drive equal ion and electron fluxes."
-            ),
-        ]
-    )
+    mo.accordion({
+        "Explore further - composition and electrochemical-potential profiles":
+        mo.vstack(
+            [
+                _fig,
+                mo.md(
+                    r"The $+F\phi$ and $-F\phi$ lines show the same electrostatic "
+                    r"potential in molar-energy form. During OCV, sloped "
+                    r"electrochemical potentials can still drive equal ion and "
+                    r"electron fluxes even though electrical current is zero."
+                ),
+            ]
+        )
+    })
     return
 
 
 @app.cell
 def _(mo):
-    mo.md(r"""
+    approximation_reader = mo.md(r"""
     ## 5. Where the textbook approximations come from
 
     To isolate the standard formulas, now take the **classical one-sided
@@ -1274,6 +1279,7 @@ def _(mo):
     These are limiting descriptions of the same finite-slab diffusion problem;
     the full transient curves are not assembled from them.
     """)
+    mo.accordion({"Advanced analysis - classical PITT and GITT limits": approximation_reader})
     return
 
 
@@ -1355,7 +1361,7 @@ def _(
     _fig.suptitle(
         "Short and long formulas are asymptotes, not universal fits", fontsize=15, weight="bold"
     )
-    _fig
+    mo.accordion({"Advanced analysis - asymptotic response curves": _fig})
     return (
         approximation_fourier_time_06,
         approximation_times_06,
@@ -1371,10 +1377,10 @@ def _(
 
 @app.cell
 def _(mo):
-    mo.md(r"""
+    fitting_reader = mo.md(r"""
     ### Reading the usual experimental plots
 
-    **Figure takeaway.** The short- and long-time formulas touch the same exact
+    The short- and long-time formulas touch the same exact
     finite-slab response only in their own asymptotic windows; they are not
     interchangeable global fits.
 
@@ -1428,6 +1434,7 @@ def _(mo):
     carries the complete end-of-pulse profile into the OCV stage,
     so it does not need either approximation to generate the relaxation curves.
     """)
+    mo.accordion({"Advanced analysis - fitting windows and OCV limits": fitting_reader})
     return
 
 
@@ -1630,7 +1637,7 @@ def _(
         kinetics_profile_time_06,
         _figure,
         mo.md(rf"""
-        **Figure takeaway.** A straight line in
+        A straight line in
         $\ln|I|$ versus $t$ does not prove diffusion control. Finite exchange
         makes the slowest eigenvalue smaller than $\pi/2$; using the ideal PITT
         slope then returns a diffusivity that is too small. The inferred value
@@ -1933,7 +1940,7 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 8. Three messages to keep
+    ## What to carry forward
 
     $$
     \boxed{
