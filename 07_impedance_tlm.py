@@ -1,3 +1,11 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "marimo>=0.23.14",
+#     "matplotlib>=3.8",
+#     "numpy>=1.26",
+# ]
+# ///
 import marimo
 
 __generated_with = "0.24.0"
@@ -13,12 +21,12 @@ def _():
 
     plt.rcParams.update(
         {
-            "font.size": 15,
-            "axes.titlesize": 17,
-            "axes.labelsize": 15,
-            "xtick.labelsize": 13,
-            "ytick.labelsize": 13,
-            "legend.fontsize": 12,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 13,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
+            "legend.fontsize": 10.5,
             "axes.facecolor": "#FCFCFA",
             "figure.facecolor": "white",
             "grid.color": "#C7CCD1",
@@ -63,41 +71,19 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    # Impedance Spectroscopy, Warburg Diffusion, and Transmission Lines
+    # Impedance spectroscopy: from a sine wave to a transport model
 
-    **Guiding question.** What physical process is able to respond at each
-    frequency, and how does that response appear in the complex impedance?
+    **What can respond at a chosen frequency?**
 
     Electrochemical impedance spectroscopy (EIS) applies a small sinusoidal
-    voltage and measures the sinusoidal current. Sweeping the frequency separates
-    processes by their characteristic times: a fast bulk response, a slower
-    interface, or still slower chemical diffusion. The shape is therefore a
-    compressed map of **dynamics**, not a collection of arcs to name by eye.
+    voltage and measures the sinusoidal current. Fast processes can follow a
+    rapid oscillation; slower transport appears only as the frequency is
+    lowered. An impedance spectrum is therefore a map of **dynamics**, not just
+    a collection of arcs to label.
 
-    **Learning goals**
-
-    1. Translate sinusoidal voltage and current into $Z(\omega)$, Nyquist, and
-       Bode representations without losing the sign convention.
-    2. Recognize semi-infinite and finite-length Warburg responses as solutions
-       of the same chemical-diffusion equation with different far boundaries.
-    3. Read a two-rail MIEC transmission line as transport, chemical storage,
-       and contact boundary conditions—not an arbitrary fitting circuit.
-
-    > **Predict before exploring.** If specimen thickness $L$ doubles while
-    > $D^\delta$ is unchanged, does the diffusion feature move to higher or
-    > lower frequency? By what factor?
-
-    **Model and notation scope.** The changing concentration is a neutral
-    composition species. $S$ is area, $I$ is total current, and distributed TLM
-    quantities carry units per length. See the shared
-    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
-
-    This notebook follows three steps:
-
-    1. build the complex-number language of EIS from voltage and current waves;
-    2. see the Warburg response emerge from one-dimensional diffusion;
-    3. join ionic and electronic transport with chemical storage in a
-       two-rail transmission line model (TLM).
+    We will first learn the complex-number language, then watch one-dimensional
+    chemical diffusion create Warburg impedance, and finally connect that
+    picture to the two-rail transmission line of a mixed conductor.
 
     The convention throughout is
 
@@ -117,12 +103,12 @@ def _(np):
             raise ValueError(f"{name} must be positive and finite")
         return number
 
-    def waveform_data_07(frequency_hz, current_lead_deg, sample_count=500):
-        """Return two cycles of normalized voltage and current."""
+    def waveform_data_07(frequency_hz, current_lead_deg, sample_count=1200):
+        """Return normalized voltage and current over a fixed two-second window."""
         frequency = _positive_07("frequency_hz", frequency_hz)
         lead_rad = np.deg2rad(float(current_lead_deg))
-        phase = np.linspace(0.0, 4.0 * np.pi, int(sample_count))
-        time_s = phase / (2.0 * np.pi * frequency)
+        time_s = np.linspace(0.0, 2.0, int(sample_count))
+        phase = 2.0 * np.pi * frequency * time_s
         voltage = np.cos(phase)
         current = 0.72 * np.cos(phase + lead_rad)
         impedance_phase_deg = -float(current_lead_deg)
@@ -555,7 +541,7 @@ def _(mo):
 @app.cell
 def _(mo):
     waveform_frequency_07 = mo.ui.slider(
-        start=-1.0, stop=2.0, step=0.1, value=0.5, label=r"$\log_{10}(f/\mathrm{Hz})$"
+        start=-0.3, stop=1.0, step=0.1, value=0.0, label="Wave frequency, log10(f / Hz)"
     )
     waveform_lead_07 = mo.ui.slider(
         start=0, stop=90, step=5, value=45, label="current lead (degrees)"
@@ -573,10 +559,10 @@ def _(waveform_data_07, waveform_frequency_07, waveform_lead_07):
 
 
 @app.cell
-def _(mo, np, plt, waveform_result_07):
+def _(mo, np, plt, waveform_frequency_07, waveform_result_07):
     _time_s, _voltage, _current, _z_phase = waveform_result_07
-    _period_s = (_time_s[-1] - _time_s[0]) / 2.0
-    _frequency_hz = 1.0 / _period_s
+    _frequency_hz = 10.0 ** waveform_frequency_07.value
+    _period_s = 1.0 / _frequency_hz
     _figure, (_axis_wave, _axis_phasor) = plt.subplots(
         1, 2, figsize=(12.5, 4.4), constrained_layout=True
     )
@@ -585,6 +571,7 @@ def _(mo, np, plt, waveform_result_07):
     _axis_wave.axhline(0.0, color="#73808C", lw=0.9)
     _axis_wave.set(
         xlabel=r"Time, $t$ (s)",
+        xlim=(0.0, 2.0),
         ylabel="Normalized signal (dimensionless)",
         title=rf"$f={_frequency_hz:.3g}$ Hz, period $={_period_s:.3g}$ s",
     )
@@ -625,7 +612,7 @@ def _(mo, np, plt, waveform_result_07):
     _axis_phasor.grid(True)
     mo.vstack([
         _figure,
-        mo.md(r"**Figure takeaway.** Frequency compresses or stretches the waves on the time axis in seconds, while the selected phase offset remains the same. The phasors store that phase relation without carrying an explicit time axis."),
+        mo.md(r"The two-second window stays fixed, so frequency now changes the visible number of cycles. The selected phase offset remains the same, and the phasors store that relation without carrying a time axis."),
     ])
     return
 
@@ -738,7 +725,7 @@ def _(
     mo.vstack([
         _figure,
         mo.md(r"""
-        **Figure takeaway.** The same ideal $R$ and $C$ produce different
+        The same ideal $R$ and $C$ produce different
         Nyquist shapes because their connection changes the current paths.
         Series RC fixes $Z'=R$ and adds a capacitive vertical branch; parallel
         RC connects the resistive endpoints through a semicircle whose top
@@ -776,7 +763,7 @@ def _(mo):
         value=2.0,
         label=r"$\log_{10}(\tau_2/\tau_1)$",
     )
-    mo.vstack(
+    mo.accordion({"Explore further — overlapping parallel-RC relaxations": mo.vstack(
         [
             _section_heading,
             mo.hstack([rc_series_07, rc_resistance_1_07, rc_log_tau_1_07], justify="start", gap=1.5),
@@ -786,7 +773,7 @@ def _(mo):
                 gap=1.5,
             ),
         ]
-    )
+    )})
     return (
         rc_log_separation_07,
         rc_log_tau_1_07,
@@ -885,16 +872,16 @@ def _(
         color="#526173",
         bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.82},
     )
-    mo.vstack([
+    mo.accordion({"Explore further — Nyquist and Bode views of overlapping arcs": mo.vstack([
         _figure,
-        mo.md(r"**Figure takeaway.** Each ideal $R\parallel C$ branch contributes one relaxation time; Nyquist shows shape, while Bode plots preserve the frequency location needed to interpret it."),
-    ])
+        mo.md(r"Each ideal $R\parallel C$ branch contributes one relaxation time; Nyquist shows shape, while Bode plots preserve the frequency location needed to interpret it."),
+    ])})
     return
 
 
 @app.cell
 def _(mo):
-    mo.md(r"""
+    interpretation = mo.md(r"""
     ### A ceramic interpretation — with a caution
 
     In the lecture's brick-layer picture, a high-frequency arc is often
@@ -906,12 +893,13 @@ def _(mo):
     microstructural knowledge should support the assignment; arc order alone is
     not enough.
     """)
+    mo.accordion({"Explore further — assigning ceramic arcs": interpretation})
     return
 
 
 @app.cell
 def _(mo):
-    mo.md(r"""
+    warburg_details = mo.md(r"""
     ## 2. Warburg impedance: diffusion written in the frequency domain
 
     Consider a neutral composition variable $c$ in a one-dimensional slab of
@@ -964,6 +952,27 @@ def _(mo):
     composition reservoir is maintained at the far face. The blocked case is
     also called finite-space Warburg (FSW).
     """)
+    mo.vstack([
+        mo.md(r"""
+        ## 2. Warburg impedance: when diffusion cannot keep up
+
+        Use the same one-dimensional chemical diffusivity $D^\delta$ as in
+        Modules 05 and 06. A sinusoidal surface perturbation creates a
+        concentration wave inside the specimen. High frequency probes only a
+        shallow region; lower frequency lets the wave travel farther.
+
+        For a semi-infinite specimen,
+
+        $$Z_W=\frac{W}{\sqrt{\mathrm{i}\omega}}
+        =\frac{W(1-\mathrm{i})}{\sqrt{2\omega}}.$$
+
+        Therefore $Z'=-Z''$: the familiar $45^\circ$ line is a consequence of
+        diffusion, not an assumed line drawn on the Nyquist plot.
+        """),
+        mo.accordion({
+            "Model details — diffusion equation, scales, and finite boundaries": warburg_details
+        }),
+    ])
     return
 
 
@@ -995,7 +1004,7 @@ def _(mo):
         stop=3.0,
         step=0.25,
         value=-4.75,
-        label=r"$\log_{10}(f/\mathrm{Hz})$",
+        label="Warburg frequency, log10(f / Hz)",
     )
     warburg_phase_07 = mo.ui.dropdown(
         options={"0 cycle": 0.0, "1/4 cycle": 90.0, "1/2 cycle": 180.0, "3/4 cycle": 270.0},
@@ -1003,14 +1012,14 @@ def _(mo):
         label="snapshot phase",
     )
     warburg_compare_boundaries_07 = mo.ui.checkbox(
-        value=True, label="compare both far boundaries"
+        value=False, label="compare both far boundaries"
     )
     warburg_log_diffusivity_07 = mo.ui.slider(
         start=-12.0,
         stop=-5.0,
         step=0.25,
         value=-8.0,
-        label=r"$\log_{10}(D^\delta/\mathrm{cm^2\,s^{-1}})$",
+        label="Chemical diffusivity, log10(D-delta / cm2 s-1)",
     )
     warburg_length_07 = mo.ui.slider(
         start=10, stop=500, step=10, value=100, label=r"$L$ ($\mu$m)"
@@ -1028,24 +1037,24 @@ def _(mo):
     warburg_area_07 = mo.ui.slider(
         start=0.1, stop=2.0, step=0.1, value=0.5, label=r"$S$ (cm$^2$)"
     )
-    mo.vstack(
-        [
-            mo.hstack(
-                [warburg_boundary_07, warburg_log_frequency_07, warburg_phase_07],
-                justify="start", gap=1.4,
-            ),
-            mo.hstack(
-                [warburg_log_diffusivity_07, warburg_length_07, warburg_compare_boundaries_07],
-                justify="start", gap=1.4,
-            ),
-            mo.accordion({
-                "Physical impedance scale": mo.hstack(
-                    [warburg_temperature_07, warburg_log_concentration_07, warburg_area_07],
-                    justify="start", gap=1.4,
-                )
-            }),
-        ]
+    core_controls_07 = mo.hstack(
+        [warburg_boundary_07, warburg_log_frequency_07, warburg_log_diffusivity_07],
+        justify="start", align="center", wrap=True, gap=1.4,
     )
+    advanced_controls_07 = mo.vstack([
+        mo.hstack(
+            [warburg_phase_07, warburg_length_07, warburg_compare_boundaries_07],
+            justify="start", align="center", wrap=True, gap=1.4,
+        ),
+        mo.hstack(
+            [warburg_temperature_07, warburg_log_concentration_07, warburg_area_07],
+            justify="start", align="center", wrap=True, gap=1.4,
+        ),
+    ])
+    mo.vstack([
+        core_controls_07,
+        mo.accordion({"Explore further — phase, thickness, and impedance scale": advanced_controls_07}),
+    ])
     return (
         warburg_area_07,
         warburg_boundary_07,
@@ -1141,9 +1150,9 @@ def _(
     _semi_profile = np.exp(-(1.0 + 1j) * _reduced_depth)
     _phases = np.array([0.0, 0.5, 1.0, 1.5]) * np.pi
     _figure, _axes = plt.subplots(
-        1, 3, figsize=(15.0, 4.8), constrained_layout=True
+        1, 2, figsize=(12.8, 4.8), constrained_layout=True
     )
-    _profile_axis, _nyquist_axis, _bode_axis = _axes
+    _profile_axis, _nyquist_axis = _axes
 
     _profile_styles = ("-", "--", "-.", ":")
     _profile_colors = ("#4C7C86", "#B8734A", "#7C6A91", "#5F8A6B")
@@ -1185,39 +1194,14 @@ def _(
     )
     format_nyquist_axis_07(_nyquist_axis)
 
-    _bode_axis.loglog(
-        _semi_reduced_omega,
-        np.abs(_semi_impedance),
-        color="#4C7C86",
-        lw=1.9,
-        label=r"$|\widetilde Z|$",
-    )
-    _phase_axis = _bode_axis.twinx()
-    _phase_axis.semilogx(
-        _semi_reduced_omega,
-        np.angle(_semi_impedance, deg=True),
-        color="#B8734A",
-        ls="--",
-        lw=1.7,
-    )
-    _bode_axis.set(
-        xlabel=r"Reduced angular frequency, $\widetilde\omega$ (dimensionless)",
-        ylabel=r"Magnitude, $|\widetilde Z|$ (dimensionless)",
-        title=r"Magnitude falls as $\widetilde\omega^{-1/2}$",
-    )
-    _phase_axis.set_ylabel(
-        r"Phase of $\widetilde Z$ (degrees)", color="#B8734A"
-    )
-    _phase_axis.set_ylim(-55.0, -35.0)
-    _phase_axis.tick_params(axis="y", colors="#B8734A")
-    _bode_axis.grid(alpha=0.24, which="both")
+
     plt.close(_figure)
     mo.vstack([
         _figure,
         mo.md(r"""
-        **Figure takeaway.** A semi-infinite concentration wave decays and
+        A semi-infinite concentration wave decays and
         accumulates phase with depth. That same solution gives both the
-        $45^\circ$ Nyquist line and the constant $-45^\circ$ Bode phase.
+        $45^\circ$ Nyquist line. The phase lag accumulates with depth.
         """),
     ])
     return
@@ -1265,8 +1249,8 @@ def _(
     )
     _resistance_scale = warburg_scale_data_07["resistance_diffusion_ohm"]
 
-    _figure, (_axis_profile, _axis_warburg, _axis_bode) = plt.subplots(
-        1, 3, figsize=(15.5, 5.1), constrained_layout=True
+    _figure, (_axis_profile, _axis_warburg) = plt.subplots(
+        1, 2, figsize=(12.8, 5.1), constrained_layout=True
     )
 
     _profile_envelope = np.abs(warburg_selected_profile_07)
@@ -1365,39 +1349,7 @@ def _(
     format_nyquist_axis_07(_axis_warburg)
     _axis_warburg.legend(loc="best", fontsize=10.0)
 
-    for _boundary in _boundaries:
-        _impedance = warburg_spectra_07[_boundary]
-        _axis_bode.loglog(
-            warburg_frequency_hz_07,
-            np.abs(_impedance),
-            lw=1.8,
-            ls=_styles[_boundary],
-            color=_colors[_boundary],
-            label=_labels[_boundary],
-        )
-    _axis_bode.scatter(
-        warburg_selected_frequency_hz_07,
-        abs(warburg_selected_impedance_07),
-        s=80,
-        facecolor="none",
-        edgecolor="#30343B",
-        linewidth=1.8,
-        zorder=4,
-    )
-    _axis_bode.axvline(
-        warburg_scale_data_07["frequency_diffusion_hz"],
-        color="#73808C",
-        ls=":",
-        lw=1.2,
-        label=r"$f_D$",
-    )
-    _axis_bode.set(
-        xlabel=r"Frequency, $f$ (Hz)",
-        ylabel=r"Magnitude, $|Z|$ ($\Omega$)",
-        title="Thickness and diffusivity move the frequency scale",
-    )
-    _axis_bode.grid(True, which="both", alpha=0.24)
-    _axis_bode.legend(loc="best", fontsize=10.0)
+
     plt.close(_figure)
 
     _boundary_sentence = {
@@ -1408,7 +1360,7 @@ def _(
         _figure,
         mo.md(
             rf"""
-            **Figure takeaway.** {_boundary_sentence} The selected point has
+            {_boundary_sentence} The selected point has
             $f/f_D=\widetilde\omega={warburg_selected_omega_07:.3g}$,
             with $f_D={warburg_scale_data_07['frequency_diffusion_hz']:.3g}$ Hz
             and $R_D={warburg_scale_data_07['resistance_diffusion_ohm']:.3g}\ \Omega$.
@@ -1422,7 +1374,7 @@ def _(
 
 @app.cell
 def _(mo):
-    mo.md(r"""
+    finite_limits = mo.md(r"""
     ### Read the two finite-length limits
 
     Both finite boundaries recover the semi-infinite $45^\circ$ response at
@@ -1451,6 +1403,7 @@ def _(mo):
     profile controls ($f$, $D^\delta$, $L$) and amplitude controls ($T$, $c_0$,
     $S$) teach different parts of the same response.
     """)
+    mo.accordion({"Explore further — finite-length limits and impedance scaling": finite_limits})
     return
 
 
@@ -1476,7 +1429,7 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    mo.md(r"""
+    tlm_details = mo.md(r"""
     ## 3. Why a mixed conductor needs a transmission line
 
 
@@ -1550,6 +1503,24 @@ def _(mo):
     A dielectric capacitance $C_{\rm diel}$ can be added for an electrolyte,
     but it is shown only as an application below and is not in this teaching model.
     """)
+    mo.vstack([
+        mo.md(r"""
+        ## 3. A mixed conductor needs two connected pathways
+
+        A MIEC carries electronic current on one rail and ionic current on the
+        other. Distributed chemical capacitance connects the rails because a
+        local change in stoichiometry stores chemical free energy. Current may
+        transfer between the rails, but total current is conserved:
+
+        $$\frac{d(I_e+I_i)}{dx}=0.$$
+
+        The end contacts decide which carrier may enter or leave. The same bulk
+        material can therefore show a different spectrum when its boundary
+        conditions change. In an appropriate selective-contact limit, this
+        distributed model becomes the finite-diffusion response seen above.
+        """),
+        mo.accordion({"Model details — TLM equations, signs, units, and time scale": tlm_details}),
+    ])
     return
 
 
@@ -1665,7 +1636,7 @@ def _(Rectangle, mo, np, plt):
     mo.vstack([
         _figure,
         mo.md(r"""
-        **Figure takeaway.** This follows the original TLM teaching tool:
+        This follows the original TLM teaching tool:
         electrodes surround a uniform MIEC, the two rails carry electronic and
         ionic current, and each properly drawn $c_{\rm chem}$ element stores
         composition between—not along—the rails. $Z_A$–$Z_D$ set the four
@@ -1702,7 +1673,7 @@ def _(mo):
             "Cross-selective: electron contact left; ion contact right": "cross-selective contacts",
             "Both carriers reversible at both faces": "both carriers reversible",
         },
-        value="Cross-selective: electron contact left; ion contact right",
+        value="Electron-reversible contacts; ions blocked at both faces",
         label="contact boundary conditions",
     )
     tlm_log_ratio_07 = mo.ui.slider(
@@ -1710,7 +1681,7 @@ def _(mo):
         stop=3.0,
         step=0.25,
         value=0.0,
-        label=r"$\log_{10}(\sigma_e/\sigma_i)$",
+        label="Conductivity ratio, log10(sigma-e / sigma-i)",
     )
     tlm_log_r_parallel_per_m_07 = mo.ui.slider(
         start=3.0,
@@ -1734,28 +1705,31 @@ def _(mo):
         stop=6.0,
         step=0.25,
         value=0.5,
-        label=r"$\log_{10}(f/\mathrm{Hz})$",
+        label="TLM frequency, log10(f / Hz)",
     )
     tlm_profile_phase_07 = mo.ui.slider(
         start=0, stop=330, step=30, value=60, label=r"snapshot phase $\omega t$ (degrees)"
     )
-    mo.vstack(
-        [
-            tlm_contact_case_07,
-            mo.hstack(
-                [tlm_log_ratio_07, tlm_log_r_parallel_per_m_07, tlm_log_c_chemical_per_m_07, tlm_length_07],
-                justify="start",
-                gap=1.4,
-            ),
-            mo.hstack(
-                [tlm_log_selected_frequency_07, tlm_profile_phase_07],
-                justify="start",
-                gap=1.4,
-            ),
-        ]
+    tlm_internal_view_07 = mo.ui.dropdown(
+        options=["Composition response", "Voltage-equivalent potentials", "Rail currents"],
+        value="Composition response",
+        label="Internal view",
     )
+    core_tlm_controls_07 = mo.hstack(
+        [tlm_contact_case_07, tlm_log_ratio_07, tlm_log_selected_frequency_07],
+        justify="start", align="center", wrap=True, gap=1.4,
+    )
+    advanced_tlm_controls_07 = mo.hstack(
+        [tlm_log_r_parallel_per_m_07, tlm_log_c_chemical_per_m_07, tlm_length_07, tlm_profile_phase_07],
+        justify="start", align="center", wrap=True, gap=1.4,
+    )
+    mo.vstack([
+        core_tlm_controls_07,
+        mo.accordion({"Explore further — distributed scale and snapshot phase": advanced_tlm_controls_07}),
+    ])
     return (
         tlm_contact_case_07,
+        tlm_internal_view_07,
         tlm_length_07,
         tlm_log_c_chemical_per_m_07,
         tlm_log_ratio_07,
@@ -1837,206 +1811,104 @@ def _(
     _impedance = tlm_spectrum_data_07
     _real = _impedance.real
     _minus_imaginary = -_impedance.imag
-    _log_frequency = np.log10(tlm_frequency_hz_07)
     _selected_index = int(
-        np.argmin(
-            np.abs(
-                np.log(tlm_frequency_hz_07 / tlm_selected_frequency_hz_07)
-            )
-        )
+        np.argmin(np.abs(np.log(tlm_frequency_hz_07 / tlm_selected_frequency_hz_07)))
     )
     _representative_frequencies = np.logspace(
-        _log_frequency.min(), _log_frequency.max(), 7
+        np.log10(tlm_frequency_hz_07[0]), np.log10(tlm_frequency_hz_07[-1]), 7
     )
-    _representative_indices = np.array(
-        [
-            int(np.argmin(np.abs(tlm_frequency_hz_07 - _frequency)))
-            for _frequency in _representative_frequencies
-        ]
-    )
-    _representative_colors = _log_frequency[_representative_indices]
-    _high_mask = tlm_frequency_hz_07 >= tlm_frequency_hz_07[-1] / 100.0
-    _low_mask = tlm_frequency_hz_07 <= tlm_frequency_hz_07[0] * 100.0
+    _representative_indices = np.array([
+        int(np.argmin(np.abs(tlm_frequency_hz_07 - frequency)))
+        for frequency in _representative_frequencies
+    ])
 
-    def _equal_limits(_mask):
-        _x_values = _real[_mask]
-        _y_values = _minus_imaginary[_mask]
-        _x_min, _x_max = float(_x_values.min()), float(_x_values.max())
-        _y_min, _y_max = float(_y_values.min()), float(_y_values.max())
-        _span = max(_x_max - _x_min, _y_max - _y_min)
-        _scale = max(
-            float(np.max(np.abs(_x_values))),
-            float(np.max(np.abs(_y_values))),
-            1.0,
-        )
-        _span = max(_span, 1.0e-9 * _scale) * 1.16
-        _x_lower = max(0.0, _x_min - 0.04 * _span)
-        _y_center = 0.5 * (_y_min + _y_max)
-        return (_x_lower, _x_lower + _span), (
-            _y_center - 0.5 * _span,
-            _y_center + 0.5 * _span,
-        )
-
-    _nyquist_figure, _nyquist_axes = plt.subplots(
-        1, 3, figsize=(15.5, 5.0), constrained_layout=True
+    _nyquist_figure, _nyquist_axis = plt.subplots(
+        figsize=(8.4, 6.0), constrained_layout=True
     )
-    _masks = (
-        np.ones_like(tlm_frequency_hz_07, dtype=bool),
-        _high_mask,
-        _low_mask,
+    _nyquist_axis.plot(_real, _minus_imaginary, color="#4C7C86", lw=1.9)
+    _nyquist_axis.scatter(
+        _real[_representative_indices],
+        _minus_imaginary[_representative_indices],
+        s=42,
+        color="#B8734A",
+        edgecolors="white",
+        linewidths=0.6,
+        zorder=3,
+        label="representative frequencies",
     )
-    _titles = (
-        "Full spectrum",
-        "High-frequency viewport",
-        "Low-frequency viewport",
+    _nyquist_axis.scatter(
+        _real[_selected_index],
+        _minus_imaginary[_selected_index],
+        s=125,
+        facecolors="none",
+        edgecolors="#30343B",
+        linewidths=1.8,
+        zorder=4,
+        label="selected frequency",
     )
-    _dense_scatter = None
-    for _axis, _mask, _title in zip(_nyquist_axes, _masks, _titles):
-        _axis.plot(_real, _minus_imaginary, color="#9AA3AB", lw=1.3, zorder=1)
-        _dense_scatter = _axis.scatter(
-            _real,
-            _minus_imaginary,
-            c=_log_frequency,
-            cmap="cividis",
-            s=14,
-            alpha=0.78,
-            edgecolors="none",
-            zorder=2,
-        )
-        _axis.scatter(
-            _real[_representative_indices],
-            _minus_imaginary[_representative_indices],
-            c=_representative_colors,
-            cmap="cividis",
-            s=52,
-            edgecolors="#30343B",
-            linewidths=0.6,
-            zorder=3,
-        )
-        _axis.scatter(
-            _real[_selected_index],
-            _minus_imaginary[_selected_index],
-            s=135,
-            facecolors="none",
-            edgecolors="#30343B",
-            linewidths=1.9,
-            zorder=4,
-        )
-        _x_limits, _y_limits = _equal_limits(_mask)
-        _axis.set(
-            xlim=_x_limits,
-            ylim=_y_limits,
-            xlabel=r"Real impedance, $Z'$ ($\Omega$)",
-            ylabel=r"Negative imaginary impedance, $-Z''$ ($\Omega$)",
-            title=_title,
-        )
-        format_nyquist_axis_07(_axis)
-
-    _frequency_colorbar = _nyquist_figure.colorbar(
-        _dense_scatter, ax=list(_nyquist_axes), shrink=0.82, pad=0.025
+    _x_min, _x_max = float(_real.min()), float(_real.max())
+    _y_min, _y_max = float(_minus_imaginary.min()), float(_minus_imaginary.max())
+    _span = max(_x_max - _x_min, _y_max - _y_min, 1.0e-12)
+    _x_lower = max(0.0, _x_min - 0.04 * _span)
+    _y_center = 0.5 * (_y_min + _y_max)
+    _nyquist_axis.set(
+        xlim=(_x_lower, _x_lower + 1.08 * _span),
+        ylim=(_y_center - 0.54 * _span, _y_center + 0.54 * _span),
+        xlabel=r"Real impedance, $Z'$ ($\Omega$)",
+        ylabel=r"Negative imaginary impedance, $-Z''$ ($\Omega$)",
+        title="Distributed transport and storage create one spectrum",
     )
-    _frequency_colorbar.set_label(r"$\log_{10}(f/\mathrm{Hz})$")
+    format_nyquist_axis_07(_nyquist_axis)
+    _nyquist_axis.legend(frameon=False, loc="best")
 
     _bode_figure, (_magnitude_axis, _phase_axis) = plt.subplots(
-        1, 2, figsize=(12.8, 4.6), constrained_layout=True
+        1, 2, figsize=(12.8, 4.4), constrained_layout=True
     )
     _magnitude_axis.loglog(
-        tlm_frequency_hz_07, np.abs(_impedance), color="#4C7C86", lw=1.9
+        tlm_frequency_hz_07, np.abs(_impedance), color="#4C7C86", lw=1.8
     )
-    _magnitude_axis.scatter(
-        tlm_frequency_hz_07[_representative_indices],
-        np.abs(_impedance[_representative_indices]),
-        c=_representative_colors,
-        cmap="cividis",
-        s=45,
-        edgecolors="#30343B",
-        linewidths=0.5,
-        zorder=3,
-    )
-    _magnitude_axis.scatter(
-        tlm_frequency_hz_07[_selected_index],
-        abs(_impedance[_selected_index]),
-        s=105,
-        facecolors="none",
-        edgecolors="#30343B",
-        linewidths=1.8,
-        zorder=4,
+    _phase_axis.semilogx(
+        tlm_frequency_hz_07, np.angle(_impedance, deg=True), color="#B8734A", lw=1.8
     )
     _magnitude_axis.set(
-        xlabel=r"Frequency, $f$ (Hz)",
-        ylabel=r"Magnitude, $|Z|$ ($\Omega$)",
-        title="Bode magnitude",
-    )
-
-    _phase_degrees = np.angle(_impedance, deg=True)
-    _phase_axis.semilogx(
-        tlm_frequency_hz_07, _phase_degrees, color="#B8734A", lw=1.9
-    )
-    _phase_axis.scatter(
-        tlm_frequency_hz_07[_representative_indices],
-        _phase_degrees[_representative_indices],
-        c=_representative_colors,
-        cmap="cividis",
-        s=45,
-        edgecolors="#30343B",
-        linewidths=0.5,
-        zorder=3,
-    )
-    _phase_axis.scatter(
-        tlm_frequency_hz_07[_selected_index],
-        _phase_degrees[_selected_index],
-        s=105,
-        facecolors="none",
-        edgecolors="#30343B",
-        linewidths=1.8,
-        zorder=4,
+        xlabel=r"Frequency, $f$ (Hz)", ylabel=r"Magnitude, $|Z|$ ($\Omega$)",
+        title="Magnitude",
     )
     _phase_axis.set(
-        xlabel=r"Frequency, $f$ (Hz)",
-        ylabel=r"Phase of $Z$ (degrees)",
-        title="Bode phase",
+        xlabel=r"Frequency, $f$ (Hz)", ylabel=r"Phase of $Z$ (degrees)",
+        title="Phase",
     )
     for _axis in (_magnitude_axis, _phase_axis):
         _axis.axvline(
             tlm_parameter_data_07["frequency_chemical_hz"],
-            color="#73808C",
-            ls=":",
-            lw=1.2,
+            color="#73808C", ls=":", lw=1.2,
         )
         _axis.grid(True, which="both", alpha=0.24)
     plt.close(_nyquist_figure)
     plt.close(_bode_figure)
 
     mo.vstack([
-        mo.md(r"""
-        ### Read the spectrum as one frequency map
-
-        The gray line guides the eye, the colored points are all solved
-        frequencies, and the black ring marks the frequency used for the
-        spatial profiles below. The two viewports reveal features that can be
-        compressed in the full equal-scale Nyquist plot.
-        """),
+        mo.md("### Read one contact-dependent TLM spectrum"),
         _nyquist_figure,
-        _bode_figure,
         mo.md(
             rf"""
-            **Figure takeaway.** The selected contact preset is
-            **{tlm_contact_case_07.value}**. Its distributed rail transport and
-            chemical storage generate the spectrum; no Warburg line is inserted.
-            In the electron-dominant, selectively contacted limit, this same
-            TLM approaches the finite-diffusion behavior explored above.
-            Here $f_{{\rm chem}}={tlm_parameter_data_07['frequency_chemical_hz']:.3g}$ Hz.
+            The selected contact preset is **{tlm_contact_case_07.value}**.
+            The line comes from distributed rail transport and chemical
+            storage; no Warburg segment is inserted. The black ring selects the
+            frequency used for the spatial view below. Here
+            $f_{{\rm chem}}={tlm_parameter_data_07['frequency_chemical_hz']:.3g}$ Hz.
             """
         ),
+        mo.accordion({"Explore further — TLM Bode magnitude and phase": _bode_figure}),
     ])
     return
-
 
 @app.cell
 def _(
     mo,
     np,
     plt,
+    tlm_internal_view_07,
     tlm_parameter_data_07,
     tlm_position_um_07,
     tlm_profile_data_07,
@@ -2050,7 +1922,6 @@ def _(
     _concentration_hat = _chemical_hat / _chemical_scale
     _concentration_snapshot = np.real(_concentration_hat * _phase_factor)
     _concentration_envelope = np.abs(_concentration_hat)
-
     _u_e_snapshot = np.real(tlm_profile_data_07["u_e"] * _phase_factor)
     _u_i_snapshot = np.real(tlm_profile_data_07["u_i"] * _phase_factor)
     _chemical_snapshot = np.real(_chemical_hat * _phase_factor)
@@ -2058,136 +1929,78 @@ def _(
         float(np.max(np.abs(tlm_profile_data_07["I_total"]))),
         1.0 / tlm_parameter_data_07["R_parallel_ohm"],
     )
-    _i_e_snapshot = (
-        np.real(tlm_profile_data_07["I_e"] * _phase_factor) / _current_scale
-    )
-    _i_i_snapshot = (
-        np.real(tlm_profile_data_07["I_i"] * _phase_factor) / _current_scale
-    )
-    _i_total_snapshot = (
-        np.real(tlm_profile_data_07["I_total"] * _phase_factor) / _current_scale
-    )
+    _i_e_snapshot = np.real(tlm_profile_data_07["I_e"] * _phase_factor) / _current_scale
+    _i_i_snapshot = np.real(tlm_profile_data_07["I_i"] * _phase_factor) / _current_scale
+    _i_total_snapshot = np.real(tlm_profile_data_07["I_total"] * _phase_factor) / _current_scale
 
-    _length_um = tlm_position_um_07[-1]
-    _electrode_width_um = 0.07 * _length_um
-    _figure, (_concentration_axis, _potential_axis, _current_axis) = plt.subplots(
-        1, 3, figsize=(15.5, 5.0), constrained_layout=True
-    )
-
-    _concentration_axis.axvspan(
-        -_electrode_width_um, 0.0, color="#D9DDE0", alpha=0.9, label="electrodes"
-    )
-    _concentration_axis.axvspan(
-        _length_um, _length_um + _electrode_width_um, color="#D9DDE0", alpha=0.9
-    )
-    _concentration_axis.axvspan(
-        0.0, _length_um, color="#F3EEDB", alpha=0.45
-    )
-    _concentration_axis.fill_between(
-        tlm_position_um_07,
-        -_concentration_envelope,
-        _concentration_envelope,
-        color="#B8734A",
-        alpha=0.18,
-        label="full-cycle envelope",
-    )
-    _concentration_axis.plot(
-        tlm_position_um_07,
-        _concentration_envelope,
-        color="#B8734A",
-        ls="--",
-        lw=1.5,
-    )
-    _concentration_axis.plot(
-        tlm_position_um_07,
-        -_concentration_envelope,
-        color="#B8734A",
-        ls="--",
-        lw=1.5,
-    )
-    _concentration_axis.plot(
-        tlm_position_um_07,
-        _concentration_snapshot,
-        color="#4C7C86",
-        lw=1.9,
-        label="selected-phase snapshot",
-    )
-    _concentration_axis.axhline(0.0, color="#73808C", lw=0.9)
-    _concentration_axis.set(
-        xlim=(-_electrode_width_um, _length_um + _electrode_width_um),
-        ylim=(-1.08, 1.08),
-        xlabel=r"Position, $x$ ($\mu$m)",
-        ylabel="Normalized concentration-like response (dimensionless)",
-        title="Chemical storage profile",
-    )
-    _concentration_axis.grid(True, alpha=0.24)
-    _concentration_axis.legend(loc="best", fontsize=9.8)
-
-    _potential_axis.plot(
-        tlm_position_um_07, _u_e_snapshot, lw=1.9, color="#4C7C86", label=r"$u_e$"
-    )
-    _potential_axis.plot(
-        tlm_position_um_07, _u_i_snapshot, lw=1.9, color="#B8734A", label=r"$u_i$"
-    )
-    _potential_axis.plot(
-        tlm_position_um_07,
-        _chemical_snapshot,
-        lw=1.8,
-        ls="--",
-        color="#7C6A91",
-        label=r"$u_e-u_i$",
-    )
-    _potential_axis.axhline(0.0, color="#73808C", lw=0.9)
-    _potential_axis.set(
-        xlabel=r"Position, $x$ ($\mu$m)",
-        ylabel="Voltage-equivalent potential (V)",
-        title="Rail and chemical potentials",
-    )
-    _potential_axis.grid(True, alpha=0.24)
-    _potential_axis.legend(loc="best")
-
-    _current_axis.plot(
-        tlm_position_um_07, _i_e_snapshot, lw=1.9, color="#4C7C86", label=r"$I_e$"
-    )
-    _current_axis.plot(
-        tlm_position_um_07, _i_i_snapshot, lw=1.9, color="#B8734A", label=r"$I_i$"
-    )
-    _current_axis.plot(
-        tlm_position_um_07,
-        _i_total_snapshot,
-        lw=1.7,
-        ls="--",
-        color="#5F8A6B",
-        label=r"$I_e+I_i$",
-    )
-    _current_axis.axhline(0.0, color="#73808C", lw=0.9)
-    _current_axis.set(
-        xlabel=r"Position, $x$ ($\mu$m)",
-        ylabel="Current / common scale (dimensionless)",
-        title="Current transfers between rails",
-    )
-    _current_axis.grid(True, alpha=0.24)
-    _current_axis.legend(loc="best")
+    _figure, _axis = plt.subplots(figsize=(10.8, 4.8), constrained_layout=True)
+    _view = tlm_internal_view_07.value
+    if _view == "Composition response":
+        _length_um = tlm_position_um_07[-1]
+        _electrode_width_um = 0.035 * _length_um
+        _axis.axvspan(-_electrode_width_um, 0.0, color="#D9DDE0", alpha=0.9)
+        _axis.axvspan(_length_um, _length_um + _electrode_width_um, color="#D9DDE0", alpha=0.9)
+        _axis.fill_between(
+            tlm_position_um_07, -_concentration_envelope, _concentration_envelope,
+            color="#B8734A", alpha=0.16, label="full-cycle envelope",
+        )
+        _axis.plot(
+            tlm_position_um_07, _concentration_snapshot,
+            color="#4C7C86", lw=1.9, label="selected-phase snapshot",
+        )
+        _axis.set(
+            xlim=(-_electrode_width_um, _length_um + _electrode_width_um),
+            ylim=(-1.08, 1.08),
+            ylabel="Normalized composition response",
+            title="Chemical storage profile",
+        )
+        _explanation = (
+            "The stored rail difference is the voltage equivalent of the neutral "
+            "composition chemical potential. This spatial wave is the bridge to Warburg diffusion."
+        )
+    elif _view == "Voltage-equivalent potentials":
+        _axis.plot(tlm_position_um_07, _u_e_snapshot, color="#4C7C86", lw=1.9, label=r"$u_e$")
+        _axis.plot(tlm_position_um_07, _u_i_snapshot, color="#B8734A", lw=1.9, label=r"$u_i$")
+        _axis.plot(
+            tlm_position_um_07, _chemical_snapshot,
+            color="#7C6A91", lw=1.6, ls="--", label=r"$u_e-u_i$",
+        )
+        _axis.set(ylabel="Voltage-equivalent potential (V)", title="Potentials along the two rails")
+        _explanation = (
+            r"The difference $u_e-u_i=-\mu_M/F$ drives local chemical storage; "
+            "the two rail potentials also determine their separate current gradients."
+        )
+    else:
+        _axis.plot(tlm_position_um_07, _i_e_snapshot, color="#4C7C86", lw=1.9, label=r"$I_e$")
+        _axis.plot(tlm_position_um_07, _i_i_snapshot, color="#B8734A", lw=1.9, label=r"$I_i$")
+        _axis.plot(
+            tlm_position_um_07, _i_total_snapshot,
+            color="#5F8A6B", lw=1.6, ls="--", label=r"$I_e+I_i$",
+        )
+        _axis.set(ylabel="Current / common scale", title="Current transfers between rails")
+        _explanation = (
+            "Electronic and ionic currents can exchange with position, but their "
+            "sum remains constant everywhere in the line."
+        )
+    _axis.axhline(0.0, color="#73808C", lw=0.9)
+    _axis.set_xlabel(r"Position, $x$ ($\mu$m)")
+    _axis.grid(True, alpha=0.24)
+    _axis.legend(frameon=False, loc="best")
     _figure.suptitle(
-        rf"Internal TLM state at $f={tlm_selected_frequency_hz_07:.3g}$ Hz "
-        + rf"($f/f_{{\rm chem}}={tlm_selected_omega_07:.3g}$), "
+        rf"$f={tlm_selected_frequency_hz_07:.3g}$ Hz, "
+        + rf"$f/f_{{\rm chem}}={tlm_selected_omega_07:.3g}$, "
         + rf"phase $={tlm_profile_phase_07.value}^\circ$",
-        fontsize=17,
+        fontsize=14,
     )
     plt.close(_figure)
 
     mo.vstack([
+        mo.md("### Look inside the line at one frequency"),
+        tlm_internal_view_07,
         _figure,
-        mo.md(r"""
-        **Figure takeaway.** The normalized concentration-like envelope is the
-        original TLM tool’s spatial teaching view. It comes from the stored
-        chemical voltage $u_e-u_i=-\mu_M/F$: this is the direct bridge to the
-        concentration waves behind Warburg impedance. Electronic and ionic
-        currents can exchange with position, but their sum remains constant.
-        """),
+        mo.md(_explanation),
     ])
     return
-
 
 @app.cell
 def _(mo, tlm_contact_case_07):
@@ -2257,7 +2070,7 @@ def _(mo):
     **Takeaway.** These are controlled simplifications of one transport model,
     not three unrelated equivalent circuits.
     """)
-    mo.vstack([_scope, _applications])
+    mo.accordion({"Explore further — TLM model scope and applications": mo.vstack([_scope, _applications])})
     return
 
 
@@ -2319,8 +2132,9 @@ def _(
     _waveform_slow = waveform_data_07(0.2, 20.0)
     _waveform_fast = waveform_data_07(20.0, 20.0)
     waveform_frequency_error_07 = max(
-        abs((_waveform_slow[0][-1] - _waveform_slow[0][0]) * 0.2 - 2.0),
-        abs((_waveform_fast[0][-1] - _waveform_fast[0][0]) * 20.0 - 2.0),
+        abs((_waveform_slow[0][-1] - _waveform_slow[0][0]) - 2.0),
+        abs((_waveform_fast[0][-1] - _waveform_fast[0][0]) - 2.0),
+        float(np.array_equal(_waveform_slow[1], _waveform_fast[1])),
     )
 
     _omega_high = 1.0e4
@@ -2507,7 +2321,7 @@ def _(
         (
             "Waveform frequency and phasor sign",
             max(phasor_sign_error_07, waveform_frequency_error_07) < 1.0e-12,
-            "Changing frequency must change the period in seconds, while a leading current gives negative impedance phase for $e^{i\\omega t}$.",
+            "The observation window stays at two seconds while frequency changes the visible cycle count; a leading current gives negative impedance phase for $e^{i\\omega t}$.",
         ),
         (
             "Ideal $R\\parallel C$ semicircle",
@@ -2583,7 +2397,7 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 5. Three messages to keep
+    ## What to carry forward
 
     $$
     \boxed{
