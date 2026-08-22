@@ -216,13 +216,13 @@ def _(np):
         )
         return np.real(np.fft.ifft(np.fft.fft(profile) * decay))
 
-    def discrete_bond_fluxes(occupancy, hop_frequency_hz):
-        """Return net 1D particle crossings per second on bonds j -> j+1."""
+    def discrete_bond_exchange_rates(occupancy, hop_frequency_hz):
+        """Return net crossings per second for each dimensionless 1D bond."""
         profile = np.asarray(occupancy, dtype=float)
         frequency = require_positive("hop_frequency_hz", hop_frequency_hz)
         return 0.5 * frequency * (profile - np.roll(profile, -1))
 
-    def fick_bond_fluxes(occupancy, jump_distance_m, diffusivity_m2_per_s):
+    def fick_bond_exchange_rates(occupancy, jump_distance_m, diffusivity_m2_per_s):
         """Return -D dc/dx for c=occupancy/a on each 1D bond, in s^-1."""
         profile = np.asarray(occupancy, dtype=float)
         distance = require_positive("jump_distance_m", jump_distance_m)
@@ -426,10 +426,10 @@ def _(np):
         biased_directional_rates,
         characteristic_relaxation_time,
         conductivity_from_diffusivity,
-        discrete_bond_fluxes,
+        discrete_bond_exchange_rates,
         evolve_periodic_master_equation,
         exact_hopping_drift_velocity,
-        fick_bond_fluxes,
+        fick_bond_exchange_rates,
         hop_frequency,
         hopping_diffusivity_1d,
         lithium_chemical_diffusivity,
@@ -787,12 +787,15 @@ def _(master_controls, mo):
             one bond,
 
             \[
-            J_{j+1/2}=\frac{\Gamma}{2}(c_j-c_{j+1})
+            \Phi_{j+1/2}=\frac{\Gamma}{2}(c_j-c_{j+1})
             =-\frac{D}{a^2}(c_{j+1}-c_j).
             \]
 
-            The difference between two opposing random exchanges is therefore
-            the finite-lattice form of Fick's law. The ends below are reflecting,
+            Here $c_j$ is a dimensionless site occupancy, so
+            $\Phi_{j+1/2}$ is a **net exchange rate across one bond** in s$^{-1}$.
+            We reserve $J$ for the continuum number or molar flux introduced
+            later. The difference between two opposing random exchanges is the
+            finite-lattice form of Fick's law. The ends below are reflecting,
             so defects remain inside the sample.
             """),
             master_controls,
@@ -836,28 +839,28 @@ def _(
     master_elapsed_s = (
         fourier_time * sample_length_m**2 / defect_diffusivity_m2_per_s
     )
-    microscopic_bond_flux_per_s = 0.5 * hop_frequency_hz * (
+    microscopic_bond_exchange_per_s = 0.5 * hop_frequency_hz * (
         evolved_master_occupancy[:-1] - evolved_master_occupancy[1:]
     )
-    fick_bond_flux_per_s = -(
+    fick_bond_exchange_per_s = -(
         defect_diffusivity_m2_per_s / jump_distance_m**2
     ) * np.diff(evolved_master_occupancy)
     master_mass_relative_error = abs(
         np.sum(evolved_master_occupancy) - np.sum(initial_master_occupancy)
     ) / np.sum(initial_master_occupancy)
     master_flux_relative_error = float(
-        np.max(np.abs(microscopic_bond_flux_per_s - fick_bond_flux_per_s))
-        / max(np.max(np.abs(microscopic_bond_flux_per_s)), 1.0e-300)
+        np.max(np.abs(microscopic_bond_exchange_per_s - fick_bond_exchange_per_s))
+        / max(np.max(np.abs(microscopic_bond_exchange_per_s)), 1.0e-300)
     )
     return (
         evolved_master_occupancy,
-        fick_bond_flux_per_s,
+        fick_bond_exchange_per_s,
         initial_master_occupancy,
         master_elapsed_s,
         master_flux_relative_error,
         master_mass_relative_error,
         master_site_count,
-        microscopic_bond_flux_per_s,
+        microscopic_bond_exchange_per_s,
     )
 
 @app.cell
@@ -866,7 +869,7 @@ def _(
     initial_master_occupancy,
     master_elapsed_s,
     master_site_count,
-    microscopic_bond_flux_per_s,
+    microscopic_bond_exchange_per_s,
     mo,
     np,
     plt,
@@ -906,14 +909,14 @@ def _(
 
     _flux_axis.plot(
         bond_position,
-        microscopic_bond_flux_per_s,
+        microscopic_bond_exchange_per_s,
         color="#B8734A",
         lw=1.6,
     )
     _flux_axis.axhline(0.0, color="#666D73", lw=1.0)
     _flux_axis.set(
         xlabel=r"Bond position, $x/L$",
-        ylabel=r"Net exchange (site$^{-1}$ s$^{-1}$)",
+        ylabel=r"Net bond exchange, $\Phi$ (s$^{-1}$)",
         title="More defects cross from high to low concentration",
     )
     _flux_axis.grid(alpha=0.22)
@@ -923,8 +926,8 @@ def _(
     master_summary = mo.md(
         f"""
         At this state, the profile has evolved for
-        **{master_display_time[0]:.3g} {master_time_unit}**. The flux is zero at
-        the reflecting ends and largest near the original interface. Both
+        **{master_display_time[0]:.3g} {master_time_unit}**. The net bond
+        exchange is zero at the reflecting ends and largest near the original interface. Both
         panels describe the same net exchange; no particle is assigned a
         deterministic force toward lower concentration.
         """
@@ -1210,13 +1213,15 @@ def _(mo):
         For number concentration \(c_N\),
 
         \[
-        J_N=-D\frac{dc_N}{dx}+\frac{zeD}{k_BT}c_N\mathcal E .
+        J_N=-D\frac{dc_N}{dx}+\frac{zeD}{k_BT}c_N\mathcal E ,
+        \qquad [J_N]=\mathrm{m^{-2}\,s^{-1}}.
         \]
 
         For molar concentration \(c\), use \(F=N_Ae\) and \(R=N_Ak_B\):
 
         \[
-        J=-D\frac{dc}{dx}-\frac{zFD}{RT}c\frac{d\phi}{dx}.
+        J=-D\frac{dc}{dx}-\frac{zFD}{RT}c\frac{d\phi}{dx},
+        \qquad [J]=\mathrm{mol\,m^{-2}\,s^{-1}}.
         \]
 
         Particle-scale equations use \(k_B,e\); molar equations use \(R,F\).
@@ -2012,7 +2017,9 @@ def _(mo):
     =\frac{2D_{\rm Li^+}D_{e^-}}{D_{\rm Li^+}+D_{e^-}},
     \]
 
-    so the slower carrier sets the bottleneck.
+    so the slower carrier sets the bottleneck. The factor of two is specific to
+    this ideal, dilute, locally neutral one-ion/one-electron pair; it is not a
+    universal chemical-diffusion formula.
     """)
     return
 

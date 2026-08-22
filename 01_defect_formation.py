@@ -83,6 +83,11 @@ def _(mo):
     G(n)=n\Delta g_f^0-T S_{\rm config}(n).
     \]
 
+    Here $\Delta g_f^0$ is the non-configurational free-energy change for
+    replacing one occupied reference site by one defect site. The perfect
+    lattice plus that exchange reaction defines the zero used below; only
+    free-energy differences affect the equilibrium.
+
     Use the lattice picture first. Then we will count its configurations and see
     the same equilibrium appear as both a minimum of \(G\) and a zero of the
     defect chemical potential.
@@ -873,9 +878,12 @@ def _(
     site_count,
     special,
 ):
-    _driving_force = np.linspace(0.0, 16.0, 321)
+    _drive_min = min(-10.0, np.floor(reduced_formation_energy) - 1.0)
+    _drive_max = max(16.0, np.ceil(reduced_formation_energy) + 1.0)
+    _driving_force = np.linspace(_drive_min, _drive_max, 501)
     _thermodynamic_fraction = special.expit(-_driving_force)
     _dilute_fraction_curve = np.exp(-_driving_force)
+    _physical_dilute = _dilute_fraction_curve <= 1.0
     _finite_fraction_curve = np.empty_like(_driving_force)
     for _index, _energy_ratio in enumerate(_driving_force):
         _reduced_free_energy = (
@@ -897,8 +905,8 @@ def _(
         label="Stirling / thermodynamic limit",
     )
     _comparison_axis.semilogy(
-        _driving_force,
-        _dilute_fraction_curve,
+        _driving_force[_physical_dilute],
+        _dilute_fraction_curve[_physical_dilute],
         color="#B8734A",
         lw=1.7,
         ls="--",
@@ -915,12 +923,12 @@ def _(
     )
     _comparison_axis.axvspan(
         np.log(20.0),
-        16.0,
+        _drive_max,
         color="#5F8A6B",
         alpha=0.08,
         label="dilute relative error below 5%",
     )
-    if 0.0 <= reduced_formation_energy <= 16.0:
+    if _drive_min <= reduced_formation_energy <= _drive_max:
         _comparison_axis.scatter(
             [reduced_formation_energy],
             [equilibrium_x],
@@ -940,8 +948,8 @@ def _(
                 zorder=6,
             )
     _comparison_axis.set(
-        xlim=(0.0, 16.0),
-        ylim=(1.0e-7, 1.2),
+        xlim=(_drive_min, _drive_max),
+        ylim=(max(1.0e-45, min(1.0e-7, equilibrium_x / 5.0)), 1.2),
         xlabel=r"Formation driving force, $\Delta g_f^0/(k_BT)$",
         ylabel="Defect fraction",
         title="Exact, thermodynamic, and dilute limits",
@@ -959,7 +967,23 @@ def _(
 
 
 @app.cell
-def _(approximation_figure, mo):
+def _(approximation_figure, equilibrium_x, mo):
+    if equilibrium_x > 0.5:
+        _state_note = mo.callout(
+            r"$\Delta g_f^0<0$ makes defects the majority state ($x_{\rm eq}>1/2$). "
+            r"The logistic result remains physical, but the dilute exponential would exceed one and is therefore not plotted there.",
+            kind="warn",
+        )
+    elif equilibrium_x > 0.1:
+        _state_note = mo.callout(
+            r"This is a concentrated defect state. The lattice-gas result is physical, while the dilute exponential is only a rough comparison.",
+            kind="info",
+        )
+    else:
+        _state_note = mo.callout(
+            r"This is a minority-defect state. As $x$ becomes smaller, the dilute exponential approaches the thermodynamic result.",
+            kind="info",
+        )
     mo.vstack([
         approximation_figure,
         mo.md(r"""
@@ -968,6 +992,7 @@ def _(approximation_figure, mo):
         composition steps, and its most-probable macrostate can reach $n=0$ even
         while the ensemble mean remains positive.
         """),
+        _state_note,
     ])
     return
 

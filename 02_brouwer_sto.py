@@ -20,6 +20,7 @@ def _():
     import numpy as np
     from scipy import optimize
 
+
     plt.rcParams.update(
         {
             "font.size": 13,
@@ -127,9 +128,19 @@ def _(mo):
 
     Activities are approximated by the displayed concentrations. The activity
     of regular oxygen sites is absorbed into $K_{red}$, and oxygen activity is
-    represented by $p_{\mathrm{O_2}}$ in bar. At fixed $T$,
-    $\mu_{\mathrm{O_2}}=\mu_{\mathrm{O_2}}^\circ+RT\ln p_{\mathrm{O_2}}$, so the horizontal axis is also a
-    linear chemical-potential coordinate.
+    represented by $a_{\mathrm{O_2}}=p_{\mathrm{O_2}}/p^\circ$ with
+    $p^\circ=1$ bar; numerically, this is the displayed pressure in bar. At
+    fixed $T$, $\mu_{\mathrm{O_2}}=\mu_{\mathrm{O_2}}^\circ
+    +RT\ln a_{\mathrm{O_2}}$, so the horizontal axis is also a linear
+    chemical-potential coordinate.
+
+    **Parameter source.** The numerical $K_{red}$ and $K_{eh}$ expressions are
+    reported for SrTiO$_3$ in Usler, Ketter, and De Souza,
+    [*Phys. Chem. Chem. Phys.* **26** (2024)](https://doi.org/10.1039/D3CP05870K).
+    They are used here as a concentration-form teaching parameterization. The
+    source does not define one universal rectangular $T$--$p_{\mathrm{O_2}}$
+    fit window for these condensed expressions, so conditions far from the
+    documented dilute-defect regime should be read as extrapolation.
     """)
     mo.vstack([
         mo.md(r"""
@@ -519,6 +530,21 @@ def _(
     guide_regime,
     temperature,
 ):
+    _guide_mask_name = {
+        "Reducing": "reducing",
+        "Acceptor-compensated": "acceptor",
+        "Oxidizing": "oxidizing",
+    }.get(guide_regime.value)
+    _guide_available = (
+        _guide_mask_name is None
+        or np.count_nonzero(regime_masks[_guide_mask_name]) >= 8
+    )
+    guide_status_message = (
+        ""
+        if _guide_available
+        else "The selected limiting guide is not sampled in the current temperature, acceptor concentration, and oxygen-pressure window, so no dashed guide is drawn."
+    )
+
     plt.rcParams.update(
         {
             "font.size": 13,
@@ -647,12 +673,15 @@ def _(
     axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.14), ncols=4, frameon=False)
     figure.tight_layout()
     plt.close(figure)
-    return (figure,)
+    return figure, guide_status_message
 
 
 @app.cell
-def _(figure):
-    figure
+def _(figure, guide_status_message, mo):
+    _items = [figure]
+    if guide_status_message:
+        _items.append(mo.callout(guide_status_message, kind="info"))
+    mo.vstack(_items)
     return
 
 
