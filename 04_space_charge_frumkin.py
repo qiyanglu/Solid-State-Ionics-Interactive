@@ -533,7 +533,7 @@ def _(mo):
         label="Defect charge magnitude", show_value=True,
     )
     gc_surface_potential_control = mo.ui.slider(
-        start=-1.00, stop=1.00, step=0.01, value=0.20,
+        start=0.00, stop=1.00, step=0.01, value=0.20,
         label="Gouy-Chapman core potential (V)", show_value=True,
     )
     ms_surface_potential_control = mo.ui.slider(
@@ -624,9 +624,10 @@ def _(
         core_profile_controls,
         mo.md(r"""
         The concentration control sets
-        $c_{i,\infty}=10^x\,\mathrm{cm^{-3}}$. Gouy–Chapman permits either sign
-        over $-1.00\leq\phi_0\leq1.00\ \mathrm{V}$. This intentionally wide
-        teaching range exposes the breakdown of the low-potential limit. The
+        $c_{i,\infty}=10^x\,\mathrm{cm^{-3}}$. Gouy–Chapman uses the positive
+        branch $0\leq\phi_0\leq1.00\ \mathrm{V}$. This intentionally wide
+        teaching range makes the low-potential approximation directly
+        comparable with the exact nonlinear solution. The
         Mott–Schottky depletion approximation uses only the positive branch,
         $0.01\leq\phi_0\leq0.50\ \mathrm{V}$.
         """),
@@ -692,6 +693,12 @@ def _(
         -charge_magnitude * E_CHARGE_C * ms_surface_potential_v
         / (KB_J_PER_K * temperature_k)
     )
+    if ms_surface_mobile_ratio <= 0.05:
+        ms_depletion_status = "Strong-depletion limit"
+    elif ms_surface_mobile_ratio <= 0.30:
+        ms_depletion_status = "Intermediate depletion"
+    else:
+        ms_depletion_status = "Outside the strong-depletion limit"
 
     gc_distance_m = np.linspace(0.0, 6.0 * selected_debye_length_m, 700)
     ms_distance_m = np.linspace(0.0, 1.5 * selected_ms_width_m, 700)
@@ -719,6 +726,7 @@ def _(
         gc_profile,
         ms_distance_m,
         ms_profile,
+        ms_depletion_status,
         ms_surface_mobile_ratio,
         ms_surface_potential_v,
         selected_debye_length_m,
@@ -844,6 +852,8 @@ def _(
             Poisson–Boltzmann theory can then predict unrealistically large
             enrichment because it neglects finite site density, non-ideal
             activities, defect association, and field-dependent permittivity.
+            Exponential clipping prevents numerical overflow only; it is not a
+            finite-site correction and does not extend the model's validity.
             """),
             kind="warn",
         )
@@ -1009,6 +1019,7 @@ def _(
     ms_profile,
     np,
     plt,
+    ms_depletion_status,
     ms_distance_m,
     ms_surface_mobile_ratio,
     selected_ms_core_charge_c_per_m2,
@@ -1119,9 +1130,11 @@ def _(
         plotted mobile concentration remains the positive Boltzmann value rather
         than being set to a literal zero. At the core,
         \(c_+(0)/c_{{i,\infty}}=\mathbf{{{ms_surface_mobile_ratio:.3f}}}\).
-        The **Mott–Schottky approximation** is reliable when this ratio is much
-        smaller than one, so the frozen negative dopants dominate the charge
-        inside the depletion layer.
+        **Teaching status: {ms_depletion_status}.** The Mott–Schottky
+        approximation is reliable when this ratio is much smaller than one, so
+        the frozen negative dopants dominate the charge inside the depletion
+        layer. The 0.05 and 0.30 cutoffs used for these three classroom labels
+        are guides, not universal sharp boundaries.
 
         """
     )

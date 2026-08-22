@@ -100,6 +100,9 @@ def _(mo, plt):
         arrowprops={"arrowstyle": "->", "lw": 1.6, "color": "#B8734A"},
     )
     geometry_axis.text(0.50, 0.51, "Positive conventional current", ha="center")
+    geometry_axis.text(-0.025, 0.36, "+", ha="center", va="center", fontsize=19, color="#4C7C86")
+    geometry_axis.text(1.025, 0.36, "−", ha="center", va="center", fontsize=19, color="#4C7C86")
+    geometry_axis.text(0.50, 0.34, r"voltmeter: $U=V_{\rm left}-V_{\rm right}$", ha="center", fontsize=12)
     geometry_axis.text(0.50, 0.02, r"MIEC: mobile H$^+$ and e$^-$", ha="center", fontsize=14)
     geometry_axis.text(0.0, -0.37, "Ion-blocking\nmetal", ha="center", va="top")
     geometry_axis.text(1.0, -0.37, "Ion-blocking\nmetal", ha="center", va="top")
@@ -113,8 +116,12 @@ def _(mo, plt):
         introduction,
         geometry_figure,
         mo.md(r"""
-        Positive current points toward \(+x\). We define the measured voltage as
-        \(U=[\widetilde{\mu}_e(L)-\widetilde{\mu}_e(0)]/F\).
+        Positive conventional current points toward \(+x\). Since the electron
+        voltage is $V_e=-\widetilde\mu_e/F$, the marked voltmeter polarity gives
+        \[
+        \boxed{U=V_{\rm left}-V_{\rm right}
+        =\frac{\widetilde{\mu}_e(L)-\widetilde{\mu}_e(0)}{F}}.
+        \]
         """),
     ])
     return (geometry_figure,)
@@ -988,6 +995,25 @@ def _(
     profile_figure.subplots_adjust(bottom=0.25)
     plt.close(profile_figure)
 
+    _selected_excursion = float(np.max(np.abs(
+        polarization_solution["concentration_ratio"][selected_time_index] - 1.0
+    )))
+    if _selected_excursion <= 0.15:
+        _constitutive_status = mo.callout(
+            f"Small concentration excursion: max |c/c0 - 1| = {_selected_excursion:.2f}. The constant-coefficient approximation is well suited to this teaching state.",
+            kind="success",
+        )
+    elif _selected_excursion <= 0.40:
+        _constitutive_status = mo.callout(
+            f"Moderate concentration excursion: max |c/c0 - 1| = {_selected_excursion:.2f}. Read the constant-coefficient model as a local approximation.",
+            kind="info",
+        )
+    else:
+        _constitutive_status = mo.callout(
+            f"Strong concentration excursion: max |c/c0 - 1| = {_selected_excursion:.2f}. The ideal constant-coefficient model is qualitative here.",
+            kind="warn",
+        )
+
     physical_time_s = polarization_time_ratios * selected_parameters["tau_delta_s"]
     plotted_time_s = np.maximum(physical_time_s, physical_time_s[1] * 0.2)
     selected_plot_time_s = plotted_time_s[selected_time_index]
@@ -1028,6 +1054,7 @@ def _(
         nearest representative profile; it does not add another curve.
         """),
         profile_figure,
+        _constitutive_status,
         mo.md(
             "Every transient profile has the same imposed ion-blocking boundary "
             "condition. Their growing separation shows the approach to steady state."
@@ -1173,19 +1200,22 @@ def _(
         carrier electrochemical potentials. The chemical term begins at zero
         and grows only after stoichiometry redistributes.
 
-        **Connection to chemical capacitance.** For molar concentration $c$ and
-        active volume $V_{{\rm act}}=SL$,
+        **Connection to chemical capacitance.** For this ideal monovalent pair,
+        $\mu_{{\rm neutral}}=2RT\ln(c/c_0)$, so
 
         $$
-        C_{{\rm chem}}=z^2F^2V_{{\rm act}}
-        \left(\frac{{\partial c}}{{\partial\mu_{{\rm neutral}}}}\right),
-        \qquad c_{{\rm chem}}=\frac{{C_{{\rm chem}}}}{{L}}.
+        \boxed{{C_{{\rm chem}}=
+        \frac{{F^2V_{{\rm act}}c}}{{2RT}}}},\qquad
+        c_{{\rm chem}}^V=\frac{{C_{{\rm chem}}}}{{V_{{\rm act}}}}
+        =\frac{{F^2c}}{{2RT}}.
         $$
 
         Chemical capacitance is differential storage of **neutral composition**.
-        It scales with active volume; Module 07 uses the distributed quantity
-        $c_{{\rm chem}}$ in F m$^{{-1}}$. Here $z=1$, $c$ is mol m$^{{-3}}$, and
-        $\mu_{{\rm neutral}}$ is molar (J mol$^{{-1}}$).
+        It scales with active volume. Module 07 develops this result; Module 08
+        uses the distributed line capacitance
+        $c_{{\rm chem}}=C_{{\rm chem}}/L=c_{{\rm chem}}^V S$ in F m$^{{-1}}$.
+        Here $c$ is mol m$^{{-3}}$ and $\mu_{{\rm neutral}}$ is molar
+        (J mol$^{{-1}}$).
         """
     )
     mo.accordion({"Model details - measurement decomposition": decomposition})
@@ -1265,6 +1295,10 @@ def _(
     initial_ohmic_residual = float(
         abs(voltage_history[0] - initial_ohmic_voltage)
         / max(abs(voltage_history[0]), 1.0e-300)
+    )
+    initial_ohmic_polarity_pass = bool(
+        voltage_history[0] * current_history[0] > 0.0
+        and initial_ohmic_voltage * current_history[0] > 0.0
     )
     blocking_flux_scale = max(
         abs(
@@ -1374,6 +1408,7 @@ def _(
         "drive_pass": drive_residual < 2.0e-9,
         "initial_ohmic_residual": initial_ohmic_residual,
         "initial_ohmic_pass": initial_ohmic_residual < 2.0e-13,
+        "initial_ohmic_polarity_pass": initial_ohmic_polarity_pass,
         "blocking_flux_residual": blocking_flux_residual,
         "blocking_flux_pass": blocking_flux_residual < 2.0e-13,
         "displayed_boundary_residual": displayed_boundary_residual,
@@ -1409,7 +1444,7 @@ def _(mo, module05_validation):
         |---:|---|---|
         | {_check_status(module05_validation['solver_pass'] and module05_validation['initial_uniform_pass'] and module05_validation['mass_pass'] and module05_validation['positivity_pass'])} | the sample begins uniform, remains positive, and conserves its total ion content | blocking electrodes redistribute stoichiometry without adding or removing ions |
         | {_check_status(module05_validation['drive_pass'])} | the selected current or voltage is held constant | the two experimental controls remain distinct |
-        | {_check_status(module05_validation['initial_ohmic_pass'] and module05_validation['blocking_flux_pass'] and module05_validation['displayed_boundary_pass'])} | the initial response uses \(\sigma_i+\sigma_e\), and every displayed profile obeys zero ionic flux at both electrodes | the bulk and contact conditions match the stated experiment |
+        | {_check_status(module05_validation['initial_ohmic_pass'] and module05_validation['initial_ohmic_polarity_pass'] and module05_validation['blocking_flux_pass'] and module05_validation['displayed_boundary_pass'])} | the uniform initial response obeys $U=jL/(\sigma_i+\sigma_e)$ with the displayed polarity, and every profile has zero ionic flux at both electrodes | the sign convention, bulk response, and contact conditions describe one experiment |
         | {_check_status(module05_validation['diffusivity_pass'])} | \(D^\delta=2D_iD_e/(D_i+D_e)\) | ion and electron motion combine into one chemical diffusivity |
         | {_check_status(module05_validation['potential_decomposition_pass'] and module05_validation['reconstructed_voltage_pass'])} | chemical and electrical contributions reproduce both electrochemical potentials and the terminal voltage | all plotted potentials belong to the same physical state |
         | {_check_status(module05_validation['steady_limit_pass'] and module05_validation['final_ion_flatness_pass'])} | the late profile reaches the expected steady state and \(\widetilde\mu_i\) becomes flat | the long-time limit agrees with ion blocking |

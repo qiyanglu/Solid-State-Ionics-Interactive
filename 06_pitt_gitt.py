@@ -176,6 +176,23 @@ def _(mo):
 
 
 @app.cell
+def _(mo):
+    mo.md(r"""
+    ### Keep the experimental control separate from the model boundary
+
+    | level | what is controlled or calculated? |
+    |---|---|
+    | experiment | the instrument holds a terminal potential (PITT) or terminal current (GITT), then records the conjugate response |
+    | full notebook model | selective contacts, carrier fluxes, and the terminal equation determine the evolving surface concentrations and internal profiles |
+    | classical diffusion limit | PITT is represented by a prescribed surface chemical potential/composition; GITT is represented by a prescribed surface flux |
+
+    The last row is recovered only when interfacial exchange is fast and unwanted
+    contact, Ohmic, and side-reaction losses are negligible.
+    """)
+    return
+
+
+@app.cell
 def _(np, solve_ivp):
     GAS_CONSTANT_J_PER_MOL_K = 8.314462618
     FARADAY_C_PER_MOL = 96485.33212
@@ -870,7 +887,9 @@ def _(current_scale_a_per_m2_06, mo, parameters_06):
           cm² s⁻¹ and $\\tau^\\delta=L^2/(\\pi^2D^\\delta)={_time_text}$.
         - The ideal-pair identity implies
           $\\sigma_i+\\sigma_e={parameters_06["conductivity_total_s_per_m"] / 100.0:.2e}$
-          S cm⁻¹ for this $c_0$, $T$, $D^\\delta$, and conductivity ratio.
+          S cm⁻¹ for this $c_0$, $T$, $D^\\delta$, and conductivity ratio. In this ideal-pair model, the selected diffusivity,
+          temperature, initial concentration, and conductivity ratio determine
+          the absolute conductivities; they are not independent inputs.
         - One unit of normalized pulse strength
           $\\hat j=j_0L/(FD^\\delta c_0)$ corresponds to
           ${0.1 * current_scale_a_per_m2_06:.3e}$ mA cm⁻².
@@ -1628,8 +1647,8 @@ def _(
         mo.md(r"""
         ### Advanced extension: finite surface kinetics
 
-        Ideal PITT fixes the surface chemical potential instantly. A finite
-        linearized surface reaction instead imposes
+        In the classical diffusion-controlled PITT limit, the surface chemical
+        potential changes instantly. A finite linearized surface reaction instead imposes
 
         $$-D^\delta\left.\frac{\partial c}{\partial x}\right|_{0}
         =k^\delta[c_s-c(0,t)],\qquad
@@ -1989,9 +2008,10 @@ def _(mo):
     1. **Titration separates state from rate.** Integrated charge gives
        $\Delta\delta$, long-rest $E(\delta)$ gives thermodynamics, and the
        transient carries kinetic information.
-    2. **PITT and GITT impose different boundaries.** PITT fixes a surface
-       chemical potential, GITT fixes a flux, and OCV sets terminal current to
-       zero while internal neutral diffusion may continue.
+    2. **The familiar boundaries are classical limits.** With fast selective
+       exchange and negligible parasitic losses, PITT approaches a fixed surface
+       chemical potential, GITT approaches a fixed flux, and OCV sets terminal
+       current to zero while internal neutral diffusion may continue.
     3. **$D^\delta$ is inferred through assumptions.** Finite surface kinetics,
        ohmic drop, geometry, and fitting window can bias it; consistency tests
        are part of the measurement.
@@ -2040,7 +2060,7 @@ def _(plt):
 @app.cell
 def _(mo):
     mo.md(r"""
-    **Continue:** [Module 07 — Impedance, Warburg Diffusion, and Transmission Lines](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/07-impedance-tlm/)
+    **Continue:** [Module 07 — Chemical Capacitance](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/07-chemical-capacitance/)
     """)
     return
 
