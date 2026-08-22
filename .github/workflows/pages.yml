@@ -28,12 +28,14 @@ jobs:
         run: |
           mkdir -p _site
           cp pages/index.html _site/index.html
+          mkdir -p _site/07-impedance-tlm
+          cp pages/07-impedance-tlm/index.html _site/07-impedance-tlm/index.html
 
-      - name: Check all seven marimo notebooks
+      - name: Check all current marimo notebooks
         run: >-
           uv run --isolated --with "marimo==0.24.0"
           marimo check --strict
-          01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py 06_pitt_gitt.py 07_impedance_tlm.py
+          01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py 06_pitt_gitt.py 08_impedance_tlm.py
 
       - name: Export Module 01 - defect formation thermodynamics
         run: >-
@@ -77,11 +79,11 @@ jobs:
           -o _site/06-pitt-gitt
           --mode run --no-show-code --no-execute -f
 
-      - name: Export Module 07 - impedance spectroscopy and TLM
+      - name: Export Module 08 - impedance spectroscopy and TLM
         run: >-
           uv run --isolated --with "marimo==0.24.0"
-          marimo export html-wasm 07_impedance_tlm.py
-          -o _site/07-impedance-tlm
+          marimo export html-wasm 08_impedance_tlm.py
+          -o _site/08-impedance-tlm
           --mode run --no-show-code --no-execute -f
 
       - name: Disable Jekyll processing
@@ -120,7 +122,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          for route in 01-defect-formation 02-brouwer-sto 03-defect-transport 04-space-charge-frumkin 05-stoichiometry-polarization 06-pitt-gitt 07-impedance-tlm; do
+          for route in 01-defect-formation 02-brouwer-sto 03-defect-transport 04-space-charge-frumkin 05-stoichiometry-polarization 06-pitt-gitt 08-impedance-tlm; do
             module_url="${SITE_URL%/}/${route}/"
             html="$(curl --fail --silent --show-error \
               --retry 12 --retry-all-errors --retry-delay 5 \
