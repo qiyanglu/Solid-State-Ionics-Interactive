@@ -1,6 +1,6 @@
 # Notation and sign conventions
 
-This page is the bridge between the seven notebooks. Each notebook remains
+This page is the bridge between the eight notebooks. Each notebook remains
 self-contained and introduces the symbols it needs; this page explains how the
 same physical ideas are named across modules.
 
@@ -23,6 +23,8 @@ same physical ideas are named across modules.
 
 ## Flux and current
 
+- \(\Phi_{j+1/2}\): net particle exchange rate across a discrete bond in
+  Module 03, s\(^{-1}\). It is not the continuum flux \(J_N\).
 - \(J_N\): number flux, particles m\(^{-2}\) s\(^{-1}\).
 - \(J\): molar flux, mol m\(^{-2}\) s\(^{-1}\).
 - \(I\): total current, A. \(j=I/S\): conventional current density, A m\(^{-2}\).
@@ -45,8 +47,9 @@ same physical ideas are named across modules.
 - The electric field is \(\mathcal E=-\partial\phi/\partial x\). The letter
   \(E\) is not used for electric field in the electrochemical-method modules.
 - In Module 06, \(E\) is an electrode potential relative to a reference
-  electrode. In Module 05, \(U\) is the two-terminal dc voltage. In Module 07,
-  \(V(t)\) and \(\widehat V\) are the time-domain and phasor voltages.
+  electrode. In Module 05, \(U=V_{\mathrm{left}}-V_{\mathrm{right}}\) and
+  \(U=[\widetilde\mu_e(L)-\widetilde\mu_e(0)]/F\). In Module 08, \(V(t)\)
+  and \(\widehat V\) are the time-domain and phasor voltages.
 - For monovalent carriers, the voltage-equivalent electrochemical potentials in
   the transmission-line model are
 
@@ -65,8 +68,9 @@ same physical ideas are named across modules.
 - \(k^\delta\): linearized surface exchange coefficient for that composition,
   in m s\(^{-1}\).
 - \(\Gamma_{\mathrm{hop}}\): total one-dimensional hop frequency in Module 03.
-- \(\Theta\): thermodynamic factor, used only when a non-ideal extension is
-  explicitly discussed.
+- \(f_{\mathrm{th}}=[c/(RT)](\partial\mu/\partial c)\): dimensionless
+  thermodynamic factor used in Module 07. It is introduced only after the
+  chemical-potential derivative that defines chemical capacitance.
 - \(t_i=\sigma_i/(\sigma_i+\sigma_e)\) and
   \(t_e=\sigma_e/(\sigma_i+\sigma_e)\) are ionic and electronic transference
   numbers.
@@ -90,9 +94,30 @@ For finite surface kinetics,
 \(\tau_d=L^2/D^\delta\), \(\tau_{ct}=L/k^\delta\), and
 \(\mathrm{Bi}=k^\delta L/D^\delta=\tau_d/\tau_{ct}\).
 
+## Chemical capacitance
+
+Module 07 defines total chemical capacitance from the local chemical-potential
+slope:
+
+\[
+C_{\mathrm{chem}}=z^2F^2V_{\mathrm{act}}
+\left(\frac{\partial c}{\partial\mu}\right)_T .
+\]
+
+Its volumetric form is
+\(c_{\mathrm{chem}}^V=C_{\mathrm{chem}}/V_{\mathrm{act}}\), in
+F m\(^{-3}\). For a uniform slab,
+\(c_{\mathrm{chem}}=c_{\mathrm{chem}}^V S=C_{\mathrm{chem}}/L\), in
+F m\(^{-1}\), is the distributed capacitance used by the Module 08
+transmission line. The chemical diffusivity bridge is
+
+\[
+D^\delta=\frac{\sigma_{\mathrm{amb}}}{c_{\mathrm{chem}}^V}.
+\]
+
 ## Impedance convention
 
-Module 07 uses \(e^{\mathrm{i}\omega t}\), where \(\omega=2\pi f\), and
+Module 08 uses \(e^{\mathrm{i}\omega t}\), where \(\omega=2\pi f\), and
 
 \[
 Z=\widehat V/\widehat I=Z'+\mathrm{i}Z''.

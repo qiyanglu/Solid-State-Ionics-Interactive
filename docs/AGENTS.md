@@ -7,8 +7,9 @@ course. Favor physical transparency, projector readability, and short
 self-contained notebooks over framework-building.
 
 Before editing a notebook, read docs/PROJECT_CONTEXT.md, docs/NOTATION.md, and
-docs/STYLE_GUIDE.md. Use docs/STUDENT_FIRST_AUDIT.md as the current editorial
-map and record browser-level evidence in docs/VISUAL_QA.md.
+docs/STYLE_GUIDE.md. The audit and implementation reports document earlier
+passes rather than prescribing the current design. Record new browser-level
+evidence in docs/VISUAL_QA.md.
 
 ## Scientific invariants
 
@@ -73,7 +74,14 @@ map and record browser-level evidence in docs/VISUAL_QA.md.
   lambda tan(lambda) = Bi, and show reaction-, mixed-, and diffusion-controlled
   limits without patching curves. Check fitting bias rather than claiming that
   a linear long-time plot proves diffusion control.
-- In Module 07, use the e^(i omega t) convention, define Z = Z' + i Z'', and
+- In Module 07, define chemical capacitance from
+  C_chem = z^2 F^2 V_act (partial c / partial mu)_T and distinguish total,
+  volumetric, and distributed units. Introduce
+  f_th = [c/(RT)](partial mu / partial c) only after the derivative definition.
+  Preserve the ideal-dilute and ideal-lattice-gas limits, and use a common
+  tangent—not negative local capacitance—as the equilibrium interpretation
+  inside a regular-solution miscibility gap.
+- In Module 08, use the e^(i omega t) convention, define Z = Z' + i Z'', and
   plot Z' against -Z'' on Nyquist axes. Preserve the distinction between
   frequency in Hz and angular frequency in rad/s.
 - Derive Warburg curves from the one-dimensional chemical-diffusion equation.
@@ -82,7 +90,7 @@ map and record browser-level evidence in docs/VISUAL_QA.md.
   a solver input.
   Pair every boundary name with its equation and state that an open diffusion
   boundary is a fixed-composition reservoir, not electrical open circuit.
-- For the Module 07 transmission line, preserve the continuous two-rail MIEC
+- For the Module 08 transmission line, preserve the continuous two-rail MIEC
   equations, voltage-equivalent electrochemical potentials, total-current
   conservation, SI circuit units, and explicit terminal boundary conditions.
   Keep the chemical time scale distinct from a universally assigned peak
@@ -179,14 +187,19 @@ Before handing off a change:
    PITT/GITT short- and long-time limits, long-time OCV decay, finite-kinetics
    eigenvalue limits, positivity and conservation, and the direction and
    fitting-window dependence of diffusion-only bias versus Biot number.
-9. For Module 07, check the phasor convention, resistor, capacitor, and ideal
-   parallel-RC limits, the RC semicircle and apex, equal Nyquist scaling,
-   DC/AC diffusion-length scaling, general-to-dilute Warburg resistance mapping,
-   finite-length Warburg limits and passivity, TLM boundary residuals,
-   voltage-equivalent-potential signs, distributed/total conversions,
-   total-current conservation, reversible-contact limit, passivity, and
-   finiteness.
-10. Run git diff --check and review all rendered figures in a real browser at
+9. For Module 07, check the free-energy derivative, analytical capacitance
+   limits, positivity where the homogeneous state is stable, the
+   thermodynamic-factor identity, total/volumetric/distributed unit
+   conversions, the chemical-diffusivity bridge, thickness scaling, and the
+   regular-solution spinodal and common-tangent constructions.
+10. For Module 08, check the phasor convention, resistor, capacitor, and ideal
+    parallel-RC limits, the RC semicircle and apex, equal Nyquist scaling,
+    general-to-dilute Warburg resistance mapping, finite-length Warburg limits
+    and passivity, TLM boundary residuals, voltage-equivalent-potential signs,
+    distributed/total conversions, the chemical-capacitance/diffusivity
+    identity, total-current conservation, reversible-contact limit, passivity,
+    and finiteness.
+11. Run git diff --check and review all rendered figures in a real browser at
     mobile, laptop, and projector sizes. For each core interaction, capture a
     default, low/contrasting, and high/contrasting state. A static matplotlib
     contact sheet is supplementary evidence, not browser visual QA.

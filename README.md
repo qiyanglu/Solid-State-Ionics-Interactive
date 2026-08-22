@@ -24,7 +24,8 @@ No software installation is needed when using the hosted versions.
 | 04 — Space-Charge Layers and the Frumkin Effect | How does an interface redistribute charged defects and alter capacitance and reaction rate? | [Launch Module 04](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/04-space-charge-frumkin/) |
 | 05 — Stoichiometry Polarization | How do blocking electrodes create time-dependent composition and potential profiles? | [Launch Module 05](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/05-stoichiometry-polarization/) |
 | 06 — PITT and GITT | What can voltage steps, current steps, and open-circuit relaxation reveal about thermodynamics and diffusion? | [Launch Module 06](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/06-pitt-gitt/) |
-| 07 — Impedance Spectroscopy and Transmission Lines | How do time scales, diffusion boundaries, and mixed conduction shape an impedance spectrum? | [Launch Module 07](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/07-impedance-tlm/) |
+| 07 — Chemical Capacitance | How does a chemical-potential curve determine differential neutral storage and a chemical-diffusion time? | [Launch Module 07](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/07-chemical-capacitance/) |
+| 08 — Impedance Spectroscopy and Transmission Lines | How do time scales, diffusion boundaries, and mixed conduction shape an impedance spectrum? | [Launch Module 08](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/08-impedance-tlm/) |
 
 The sequence follows three broad stages:
 
@@ -32,8 +33,8 @@ The sequence follows three broad stages:
    populations to microscopic hopping and macroscopic diffusion.
 2. **Interfaces and polarization:** Modules 04–05 introduce space charge,
    capacitance, interfacial kinetics, and blocking-electrode polarization.
-3. **Electrochemical methods:** Modules 06–07 connect time-domain titration
-   experiments with frequency-domain impedance and transmission lines.
+3. **Electrochemical methods:** Modules 06–08 connect time-domain titration,
+   chemical storage, frequency-domain diffusion, and transmission lines.
 
 ## Using the notebooks
 
@@ -55,12 +56,12 @@ uv sync
 uv run marimo edit 01_defect_formation.py
 ~~~
 
-Replace the filename with any of the seven numbered notebooks. Use `marimo run`
+Replace the filename with any of the eight numbered notebooks. Use `marimo run`
 instead of `marimo edit` to present a notebook as an app.
 
 ## Repository guide
 
-- `01_defect_formation.py` through `07_impedance_tlm.py` are the self-contained
+- `01_defect_formation.py` through `08_impedance_tlm.py` are the self-contained
   teaching notebooks.
 - `pages/index.html` is the course landing page deployed by GitHub Pages.
 - [`docs/NOTATION.md`](docs/NOTATION.md) connects symbols and sign conventions

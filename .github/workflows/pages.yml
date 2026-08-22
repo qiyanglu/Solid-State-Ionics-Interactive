@@ -31,11 +31,14 @@ jobs:
           mkdir -p _site/07-impedance-tlm
           cp pages/07-impedance-tlm/index.html _site/07-impedance-tlm/index.html
 
-      - name: Check all current marimo notebooks
+      - name: Check all eight marimo notebooks
         run: >-
           uv run --isolated --with "marimo==0.24.0"
           marimo check --strict
-          01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py 06_pitt_gitt.py 08_impedance_tlm.py
+          01_defect_formation.py 02_brouwer_sto.py 03_defect_transport.py 04_space_charge_frumkin.py 05_stoichiometry_polarization.py 06_pitt_gitt.py 07_chemical_capacitance.py 08_impedance_tlm.py
+
+      - name: Check cross-module chemical-capacitance identities
+        run: python scripts/check_chemical_capacitance_consistency.py
 
       - name: Export Module 01 - defect formation thermodynamics
         run: >-
@@ -77,6 +80,13 @@ jobs:
           uv run --isolated --with "marimo==0.24.0"
           marimo export html-wasm 06_pitt_gitt.py
           -o _site/06-pitt-gitt
+          --mode run --no-show-code --no-execute -f
+
+      - name: Export Module 07 - chemical capacitance
+        run: >-
+          uv run --isolated --with "marimo==0.24.0"
+          marimo export html-wasm 07_chemical_capacitance.py
+          -o _site/07-chemical-capacitance
           --mode run --no-show-code --no-execute -f
 
       - name: Export Module 08 - impedance spectroscopy and TLM
@@ -122,7 +132,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          for route in 01-defect-formation 02-brouwer-sto 03-defect-transport 04-space-charge-frumkin 05-stoichiometry-polarization 06-pitt-gitt 08-impedance-tlm; do
+          for route in 01-defect-formation 02-brouwer-sto 03-defect-transport 04-space-charge-frumkin 05-stoichiometry-polarization 06-pitt-gitt 07-chemical-capacitance 08-impedance-tlm; do
             module_url="${SITE_URL%/}/${route}/"
             html="$(curl --fail --silent --show-error \
               --retry 12 --retry-all-errors --retry-delay 5 \
@@ -146,3 +156,9 @@ jobs:
               "${module_url}assets/${run_page_asset}" >/dev/null
             echo "Verified ${route}: ${entry_asset} -> assets/${run_page_asset}"
           done
+
+          redirect_html="$(curl --fail --silent --show-error \
+            --retry 12 --retry-all-errors --retry-delay 5 \
+            "${SITE_URL%/}/07-impedance-tlm/")"
+          grep -q "08-impedance-tlm" <<< "$redirect_html"
+          echo "Verified legacy redirect: 07-impedance-tlm -> 08-impedance-tlm"

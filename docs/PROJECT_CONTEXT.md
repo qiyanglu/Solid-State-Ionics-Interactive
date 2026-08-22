@@ -42,7 +42,9 @@ interactive prediction, and a measurable consequence.
    mixed conductor between ion-blocking electrodes.
 6. **PITT and GITT** — selective contacts, voltage/current pulses, OCV
    relaxation, and short- and long-time diffusion limits.
-7. **Impedance Spectroscopy and Transmission Lines** — ideal elements,
+7. **Chemical Capacitance** — differential neutral storage from free energy,
+   thermodynamic factors, defect examples, measurement, and thickness scaling.
+8. **Impedance Spectroscopy and Transmission Lines** — ideal elements,
    relaxation arcs, Warburg diffusion, and a continuous two-rail MIEC model.
 
 ## Shared notation and conventions
@@ -88,7 +90,7 @@ NumPy, SciPy, and matplotlib so the notebooks can be exported as browser-hosted
 WASM apps.
 
 `pages/index.html` is the course landing page. The GitHub Pages workflow checks
-all seven notebooks, exports each route independently, deploys the static site,
+all eight notebooks, exports each route independently, deploys the static site,
 and verifies each dynamic marimo entry module after deployment.
 
 ## Current limitations
@@ -100,7 +102,9 @@ and verifies each dynamic marimo entry module after deployment.
   do not model phase transformations, porous electrodes, or arbitrary
   composition-dependent coefficients.
 - Module 04 omits specific adsorption and full Marcus kinetics.
-- Module 07 uses ideal capacitors and a uniform reduced transmission line; it
+- Module 07 uses local, small-signal chemical storage and treats phase
+  separation only through a teaching regular-solution extension.
+- Module 08 uses ideal capacitors and a uniform reduced transmission line; it
   does not fit experimental spectra or claim a unique equivalent circuit.
 
 ## Roadmap
