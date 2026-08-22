@@ -92,7 +92,7 @@ def _(mo):
     and then shortened to $V,n,p,A$. The course notation may write the same
     constants as $K_O$ and $K_{el}$; here $K_{red}\equiv K_O$ and
     $K_{eh}\equiv K_{el}$. See the shared
-    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
+    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/docs/NOTATION.md).
 
     We retain only oxygen vacancies $V=[V_{\mathrm{O}}^{\bullet\bullet}]$, electrons
     $n=[e']$, holes $p=[h^\bullet]$, and a fixed concentration

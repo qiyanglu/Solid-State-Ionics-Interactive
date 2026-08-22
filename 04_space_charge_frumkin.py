@@ -89,7 +89,7 @@ def _(mo):
     Sections 3–4 are the interface extension: capacitance and reaction-plane
     kinetics. The geometry is planar and one-dimensional; $\phi_0$ is a boundary
     condition supplied by the charged core. See the shared
-    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md).
+    [notation bridge](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/docs/NOTATION.md).
 
     A surface, grain boundary, or phase boundary can have a different defect
     formation energy from the bulk. Defects may therefore segregate into a thin

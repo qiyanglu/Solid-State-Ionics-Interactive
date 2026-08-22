@@ -6,9 +6,9 @@ This repository contains interactive teaching modules for a Solid State Ionics
 course. Favor physical transparency, projector readability, and short
 self-contained notebooks over framework-building.
 
-Before editing a notebook, read PROJECT_CONTEXT.md, NOTATION.md, and
-STYLE_GUIDE.md. Use STUDENT_FIRST_AUDIT.md as the current editorial map and
-record browser-level evidence in VISUAL_QA.md.
+Before editing a notebook, read docs/PROJECT_CONTEXT.md, docs/NOTATION.md, and
+docs/STYLE_GUIDE.md. Use docs/STUDENT_FIRST_AUDIT.md as the current editorial
+map and record browser-level evidence in docs/VISUAL_QA.md.
 
 ## Scientific invariants
 
@@ -123,14 +123,14 @@ record browser-level evidence in VISUAL_QA.md.
 
 - Do not create a separate physics package until multiple modules need shared
   kernels.
-- Update `PROJECT_CONTEXT.md` only when scientific scope, repository
+- Update `docs/PROJECT_CONTEXT.md` only when scientific scope, repository
   architecture, shared notation, or the module roadmap changes. Routine visual
   polish and numerical bug fixes do not require a context rewrite.
 
 ## Visualization
 
 - Use projector-readable typography, low-saturation colors, and the hierarchy
-  in STYLE_GUIDE.md. Pair color with line style, markers, or direct labels
+  in docs/STYLE_GUIDE.md. Pair color with line style, markers, or direct labels
   where curves must remain distinguishable without color.
 - Capitalize plot labels and titles consistently. Typeset scientific quantities
   with math text, and state units or an explicit dimensionless normalization on
@@ -192,7 +192,7 @@ Before handing off a change:
     contact sheet is supplementary evidence, not browser visual QA.
 
 Browser screenshots are mandatory before a notebook commit. Record their paths
-and findings in VISUAL_QA.md. User-reported overlap, clipping, dead controls,
+and findings in docs/VISUAL_QA.md. User-reported overlap, clipping, dead controls,
 or distorted Nyquist geometry is a release-blocking defect. A lightweight
 bounding-box warning check may help find problems, but it never replaces visual
 inspection.

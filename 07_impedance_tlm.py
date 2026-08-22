@@ -2594,7 +2594,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    **Reference:** [shared notation and sign conventions](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/NOTATION.md)
+    **Reference:** [shared notation and sign conventions](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/docs/NOTATION.md)
     """)
     return
 
