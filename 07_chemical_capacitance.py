@@ -58,8 +58,8 @@ def _(mo):
     mo.md(r"""
     # Module 07 · Chemical Capacitance: Thermodynamics, Defects, and Measurement
 
-    **How much neutral composition can a solid store when its chemical potential
-    changes by a small amount?**
+    **How can a solid store electrochemical charge by changing its neutral
+    composition?**
 
     Chemical capacitance answers that question. It is not an extra electrostatic
     capacitor hidden inside a crystal. It is the differential storage associated
@@ -623,7 +623,10 @@ def _(
             f"$R_{{\\rm amb}}C_{{\\rm chem}}={selected_rc_s_07:.3e}$ s."
         ),
         mo.callout(
-            r"The exact slab identity $R_{\rm amb}C_{\rm chem}=L^2/D^\delta$ is the bridge to the transmission line in Module 08.",
+            mo.md(
+                r"The exact slab identity $R_{\rm amb}C_{\rm chem}=L^2/D^\delta$ "
+                "is the bridge to the transmission line in Module 08."
+            ),
             kind="info",
         ),
     ])

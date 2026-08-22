@@ -152,3 +152,36 @@ false positives. All other final layout scans reported no clipping or overlap.
 The final browser-executed physical checks report **53 PASS and 0 CHECK**:
 Modules 01–07 contribute 6, 3, 7, 7, 6, 12, and 12 passing rows. Every exported
 route also contains its entry bundle and dynamically imported `run-page` asset.
+
+## Chemical capacitance module insertion — 2026-08-22
+
+The historical Module 07 rows above refer to the impedance/TLM reader, which is
+now Module 08. They remain unchanged as records of those earlier passes.
+
+The new Module 07 WASM app was rebuilt and exercised at 390 × 844,
+1280 × 800, and 1920 × 1080. The in-app browser controller could not initialize
+on this Windows host because of the same local ACL restriction recorded above,
+so the established Chromium DevTools helper supplied equivalent real-browser
+interaction and screenshots. Browser inspection found and fixed two issues
+before acceptance: the opening question now uses the requested neutral-storage
+framing, and the slab RC identity now renders as mathematics rather than raw
+LaTeX.
+
+Screenshot paths below are relative to
+dist/visual-qa/chemical-capacitance-module-07-2026-08-22/.
+
+| View | Evidence | Finding | Status |
+|---|---|---|---:|
+| Opening and dielectric/chemical schematic | module-07-default-laptop-final.jpg | The guiding question, causal chain, learning goals, and qualitative two-panel comparison are readable without clipping. | **Pass** |
+| Chemical-potential slope and differential storage | storage-low-mobile.jpg; storage-high-projector.jpg | Moving \(x\) from 0.02 to 0.85 moves the selected state from the dilute edge to the concentrated edge; the inverse-slope interpretation remains visible at both sizes. | **Pass** |
+| Linked \(G\rightarrow\mu\rightarrow C_{\rm chem}\) view | free-energy-default-laptop.jpg; free-energy-low-mobile.jpg; free-energy-high-projector.jpg | The same selected composition appears in all three thermodynamic views. Labels remain legible and no plotted text overlaps the data. | **Pass** |
+| Conductivity–storage bridge | transport-default-laptop-final.jpg; transport-electron-limited-mobile-final.jpg; transport-electron-fast-projector-final.jpg | The selected point moves from the electron-limited branch to the high-\(\sigma_e\) ionic bottleneck; both \( \sigma_{\rm amb}\) and \(D^\delta\) respond visibly. | **Pass** |
+| Thickness scaling and RC bridge | thickness-interface-mobile-final.jpg; thickness-bulk-projector-final.jpg | Thin/interface-dominated and thick/bulk-dominated limits are visually distinct. The rendered \(R_{\rm amb}C_{\rm chem}=L^2/D^\delta\) callout is clear. | **Pass** |
+
+All reported layout scans returned no clipping. The mobile scan associated
+marimo's top-right menu button with the nearest section heading in three views;
+direct inspection confirmed clear separation, so these are false positives.
+All eight Module 07 controls have reactive value consumers. The final executed
+notebook reports ten passing physical checks, the four cross-module
+chemical-capacitance identities pass, and all eight WASM routes contain both
+their hashed entry bundle and dynamically imported run-page asset.
