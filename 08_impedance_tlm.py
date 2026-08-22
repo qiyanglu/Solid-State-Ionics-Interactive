@@ -71,7 +71,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    # Impedance spectroscopy: from a sine wave to a transport model
+    # Module 08 · Impedance spectroscopy: from a sine wave to a transport model
 
     **What can respond at a chosen frequency?**
 
@@ -84,6 +84,7 @@ def _(mo):
     We will first learn the complex-number language, then watch one-dimensional
     chemical diffusion create Warburg impedance, and finally connect that
     picture to the two-rail transmission line of a mixed conductor.
+
 
     The convention throughout is
 
@@ -359,13 +360,17 @@ def _(np):
             c_chemical * length_m,
             conductivity_ratio,
         )
+        r_e_per_m = parameters["R_e_ohm"] / length_m
+        r_i_per_m = parameters["R_i_ohm"] / length_m
+        diffusivity = 1.0 / ((r_e_per_m + r_i_per_m) * c_chemical)
         parameters.update(
             {
                 "length_m": length_m,
                 "r_parallel_ohm_per_m": r_parallel,
                 "c_chemical_f_per_m": c_chemical,
-                "r_e_ohm_per_m": parameters["R_e_ohm"] / length_m,
-                "r_i_ohm_per_m": parameters["R_i_ohm"] / length_m,
+                "r_e_ohm_per_m": r_e_per_m,
+                "r_i_ohm_per_m": r_i_per_m,
+                "D_chemical_m2_per_s": diffusivity,
             }
         )
         return parameters
@@ -1588,9 +1593,22 @@ def _(mo):
     A useful time scale is
 
     $$
-    \tau_{\rm chem}=(R_e+R_i)C_{\rm chem},\qquad
-    f_{\rm chem}=\frac{1}{2\pi\tau_{\rm chem}},
+    D^\delta=\frac{1}{(r_e+r_i)c_{\rm chem}},\qquad
+    \boxed{(R_e+R_i)C_{\rm chem}=\frac{L^2}{D^\delta}},
+    \qquad
+    f_{\rm chem}=\frac{1}{2\pi(R_e+R_i)C_{\rm chem}}.
     $$
+
+    Module 07 derived the storage term. For the ideal monovalent pair used in
+    Modules 03, 05, and 06,
+
+    $$
+    C_{\rm chem}=c_{\rm chem}^VSL
+    =\frac{F^2SLc}{2RT},\qquad c_{\rm chem}=c_{\rm chem}^V S.
+    $$
+
+    The TLM therefore recovers the same chemical diffusivity and the same
+    finite-slab clock rather than introducing a second transport coefficient.
 
     Here $r_e,r_i$ have units $\Omega$ m$^{-1}$ and $c_{\rm chem}$ has units
     F m$^{-1}$. Total quantities are $R_e=r_eL$, $R_i=r_iL$, and
@@ -1890,6 +1908,23 @@ def _(
         tlm_selected_omega_07,
         tlm_spectrum_data_07,
     )
+
+
+@app.cell
+def _(mo, tlm_parameter_data_07):
+    mo.callout(
+        mo.md(
+            rf"""
+            The distributed controls imply
+            $D^\delta=\mathbf{{{tlm_parameter_data_07['D_chemical_m2_per_s'] * 1.0e4:.3e}}}$
+            cm² s$^{{-1}}$ and
+            $(R_e+R_i)C_{{\rm chem}}=\mathbf{{{tlm_parameter_data_07['tau_chemical_s']:.3e}}}$ s.
+            These are the same storage–transport identities developed in Module 07.
+            """
+        ),
+        kind="info",
+    )
+    return
 
 
 @app.cell
@@ -2376,6 +2411,15 @@ def _(
         abs(_tlm_distributed_check["r_e_ohm_per_m"] * _length_check_m / _tlm_distributed_check["R_e_ohm"] - 1.0),
         abs(_tlm_distributed_check["r_i_ohm_per_m"] * _length_check_m / _tlm_distributed_check["R_i_ohm"] - 1.0),
     )
+    _distributed_d_from_line = 1.0 / (
+        (_tlm_distributed_check["r_e_ohm_per_m"] + _tlm_distributed_check["r_i_ohm_per_m"])
+        * _tlm_distributed_check["c_chemical_f_per_m"]
+    )
+    _distributed_d_from_time = _length_check_m**2 / _tlm_distributed_check["tau_chemical_s"]
+    tlm_diffusivity_mapping_error_07 = max(
+        abs(_tlm_distributed_check["D_chemical_m2_per_s"] / _distributed_d_from_line - 1.0),
+        abs(_tlm_distributed_check["D_chemical_m2_per_s"] / _distributed_d_from_time - 1.0),
+    )
     _scale_check = warburg_scales_07(120.0, 2.0e-8, 250.0, 0.8, 800.0, 1.0)
     warburg_resistance_scale_error_07 = abs(
         _scale_check["resistance_general_ohm"]
@@ -2394,6 +2438,7 @@ def _(
         series_rc_limit_error_07,
         tlm_boundary_error_07,
         tlm_current_conservation_error_07,
+        tlm_diffusivity_mapping_error_07,
         tlm_extreme_profile_error_07,
         tlm_extreme_profile_finiteness_07,
         tlm_finiteness_07,
@@ -2425,6 +2470,7 @@ def _(
     rc_peak_error_07,
     tlm_boundary_error_07,
     tlm_current_conservation_error_07,
+    tlm_diffusivity_mapping_error_07,
     tlm_extreme_profile_error_07,
     tlm_extreme_profile_finiteness_07,
     tlm_finiteness_07,
@@ -2494,8 +2540,8 @@ def _(
         ),
         (
             "TLM voltage and unit mappings",
-            max(tlm_voltage_mapping_error_07, tlm_total_distributed_error_07) < 1.0e-12,
-            "$u_e-u_i$ must be the stored chemical voltage, and distributed quantities must recover their totals after multiplication by $L$.",
+            max(tlm_voltage_mapping_error_07, tlm_total_distributed_error_07, tlm_diffusivity_mapping_error_07) < 1.0e-12,
+            r"$u_e-u_i$ must be the stored chemical voltage; distributed quantities must recover their totals and $D^\delta=1/[(r_e+r_i)c_{\rm chem}]$.",
         ),
         (
             "Collapsed reversible-contact regression",
@@ -2594,6 +2640,8 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
+    **Previous:** [Module 07 — Chemical Capacitance](https://qiyanglu.github.io/Solid-State-Ionics-Interactive/07-chemical-capacitance/)
+
     **Reference:** [shared notation and sign conventions](https://github.com/qiyanglu/Solid-State-Ionics-Interactive/blob/main/docs/NOTATION.md)
     """)
     return
